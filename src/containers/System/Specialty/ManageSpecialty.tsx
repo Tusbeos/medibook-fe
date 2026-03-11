@@ -75,30 +75,38 @@ const ManageSpecialty = () => {
       return;
     }
 
-    let data: any = {
-      name,
-      imageBase64,
-      descriptionHTML,
-      descriptionMarkdown,
-    };
+    try {
+      let data: any = {
+        name,
+        imageBase64,
+        descriptionHTML,
+        descriptionMarkdown,
+      };
 
-    let res;
-    if (isEditing) {
-      res = await updateSpecialtyService({ ...data, id: editSpecialtyId });
-    } else {
-      res = await createNewSpecialtyService(data);
-    }
+      let res;
+      if (isEditing) {
+        res = await updateSpecialtyService({ ...data, id: editSpecialtyId });
+      } else {
+        res = await createNewSpecialtyService(data);
+      }
 
-    if (res && res.errCode === 0) {
-      toast.success(
-        isEditing
-          ? "Cập nhật chuyên khoa thành công!"
-          : "Thêm chuyên khoa thành công!",
-      );
-      resetForm();
-      fetchAllSpecialties();
-    } else {
-      toast.error(res.errMessage || "Đã có lỗi xảy ra!");
+      if (res && res.errCode === 0) {
+        toast.success(
+          isEditing
+            ? "Cập nhật chuyên khoa thành công!"
+            : "Thêm chuyên khoa thành công!",
+        );
+        resetForm();
+        fetchAllSpecialties();
+      } else {
+        toast.error(res?.errMessage || "Đã có lỗi xảy ra!");
+      }
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.errMessage ||
+        e?.response?.data?.message ||
+        "Đã có lỗi xảy ra!";
+      toast.error(msg);
     }
   };
 

@@ -11,5 +11,46 @@
         border-radius: 10px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         text-align: center;
+
+        .status-box {
+            &.expired {
+                .icon-expired {
+                    font-size: 60px;
+                    color: #fa8c16;
+                    display: block;
+                    margin-bottom: 16px;
+                }
+                .title {
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: #d46b08;
+                    margin-bottom: 12px;
+                }
+                .text {
+                    font-size: 15px;
+                    color: #595959;
+                    line-height: 1.6;
+                    margin-bottom: 24px;
+                }
+            }
+        }
+
+        .btn-rebook {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background-color: #45c3d2;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            &:hover {
+                background-color: #35a8b8;
+            }
+        }
     }
 }

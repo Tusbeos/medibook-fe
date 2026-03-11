@@ -12,7 +12,7 @@ const HomeFooter: React.FC = () => {
           <div className="footer-top-section row">
             <div className="col-md-5 col-sm-12 footer-col">
               <div className="company-info">
-                <small>Công ty Cổ phần Công nghệ BookingCare</small>
+                <small>Công ty Cổ phần Công nghệ MediBook</small>
                 <div className="info-item">
                   <i className="fas fa-map-marker-alt"></i>
                   <span>
@@ -32,7 +32,7 @@ const HomeFooter: React.FC = () => {
                 </div>
                 <div className="info-item">
                   <i className="fas fa-envelope"></i>
-                  <span>support@bookingcare.vn (7h30 - 18h)</span>
+                  <span>support@medibook.vn (7h30 - 18h)</span>
                 </div>
                 <div className="info-item">
                   <i className="fas fa-map-marker-alt"></i>
@@ -47,12 +47,12 @@ const HomeFooter: React.FC = () => {
                 {/* Ảnh bộ công thương - Bạn thay src bằng ảnh thật của bạn */}
                 <div className="bct-badges">
                   <img
-                    src="https://bookingcare.vn/assets/icon/bo-cong-thuong.svg"
+                    src="https://medibook.vn/assets/icon/bo-cong-thuong.svg"
                     alt="Da dang ky"
                     width="100"
                   />
                   <img
-                    src="https://bookingcare.vn/assets/icon/bo-cong-thuong.svg"
+                    src="https://medibook.vn/assets/icon/bo-cong-thuong.svg"
                     alt="Da thong bao"
                     width="100"
                     className="ml-2"
@@ -63,11 +63,11 @@ const HomeFooter: React.FC = () => {
 
             {/* Cột 2: Logo & Links */}
             <div className="col-md-3 col-sm-12 footer-col">
-              <div className="bookingCare-links">
-                {/* Logo BookingCare */}
+              <div className="MediBook-links">
+                {/* Logo MediBook */}
                 <div className="footer-logo mb-3">
                   <strong style={{ color: "#45c3d2", fontSize: "20px" }}>
-                    BookingCare
+                    MediBook
                   </strong>
                 </div>
                 <ul>
@@ -156,11 +156,10 @@ const HomeFooter: React.FC = () => {
               <div className="app-download mt-3">
                 <i className="fas fa-mobile-alt mr-2"></i>
                 <span>
-                  Tải ứng dụng BookingCare cho điện thoại hoặc máy tính
-                  bảng:{" "}
+                  Tải ứng dụng MediBook cho điện thoại hoặc máy tính bảng:{" "}
                 </span>
                 <a
-                  href="https://play.google.com/store/apps/details?id=vn.bookingcare.bookingcare"
+                  href="https://play.google.com/store/apps/details?id=vn.medibook.MediBook"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="footer-link-btn"
@@ -169,7 +168,7 @@ const HomeFooter: React.FC = () => {
                 </a>{" "}
                 -
                 <a
-                  href="https://apps.apple.com/vn/app/bookingcare/id1347700144"
+                  href="https://apps.apple.com/vn/app/medibook/id1347700144"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="footer-link-btn"
@@ -178,7 +177,7 @@ const HomeFooter: React.FC = () => {
                 </a>{" "}
                 -
                 <a
-                  href="https://bookingcare.vn/app"
+                  href="https://medibook.vn/app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="footer-link-btn"
@@ -192,7 +191,7 @@ const HomeFooter: React.FC = () => {
 
         <div className="footer-bottom">
           <div className="container d-flex justify-content-between align-items-center h-100">
-            <div className="copyright">&copy; 2026 BookingCare.</div>
+            <div className="copyright">&copy; 2026 MediBook.</div>
             <div className="social-icons">
               <button type="button" className="footer-link-btn">
                 <i className="fab fa-tiktok"></i>

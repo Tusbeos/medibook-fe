@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useHistory } from "react-router-dom";
 import "./VerifyEmail.scss";
 import { handleVerifyEmail } from "../../services/bookingService";
 
 const VerifyEmail = () => {
   const location = useLocation();
+  const history = useHistory();
   const [statusVerify, setStatusVerify] = useState(false);
   const [status, setStatus] = useState("LOADING");
   const [message, setMessage] = useState("");
+  const [expiredDoctorId, setExpiredDoctorId] = useState<number>(0);
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -17,18 +19,29 @@ const VerifyEmail = () => {
         // doctorId từ URL params là string, cần parse sang number cho BE (VerifyBookingRequest.doctorId là Integer)
         let doctorIdRaw = urlParams.get("doctorId");
         let doctorId = doctorIdRaw ? Number(doctorIdRaw) : 0;
-        let res = await handleVerifyEmail({
-          token: token,
-          doctorId: doctorId,
-        });
-        if (res && res.errCode === 0) {
-          setStatusVerify(true);
-          setTimeout(() => {
-            setStatus("SUCCEEDED");
-          }, 1500);
-        } else {
-          setStatus("FAILED");
-          setMessage("Lỗi xác thực. Vui lòng thử lại sau.");
+        try {
+          let res = await handleVerifyEmail({
+            token: token,
+            doctorId: doctorId,
+          });
+          if (res && res.errCode === 0) {
+            setStatusVerify(true);
+            setTimeout(() => {
+              setStatus("SUCCEEDED");
+            }, 1500);
+          } else {
+            setStatus("FAILED");
+            setMessage("Lỗi xác thực. Vui lòng thử lại sau.");
+          }
+        } catch (err: any) {
+          const serverMsg: string = err?.response?.data?.message || "";
+          if (err?.response?.status === 409 || serverMsg.includes("hết hạn")) {
+            setExpiredDoctorId(doctorId);
+            setStatus("EXPIRED");
+          } else {
+            setStatus("FAILED");
+            setMessage("Lỗi xác thực. Vui lòng thử lại sau.");
+          }
         }
       }
     };
@@ -50,8 +63,8 @@ const VerifyEmail = () => {
               <i className="fas fa-check-circle icon-success"></i>
               <div className="title">Xác nhận thành công!</div>
               <div className="text">
-                Cảm ơn bạn đã xác nhận. Lịch hẹn của bạn đã được ghi nhận vào
-                hệ thống.
+                Cảm ơn bạn đã xác nhận. Lịch hẹn của bạn đã được ghi nhận vào hệ
+                thống.
               </div>
             </div>
           )}
@@ -65,6 +78,26 @@ const VerifyEmail = () => {
                   ? message
                   : "Token không hợp lệ hoặc lịch hẹn đã được xác nhận."}
               </div>
+            </div>
+          )}
+
+          {status === "EXPIRED" && (
+            <div className="status-box expired">
+              <i className="fas fa-clock icon-expired"></i>
+              <div className="title">Quá hạn xác nhận email!</div>
+              <div className="text">
+                Link xác nhận chỉ có hiệu lực trong <strong>5 phút</strong>.
+                <br />
+                Vui lòng đặt lịch lại với bác sĩ.
+              </div>
+              <button
+                className="btn-rebook"
+                onClick={() =>
+                  history.push(`/detail-doctor/${expiredDoctorId}`)
+                }
+              >
+                <i className="fas fa-calendar-plus"></i> Đặt lịch lại
+              </button>
             </div>
           )}
         </div>

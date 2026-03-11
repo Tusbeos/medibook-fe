@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "MediBoook",
+  "name": "MediBoook - Hệ thống đặt lịch khám",
   "icons": [
     {
       "src": "favicon.ico",

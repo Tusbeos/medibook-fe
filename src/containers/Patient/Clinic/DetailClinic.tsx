@@ -199,10 +199,7 @@ const DetailClinic = () => {
       <div className="clinic-nav-tabs">
         <div className="booking-container">
           <div className="tab-list">
-            <span
-              className="tab-item"
-              onClick={() => handleScrollTo("intro")}
-            >
+            <span className="tab-item" onClick={() => handleScrollTo("intro")}>
               Giới thiệu
             </span>
             <span
@@ -216,9 +213,7 @@ const DetailClinic = () => {
                 <span
                   key={i}
                   className="tab-item"
-                  onClick={() =>
-                    handleScrollTo("markdown", item.originalIndex)
-                  }
+                  onClick={() => handleScrollTo("markdown", item.originalIndex)}
                 >
                   {item.title}
                 </span>
@@ -231,8 +226,8 @@ const DetailClinic = () => {
         <div className="booking-container">
           <div className="intro-section" ref={introRef}>
             <div className="notice-box-yellow">
-              <strong>BookingCare</strong> là Nền tảng Y tế chăm sóc sức khỏe
-              toàn diện...
+              <strong>MediBook</strong> là Nền tảng Y tế chăm sóc sức khỏe toàn
+              diện...
             </div>
             <div className="info-box-blue">
               <p>

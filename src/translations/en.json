@@ -1,5 +1,5 @@
 {
-  "name": "BookingCare",
+  "name": "MediBook",
   "components": {
     "doctor-card": {
       "no-schedule": "No schedule available for this day",
