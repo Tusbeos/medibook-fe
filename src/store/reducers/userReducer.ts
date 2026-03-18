@@ -1,5 +1,6 @@
 import actionTypes from "../actions/actionTypes";
 import { IUserState } from "../../types";
+import tokenManager from "../../utils/tokenManager";
 
 const initialState: IUserState = {
   isLoggedIn: false,
@@ -13,6 +14,7 @@ const appReducer = (
 ): IUserState => {
   switch (action.type) {
     case actionTypes.USER_LOGIN_SUCCESS:
+      tokenManager.setToken(action.token || null);
       return {
         ...state,
         isLoggedIn: true,
@@ -20,6 +22,7 @@ const appReducer = (
         token: action.token || null,
       };
     case actionTypes.USER_LOGIN_FAIL:
+      tokenManager.clearToken();
       return {
         ...state,
         isLoggedIn: false,
@@ -27,6 +30,7 @@ const appReducer = (
         token: null,
       };
     case actionTypes.PROCESS_LOGOUT:
+      tokenManager.clearToken();
       return {
         ...state,
         isLoggedIn: false,

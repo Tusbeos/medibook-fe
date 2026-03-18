@@ -86,6 +86,19 @@
       "description": "Description",
       "save": "Save Specialty",
       "edit": "Edit Specialty"
+    },
+    "manage-package": {
+      "title": "Manage medical package information",
+      "name-package": "Package Name",
+      "price-package": "Package Price (VND)",
+      "type-package": "Package Type",
+      "clinic-package": "Clinic",
+      "image-package": "Package Image",
+      "upload-image": "Upload Image",
+      "note-package": "Note",
+      "description": "Description",
+      "save": "Save Package",
+      "edit": "Edit Package"
     }
   },
   "manage-user": {

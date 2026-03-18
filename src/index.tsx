@@ -10,8 +10,22 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 
 import { Provider } from 'react-redux';
 import reduxStore, { persistor } from './reduxStore';
+import tokenManager from './utils/tokenManager';
+import { processLogout } from './store/actions';
 
 const renderApp = () => {
+    // Đăng ký logout handler cho tokenManager (Axios sẽ gọi khi nhận 401)
+    tokenManager.setLogoutHandler(() => {
+      reduxStore.dispatch(processLogout());
+    });
+
+    // Khôi phục token từ Redux persisted state (sau khi refresh trang)
+    const state = reduxStore.getState() as any;
+    const persistedToken = state?.user?.token;
+    if (persistedToken) {
+      tokenManager.setToken(persistedToken);
+    }
+
     ReactDOM.render(
         <Provider store={reduxStore}>
             <IntlProviderWrapper>

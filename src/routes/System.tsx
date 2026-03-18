@@ -6,6 +6,7 @@ import ManageDoctor from "../containers/System/Doctor/ManageDoctor";
 import Header from "containers/Header/Header";
 import ManageSpecialty from "containers/System/Specialty/ManageSpecialty";
 import ManageClinic from "containers/System/Clinic/ManageClinic";
+import ManagePackage from "containers/System/Package/ManagePackage";
 import { IRootState } from "../types";
 
 const System = () => {
@@ -24,6 +25,7 @@ const System = () => {
               component={ManageSpecialty}
             />
             <Route path="/system/manage-clinic" component={ManageClinic} />
+            <Route path="/system/manage-package" component={ManagePackage} />
             <Route render={() => <UserRedux />} />
           </Switch>
         </div>

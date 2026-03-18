@@ -47,7 +47,9 @@
       "specialty": "Chuyên khoa",
       "manage-specialty": "Quản lý chuyên khoa",
       "handbook": "Cẩm nang",
-      "manage-handbook": "Quản lý cẩm nang"
+      "manage-handbook": "Quản lý cẩm nang",
+      "package": "Gói khám",
+      "manage-package": "Quản lý gói khám"
     },
     "doctor": {
       "manage-doctor": "Quản lý bác sĩ",
@@ -85,6 +87,19 @@
       "upload-image": "Tải ảnh",
       "description": "Mô tả Chuyên Khoa",
       "save": "Lưu Thông Tin"
+    },
+    "manage-package": {
+      "title": "Quản lý gói khám",
+      "name-package": "Tên gói khám",
+      "price-package": "Giá gói khám (VNĐ)",
+      "type-package": "Loại gói khám",
+      "clinic-package": "Phòng khám",
+      "image-package": "Ảnh gói khám",
+      "upload-image": "Tải ảnh",
+      "note-package": "Ghi chú",
+      "description": "Mô tả gói khám",
+      "save": "Lưu Thông Tin",
+      "edit": "Cập nhật"
     }
   },
   "manage-user": {

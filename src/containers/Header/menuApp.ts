@@ -42,6 +42,15 @@ export const adminMenu: IMenuGroup[] = [
     ],
   },
   {
+    name: "menu.admin.package",
+    menus: [
+      {
+        name: "menu.admin.manage-package",
+        link: "/system/manage-package",
+      },
+    ],
+  },
+  {
     name: "menu.admin.handbook",
     menus: [
       {
