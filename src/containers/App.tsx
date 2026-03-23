@@ -1,14 +1,13 @@
 import React, { Fragment, useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { Route, Switch } from "react-router-dom";
-import { ConnectedRouter as Router } from "connected-react-router";
-import { history } from "../reduxStore";
+import { Route, Routes } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import {
-  userIsAuthenticated,
-  userIsNotAuthenticated,
-  userIsAdmin,
-  userIsDoctorOrAdmin,
+  RequireAuth,
+  RedirectIfAuth,
+  RequireAdmin,
+  RequireDoctorOrAdmin,
 } from "../hoc/authentication";
 import Doctor from "../routes/Doctor";
 
@@ -24,8 +23,8 @@ import DetailDoctor from "./Patient/Doctor/DetailDoctor";
 import BookingDoctor from "./Patient/Booking/BookingDoctor";
 import VerifyEmail from "./Patient/VerifyEmail";
 import SpecialtyList from "./Patient/Specialty/SpecialtyList";
-import detailSpecialty from "./Patient/Specialty/DetailSpecialty";
-import detailClinic from "./Patient/Clinic/DetailClinic";
+import DetailSpecialty from "./Patient/Specialty/DetailSpecialty";
+import DetailClinic from "./Patient/Clinic/DetailClinic";
 import ClinicList from "./Patient/Clinic/ClinicList";
 import TopDoctorList from "./Patient/Doctor/TopDoctorList";
 import PatientProfile from "./Patient/Profile/PatientProfile";
@@ -61,54 +60,77 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
 
   return (
     <Fragment>
-      <Router history={history}>
+      <BrowserRouter>
         <div className="main-container">
           <div className="content-container">
             <CustomScrollbars style={{ height: "100vh", width: "100%" }}>
-              <Switch>
-                <Route path={path.HOME} exact component={Home} />
+              <Routes>
+                <Route path={path.HOME} element={<Home />} />
                 <Route
                   path={path.LOGIN}
-                  component={userIsNotAuthenticated(Login)}
+                  element={
+                    <RedirectIfAuth>
+                      <Login />
+                    </RedirectIfAuth>
+                  }
                 />
-                <Route path={path.SYSTEM} component={userIsAdmin(System)} />
+                <Route
+                  path={`${path.SYSTEM}/*`}
+                  element={
+                    <RequireAdmin>
+                      <System />
+                    </RequireAdmin>
+                  }
+                />
                 <Route
                   path={path.DETAIL_SPECIALTY}
-                  component={detailSpecialty}
+                  element={<DetailSpecialty />}
                 />
                 <Route
                   path={path.LIST_SPECIALTY}
-                  exact
-                  component={SpecialtyList}
+                  element={<SpecialtyList />}
                 />
-
                 <Route
-                  path={"/doctor"}
-                  component={userIsDoctorOrAdmin(Doctor)}
+                  path="/doctor/*"
+                  element={
+                    <RequireDoctorOrAdmin>
+                      <Doctor />
+                    </RequireDoctorOrAdmin>
+                  }
                 />
-                <Route path={path.HOMEPAGE} component={HomePage} />
-                <Route path={path.DETAIL_DOCTOR} component={DetailDoctor} />
-                <Route path={path.BOOKING_DOCTOR} component={BookingDoctor} />
+                <Route path={path.HOMEPAGE} element={<HomePage />} />
+                <Route path={path.DETAIL_DOCTOR} element={<DetailDoctor />} />
+                <Route
+                  path={path.BOOKING_DOCTOR}
+                  element={<BookingDoctor />}
+                />
                 <Route
                   path={path.VERIFY_EMAIL_BOOKING}
-                  component={VerifyEmail}
+                  element={<VerifyEmail />}
                 />
-                <Route path={path.LIST_CLINIC} exact component={ClinicList} />
-                <Route path={path.DETAIL_CLINIC} component={detailClinic} />
+                <Route path={path.LIST_CLINIC} element={<ClinicList />} />
+                <Route path={path.DETAIL_CLINIC} element={<DetailClinic />} />
                 <Route
                   path={path.LIST_TOP_DOCTOR}
-                  exact
-                  component={TopDoctorList}
+                  element={<TopDoctorList />}
                 />
                 <Route
                   path={path.PATIENT_PROFILE}
-                  component={userIsAuthenticated(PatientProfile)}
+                  element={
+                    <RequireAuth>
+                      <PatientProfile />
+                    </RequireAuth>
+                  }
                 />
                 <Route
                   path={path.PATIENT_HISTORY}
-                  component={userIsAuthenticated(PatientHistory)}
+                  element={
+                    <RequireAuth>
+                      <PatientHistory />
+                    </RequireAuth>
+                  }
                 />
-              </Switch>
+              </Routes>
             </CustomScrollbars>
           </div>
 
@@ -124,7 +146,7 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
             pauseOnHover
           />
         </div>
-      </Router>
+      </BrowserRouter>
     </Fragment>
   );
 };

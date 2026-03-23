@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Slider from "react-slick";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { FormattedMessage } from "react-intl";
 import { handleGetAllClinics } from "../../../services/clinicService";
 import SectionItem from "./SectionItem";
@@ -11,7 +11,7 @@ interface IMedicalFacilityProps {
 
 // MedicalFacility chuyển sang Function Component + Hooks
 const MedicalFacility: React.FC<IMedicalFacilityProps> = ({ settings }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [dataClinics, setDataClinics] = useState<any[]>([]);
 
   useEffect(() => {
@@ -25,11 +25,11 @@ const MedicalFacility: React.FC<IMedicalFacilityProps> = ({ settings }) => {
   }, []);
 
   const handleViewDetailClinic = useCallback((clinic: any) => {
-    history.push(`/clinic/detail-clinic/${clinic.id}`);
+    navigate(`/clinic/detail-clinic/${clinic.id}`);
   }, [history]);
 
   const handleClinicClick = useCallback(() => {
-    history.push("/clinic");
+    navigate("/clinic");
   }, [history]);
 
   return (

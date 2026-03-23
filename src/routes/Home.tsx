@@ -1,5 +1,5 @@
 import React from 'react';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { USER_ROLE } from "../utils";
 import { IRootState } from "../types";
@@ -19,7 +19,7 @@ const Home = () => {
   }
 
   return (
-    <Redirect to={linkToRedirect} />
+    <Navigate to={linkToRedirect} replace />
   );
 };
 

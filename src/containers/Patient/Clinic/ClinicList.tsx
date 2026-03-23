@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { handleGetAllClinics } from "../../../services/clinicService";
 import "./ClinicList.scss";
@@ -45,7 +45,7 @@ const ClinicItem = ({ name, address, imageUrl, isLast, onClick }: IClinicItemPro
 };
 
 const ClinicList = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
   const [clinics, setClinics] = useState<any[]>([]);
 
@@ -78,7 +78,7 @@ const ClinicList = () => {
 
   const handleViewDetailClinic = useCallback(
     (id: any) => {
-      history.push(`/clinic/detail-clinic/${id}`);
+      navigate(`/clinic/detail-clinic/${id}`);
     },
     [history]
   );

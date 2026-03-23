@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { handleGetTopDoctorHome } from "../../../services/doctorService";
 import "./TopDoctorList.scss";
@@ -51,7 +51,7 @@ const DoctorItem = ({
 };
 
 const TopDoctorList = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
   const [doctors, setDoctors] = useState<any[]>([]);
 
@@ -117,7 +117,7 @@ const TopDoctorList = () => {
 
   const handleViewDetailDoctor = useCallback(
     (id: any) => {
-      history.push(`/detail-doctor/${id}`);
+      navigate(`/detail-doctor/${id}`);
     },
     [history],
   );

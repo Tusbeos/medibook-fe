@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useHistory } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./VerifyEmail.scss";
 import { handleVerifyEmail } from "../../services/bookingService";
 
 const VerifyEmail = () => {
   const location = useLocation();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [statusVerify, setStatusVerify] = useState(false);
   const [status, setStatus] = useState("LOADING");
   const [message, setMessage] = useState("");
@@ -93,7 +93,7 @@ const VerifyEmail = () => {
               <button
                 className="btn-rebook"
                 onClick={() =>
-                  history.push(`/detail-doctor/${expiredDoctorId}`)
+                  navigate(`/detail-doctor/${expiredDoctorId}`)
                 }
               >
                 <i className="fas fa-calendar-plus"></i> Đặt lịch lại

@@ -12,7 +12,7 @@ import {
 import { LANGUAGES, path } from "utils";
 import { getBase64FromBuffer } from "utils/CommonUtils";
 import DoctorExtraInfo from "../../containers/Patient/Doctor/DoctorExtraInfo";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { IRootState } from "../../types";
 
 // Kiểm tra slot đã đầy chưa
@@ -67,7 +67,7 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
   doctorIds,
 }) => {
   const language = useSelector((state: IRootState) => state.app.language);
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const [doctors, setDoctors] = useState<any[]>([]);
   const [filteredDoctors, setFilteredDoctors] = useState<any[]>([]);
@@ -248,7 +248,7 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
       if (!doctorId || !path.BOOKING_DOCTOR || !history) return;
 
       const linkRedirect = path.BOOKING_DOCTOR.replace(":id", doctorId);
-      history.push({
+      navigate({
         pathname: linkRedirect,
         state: { dataTime: scheduleTime },
       });
@@ -259,7 +259,7 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
   const handleViewDetailDoctor = useCallback(
     (doctorId: any) => {
       if (history) {
-        history.push(`/detail-doctor/${doctorId}`);
+        navigate(`/detail-doctor/${doctorId}`);
       }
     },
     [history],

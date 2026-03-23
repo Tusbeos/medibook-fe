@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Slider from "react-slick";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import SectionItem from "./SectionItem";
 import { FormattedMessage } from "react-intl";
 import SpecialtyImg from "../../../assets/handbook/handbook-1.jpg";
@@ -26,10 +26,10 @@ const dataHandbooks: IHandbookItem[] = [
 
 // Handbook chuyển sang Function Component + Hooks
 const Handbook: React.FC<IHandbookProps> = ({ settings }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const handleViewDetailHandbook = useCallback((item: any) => {
-    history.push(`/detail-handbook/${item.id}`);
+    navigate(`/detail-handbook/${item.id}`);
   }, [history]);
 
   return (

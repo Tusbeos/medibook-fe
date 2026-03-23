@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FormattedMessage } from "react-intl";
 import { IRootState } from "../../types";
 import { processLogout } from "../../store/actions/userActions";
@@ -13,27 +13,27 @@ interface ISidebarDrawerProps {
 
 const SidebarDrawer: React.FC<ISidebarDrawerProps> = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
 
   const handleNavigate = useCallback(
     (path: string) => {
       onClose();
-      history.push(path);
+      navigate(path);
     },
     [history, onClose],
   );
 
   const handleLogin = useCallback(() => {
     onClose();
-    history.push("/login");
+    navigate("/login");
   }, [history, onClose]);
 
   const handleLogout = useCallback(() => {
     dispatch(processLogout());
     onClose();
-    history.push("/home");
+    navigate("/home");
   }, [dispatch, history, onClose]);
 
   const displayName = userInfo

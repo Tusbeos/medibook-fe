@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from "react-redux";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Slider from "react-slick";
 
 import * as actions from "../../../store/actions";
@@ -15,7 +15,7 @@ interface IOutStandingDoctorProps {
 
 const OutStandingDoctor: React.FC<IOutStandingDoctorProps> = ({ settings }) => {
   const dispatch = useDispatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const topDoctors = useSelector((state: IRootState) => state.admin.topDoctors);
 
   useEffect(() => {
@@ -23,11 +23,11 @@ const OutStandingDoctor: React.FC<IOutStandingDoctorProps> = ({ settings }) => {
   }, [dispatch]);
 
   const handleViewDetailDoctor = useCallback((doctor: any) => {
-    history.push(`/detail-doctor/${doctor.id}`);
+    navigate(`/detail-doctor/${doctor.id}`);
   }, [history]);
 
   const handleViewAllDoctors = useCallback(() => {
-    history.push(path.LIST_TOP_DOCTOR);
+    navigate(path.LIST_TOP_DOCTOR);
   }, [history]);
 
   return (

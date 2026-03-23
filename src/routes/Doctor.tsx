@@ -1,11 +1,10 @@
 import React from 'react';
 import { useSelector } from "react-redux";
-import { Route, Switch } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import ManageSchedule from "containers/System/Doctor/ManageSchedule";
 import Header from "containers/Header/Header";
 import ManagePatient from "containers/System/Doctor/ManagePatient";
 import Prescription from "containers/System/Doctor/Prescription";
-import { userIsDoctorOrAdmin } from "../hoc/authentication";
 import { IRootState } from "../types";
 
 const Doctor = () => {
@@ -16,20 +15,11 @@ const Doctor = () => {
       {isLoggedIn && <Header />}
       <div className="Doctor-container">
         <div className="Doctor-list">
-          <Switch>
-            <Route
-              path="/doctor/manage-schedule"
-              component={userIsDoctorOrAdmin(ManageSchedule)}
-            />
-            <Route
-              path="/doctor/manage-patient"
-              component={userIsDoctorOrAdmin(ManagePatient)}
-            />
-            <Route
-              path="/doctor/prescription/:bookingId"
-              component={userIsDoctorOrAdmin(Prescription)}
-            />
-          </Switch>
+          <Routes>
+            <Route path="manage-schedule" element={<ManageSchedule />} />
+            <Route path="manage-patient" element={<ManagePatient />} />
+            <Route path="prescription/:bookingId" element={<Prescription />} />
+          </Routes>
         </div>
       </div>
     </React.Fragment>

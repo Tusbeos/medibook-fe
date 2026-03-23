@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { FormattedMessage } from "react-intl";
 import { handleGetAllSpecialties } from "../../../services/specialtyService";
@@ -42,7 +42,7 @@ const SpecialtyItem = ({ name, imageUrl, isLast, onClick }: ISpecialtyItemProps)
 };
 
 const SpecialtyList = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
   const [specialties, setSpecialties] = useState<any[]>([]);
 
@@ -71,7 +71,7 @@ const SpecialtyList = () => {
 
   const handleViewDetailSpecialty = useCallback(
     (id: any) => {
-      history.push(`/specialty/detail-specialty/${id}`);
+      navigate(`/specialty/detail-specialty/${id}`);
     },
     [history]
   );

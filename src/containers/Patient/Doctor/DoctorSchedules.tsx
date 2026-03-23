@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./DoctorSchedules.scss";
 import moment from "moment";
 import { LANGUAGES, path } from "../../../utils";
@@ -68,7 +68,7 @@ const isTimeSlotPast = (item: any, selectedDate: number): boolean => {
 
 const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
   const language = useSelector((state: IRootState) => state.app.language);
-  const history = useHistory();
+  const navigate = useNavigate();
   const [allDays, setAllDays] = useState<any[]>([]);
   const [availableTime, setAvailableTime] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<number>(
@@ -113,7 +113,7 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
         (detailDoctorFromParent && (detailDoctorFromParent as any).id);
       if (path.BOOKING_DOCTOR && doctorId) {
         let linkRedirect = path.BOOKING_DOCTOR.replace(":id", doctorId);
-        history.push({
+        navigate({
           pathname: linkRedirect,
           state: {
             dataTime: scheduleTime,

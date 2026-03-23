@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import * as actions from "../../store/actions";
 import "./Login.scss";
@@ -9,7 +9,7 @@ import { USER_ROLE } from "../../utils";
 
 const Login: React.FC = () => {
   const dispatch = useDispatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,11 +28,11 @@ const Login: React.FC = () => {
       // Redirect dựa theo roleId của user
       const roleId = data.data?.roleId;
       if (roleId === USER_ROLE.ADMIN) {
-        history.push("/system");
+        navigate("/system");
       } else if (roleId === USER_ROLE.DOCTOR) {
-        history.push("/doctor/manage-schedule");
+        navigate("/doctor/manage-schedule");
       } else {
-        history.push("/");
+        navigate("/");
       }
     } catch (e: any) {
       const msg =

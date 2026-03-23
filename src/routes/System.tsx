@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector } from "react-redux";
-import { Route, Switch } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import UserRedux from "../containers/System/Admin/UserRedux";
 import ManageDoctor from "../containers/System/Doctor/ManageDoctor";
 import Header from "containers/Header/Header";
@@ -17,17 +17,14 @@ const System = () => {
       {isLoggedIn && <Header />}
       <div className="system-container">
         <div className="system-list">
-          <Switch>
-            <Route path="/system/user-crud-redux" component={UserRedux} />
-            <Route path="/system/manage-doctor" component={ManageDoctor} />
-            <Route
-              path="/system/manage-specialty"
-              component={ManageSpecialty}
-            />
-            <Route path="/system/manage-clinic" component={ManageClinic} />
-            <Route path="/system/manage-package" component={ManagePackage} />
-            <Route render={() => <UserRedux />} />
-          </Switch>
+          <Routes>
+            <Route path="user-crud-redux" element={<UserRedux />} />
+            <Route path="manage-doctor" element={<ManageDoctor />} />
+            <Route path="manage-specialty" element={<ManageSpecialty />} />
+            <Route path="manage-clinic" element={<ManageClinic />} />
+            <Route path="manage-package" element={<ManagePackage />} />
+            <Route path="*" element={<UserRedux />} />
+          </Routes>
         </div>
       </div>
     </React.Fragment>

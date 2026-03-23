@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Slider from "react-slick";
 import { FormattedMessage } from "react-intl";
 import { handleGetAllSpecialties } from "../../../services/specialtyService";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import SectionItem from "./SectionItem";
 
 interface ISpecialtyProps {
@@ -11,7 +11,7 @@ interface ISpecialtyProps {
 
 // Specialty chuyển sang Function Component + Hooks
 const Specialty: React.FC<ISpecialtyProps> = ({ settings }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [dataSpecialty, setDataSpecialty] = useState<any[]>([]);
 
   useEffect(() => {
@@ -25,11 +25,11 @@ const Specialty: React.FC<ISpecialtyProps> = ({ settings }) => {
   }, []);
 
   const handleViewDetailSpecialty = useCallback((item: any) => {
-    history.push(`/specialty/detail-specialty/${item.id}`);
+    navigate(`/specialty/detail-specialty/${item.id}`);
   }, [history]);
 
   const handleViewAllSpecialty = useCallback(() => {
-    history.push(`/specialty`);
+    navigate(`/specialty`);
   }, [history]);
 
   return (

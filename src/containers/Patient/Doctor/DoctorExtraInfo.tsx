@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./DoctorExtraInfo.scss";
 import {
   getExtraInfoDoctorById,
@@ -18,7 +18,7 @@ interface IDoctorExtraInfoProps {
 
 const DoctorExtraInfo = ({ detailDoctorFromParent }: IDoctorExtraInfoProps) => {
   const language = useSelector((state: IRootState) => state.app.language);
-  const history = useHistory();
+  const navigate = useNavigate();
   const [isShowDetailInfo, setIsShowDetailInfo] = useState(false);
   const [extraInfo, setExtraInfo] = useState<any>({});
   const [listDoctorServices, setListDoctorServices] = useState<any[]>([]);
@@ -51,7 +51,7 @@ const DoctorExtraInfo = ({ detailDoctorFromParent }: IDoctorExtraInfoProps) => {
     const clinicId =
       extraInfo && extraInfo.clinicId ? extraInfo.clinicId : null;
     if (clinicId) {
-      history.push({
+      navigate({
         pathname: `/clinic/detail-clinic/${clinicId}`,
         state: { clinicId },
       });

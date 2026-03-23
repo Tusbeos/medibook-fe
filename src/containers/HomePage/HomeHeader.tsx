@@ -4,7 +4,7 @@ import "./HomeHeader.scss";
 import { FormattedMessage } from "react-intl";
 import { LANGUAGES } from "../../utils";
 import { changeLanguageApp } from "../../store/actions/appActions";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { IRootState } from "../../types";
 import SidebarDrawer from "../../components/SidebarDrawer/SidebarDrawer";
 
@@ -17,7 +17,7 @@ interface IHomeHeaderProps {
 // HomeHeader chuyển sang Function Component + Hooks
 const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   const dispatch = useDispatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -29,19 +29,19 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   );
 
   const returnToHome = useCallback(() => {
-    history.push("/home");
+    navigate("/home");
   }, [history]);
 
   const handleSpecialtyClick = useCallback(() => {
-    history.push("/specialty");
+    navigate("/specialty");
   }, [history]);
 
   const handleClinicClick = useCallback(() => {
-    history.push("/clinic");
+    navigate("/clinic");
   }, [history]);
 
   const handleViewTopDoctors = useCallback(() => {
-    history.push("/top-doctor");
+    navigate("/top-doctor");
   }, [history]);
 
   return (

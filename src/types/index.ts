@@ -1,8 +1,4 @@
-// =============================
-// Kiểu dữ liệu chung cho toàn bộ ứng dụng
-// =============================
 
-// Kiểu API Response chung từ backend
 export interface IApiResponse<T = any> {
   success?: boolean;
   errCode: number;

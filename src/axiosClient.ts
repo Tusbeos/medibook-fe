@@ -2,7 +2,7 @@ import axios, { AxiosError } from "axios";
 import tokenManager from "./utils/tokenManager";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_BACKEND_URL,
+  baseURL: import.meta.env.VITE_BACKEND_URL,
   withCredentials: true,
 });
 
@@ -48,7 +48,7 @@ axiosInstance.interceptors.response.use(
             }
 
             // Gọi API đổi token mới
-            const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/refresh`, {
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/refresh`, {
                 refreshToken: refreshToken
             });
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { useParams, useLocation, useHistory } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useIntl, FormattedMessage } from "react-intl";
 import "./BookingDoctor.scss";
 import { LANGUAGES } from "utils";
@@ -16,7 +16,7 @@ import { IRootState } from "../../../types";
 const BookingDoctor = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation<any>();
-  const history = useHistory();
+  const navigate = useNavigate();
   const intl = useIntl();
   const language = useSelector((state: IRootState) => state.app.language);
 
@@ -212,7 +212,7 @@ const BookingDoctor = () => {
 
     if (res && res.errCode === 0) {
       toast.success("Booking a new appointment succeed!");
-      history.push(`/detail-doctor/${doctorId}`);
+      navigate(`/detail-doctor/${doctorId}`);
     } else {
       toast.error("Booking a new appointment error!");
     }
