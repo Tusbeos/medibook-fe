@@ -43,37 +43,53 @@ const Header: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <div className="header-container">
-      <div className="header-tabs-container">
-        <Navigator menus={menuApp} />
+    <div className="header-topbar">
+      <div className="search-container">
+        <i className="fas fa-search search-icon"></i>
+        <input type="text" placeholder="Search doctors, ID, or clinic..." />
       </div>
-      <div className="languages">
-        <span className="welcome">
-          <FormattedMessage id="home-header.welcome" />
-          {userInfo && userInfo.lastName ? userInfo.lastName : ""}
-        </span>
-        <span
-          className={
-            language === LANGUAGES.VI ? "language-vi active" : "language-vi"
-          }
-          onClick={() => handleChangeLanguage(LANGUAGES.VI)}
-        >
-          VN
-        </span>
-        <span
-          className={
-            language === LANGUAGES.EN ? "language-en active" : "language-en"
-          }
-          onClick={() => handleChangeLanguage(LANGUAGES.EN)}
-        >
-          EN
-        </span>
-        <div
-          className="btn btn-logout"
-          onClick={processLogout}
-          title="Log out"
-        >
-          <i className="fas fa-sign-out-alt"></i>
+
+      <div className="topbar-right">
+        <div className="icon-action">
+          <i className="far fa-bell"></i>
+          <span className="badge"></span>
+        </div>
+        <div className="icon-action">
+          <i className="fas fa-cog"></i>
+        </div>
+        
+        <div className="user-profile">
+          <div className="user-info">
+            <span className="user-name">
+              {userInfo && userInfo.lastName ? `${userInfo.lastName} ${userInfo.firstName}` : "Admin Profile"}
+            </span>
+            <span className="user-role">Super Administrator</span>
+          </div>
+          <div className="user-avatar">
+            <img src="https://i.pravatar.cc/150?img=11" alt="avatar" />
+          </div>
+        </div>
+
+        <div className="languages">
+          <span
+            className={language === LANGUAGES.VI ? "language-vi active" : "language-vi"}
+            onClick={() => handleChangeLanguage(LANGUAGES.VI)}
+          >
+            VN
+          </span>
+          <span
+            className={language === LANGUAGES.EN ? "language-en active" : "language-en"}
+            onClick={() => handleChangeLanguage(LANGUAGES.EN)}
+          >
+            EN
+          </span>
+          <div
+            className="btn btn-logout"
+            onClick={processLogout}
+            title="Log out"
+          >
+            <i className="fas fa-sign-out-alt"></i>
+          </div>
         </div>
       </div>
     </div>

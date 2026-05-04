@@ -19,7 +19,7 @@ const appPersistConfig = {
 const userPersistConfig = {
   ...persistCommonConfig,
   key: "user",
-  whitelist: ["isLoggedIn", "userInfo", "token", "language"],
+  whitelist: ["isLoggedIn", "userInfo", "token"],
 };
 
 const rootReducer = combineReducers({

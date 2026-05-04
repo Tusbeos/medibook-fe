@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
 import "./ManageDoctor.scss";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import * as actions from "../../../store/actions";
@@ -17,27 +18,61 @@ import { handleGetAllClinics } from "../../../services/clinicService";
 import { FormattedMessage, useIntl } from "react-intl";
 import DoctorServices from "./DoctorServices";
 import { IRootState } from "../../../types";
+import { toast } from "react-toastify";
+import { getBase64FromBuffer } from "../../../utils/CommonUtils";
+import { handleCreateNewUser } from "../../../services/userService";
 
 const mdParser = new MarkdownIt();
 
-const ManageDoctor: React.FC = () => {
+interface ManageDoctorProps {
+  initialMode?: 'list' | 'create' | 'edit';
+}
+
+const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { doctorId } = useParams<{ doctorId: string }>();
   const intl = useIntl();
   const language = useSelector((state: IRootState) => state.app.language);
   const allDoctors = useSelector((state: IRootState) => (state.admin as any).allDoctors);
   const allRequiredDoctorInfo = useSelector((state: IRootState) => (state.admin as any).allRequiredDoctorInfo);
+  const genderRedux = useSelector((state: IRootState) => (state.admin as any).genders);
+  const positionRedux = useSelector((state: IRootState) => (state.admin as any).position);
+
+  // View mode from URL
+  const [viewMode, setViewMode] = useState<'list' | 'edit' | 'create'>(initialMode);
+
+  // Sync viewMode when initialMode changes (route change)
+  useEffect(() => {
+    setViewMode(initialMode);
+  }, [initialMode]);
 
   const serviceRef = useRef<any>(null);
 
-  // Lưu vào bảng markdown
+  // form state
   const [contentHTML, setContentHTML] = useState("");
   const [contentMarkdown, setContentMarkdown] = useState("");
   const [description, setDescription] = useState("");
   const [selectedOption, setSelectedOption] = useState<any>(null);
   const [listDoctors, setListDoctors] = useState<any[]>([]);
   const [hasOldData, setHasOldData] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSpecialty, setFilterSpecialty] = useState("");
+  const [filterClinic, setFilterClinic] = useState("");
 
-  // Lưu vào bảng doctor_info
+  // Create User States
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newPhoneNumber, setNewPhoneNumber] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [newGender, setNewGender] = useState("M");
+  const [newPosition, setNewPosition] = useState("P0");
+  const [newAvatar, setNewAvatar] = useState("");
+  const [newAvatarPreview, setNewAvatarPreview] = useState("");
+
+  // select options
   const [listPrice, setListPrice] = useState<any[]>([]);
   const [listPayment, setListPayment] = useState<any[]>([]);
   const [listProvince, setListProvince] = useState<any[]>([]);
@@ -85,14 +120,15 @@ const ManageDoctor: React.FC = () => {
         label = language === LANGUAGES.VI ? item.valueVi : item.valueEn;
         objectValue = item.keyMap;
       }
-      return { label: label ? label.trim() : "", value: objectValue };
+      return { label: label ? label.trim() : "", value: objectValue, raw: item };
     });
   }, [language]);
 
-  // Khởi tạo dữ liệu khi mount
   useEffect(() => {
     dispatch(actions.fetchRequiredDoctorInfo() as any);
     dispatch(actions.fetchAllDoctorsStart() as any);
+    dispatch(actions.fetchGenderStart() as any);
+    dispatch(actions.fetchPositionStart() as any);
 
     const fetchData = async () => {
       try {
@@ -109,7 +145,6 @@ const ManageDoctor: React.FC = () => {
           setListClinic([]);
         }
       } catch (e) {
-        console.error("Lỗi khi lấy chuyên khoa hoặc clinic:", e);
         setListSpecialty([]);
         setListClinic([]);
       }
@@ -117,14 +152,12 @@ const ManageDoctor: React.FC = () => {
     fetchData();
   }, [dispatch, buildDataSpecialtySelect, buildDataClinicSelect]);
 
-  // Cập nhật listDoctors khi allDoctors thay đổi
   useEffect(() => {
     if (allDoctors) {
       setListDoctors(buildDataInputSelect(allDoctors, "USERS"));
     }
   }, [allDoctors, buildDataInputSelect]);
 
-  // Cập nhật price/payment/province khi allRequiredDoctorInfo thay đổi
   useEffect(() => {
     if (allRequiredDoctorInfo) {
       const { resPrice, resPayment, resProvince } = allRequiredDoctorInfo;
@@ -133,6 +166,19 @@ const ManageDoctor: React.FC = () => {
       setListProvince(buildDataInputSelect(resProvince, "PROVINCE"));
     }
   }, [allRequiredDoctorInfo, buildDataInputSelect]);
+
+  // Sync default gender/position from Redux when they load
+  useEffect(() => {
+    if (genderRedux && genderRedux.length > 0 && !newGender) {
+      setNewGender(genderRedux[0].keyMap);
+    }
+  }, [genderRedux]); // eslint-disable-line
+
+  useEffect(() => {
+    if (positionRedux && positionRedux.length > 0 && !newPosition) {
+      setNewPosition(positionRedux[0].keyMap);
+    }
+  }, [positionRedux]); // eslint-disable-line
 
   const handleChangeSelectSpecialty = useCallback((value: any) => {
     setSelectedSpecialty(value || []);
@@ -150,7 +196,7 @@ const ManageDoctor: React.FC = () => {
     setContentHTML(html);
   }, []);
 
-  const handleChange = useCallback(async (option: any) => {
+  const fetchDoctorDetails = async (option: any) => {
     setSelectedOption(option);
     let res = await getDetailInfoDoctor(option.value);
     let specialtyRes = await getSpecialtiesByDoctorId(option.value);
@@ -221,6 +267,10 @@ const ManageDoctor: React.FC = () => {
       setSelectedSpecialty([]);
       setSelectedClinic(null);
     }
+  };
+
+  const handleChange = useCallback(async (option: any) => {
+    fetchDoctorDetails(option);
   }, [listPayment, listPrice, listProvince, listSpecialty, listClinic]);
 
   const handleChangeSelectDoctorInfo = useCallback((value: any, name: any) => {
@@ -233,14 +283,10 @@ const ManageDoctor: React.FC = () => {
   }, []);
 
   const handleSaveContentMarkDown = useCallback(() => {
-    if (!selectedOption)
-      return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-doctor" }));
-    if (!selectedPrice)
-      return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-price" }));
-    if (!selectedPayment)
-      return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-payment" }));
-    if (!selectedProvince)
-      return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-province" }));
+    if (!selectedOption) return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-doctor" }));
+    if (!selectedPrice) return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-price" }));
+    if (!selectedPayment) return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-payment" }));
+    if (!selectedProvince) return alert(intl.formatMessage({ id: "menu.manage-doctor.error-selected-province" }));
 
     let arrDoctorService: any[] = [];
     if (serviceRef.current) {
@@ -260,8 +306,7 @@ const ManageDoctor: React.FC = () => {
       nameClinic,
       addressClinic,
       note,
-      specialtyIds: selectedSpecialty && selectedSpecialty.length > 0
-        ? selectedSpecialty.map((item) => item.value) : [],
+      specialtyIds: selectedSpecialty && selectedSpecialty.length > 0 ? selectedSpecialty.map((item) => item.value) : [],
       clinicId: selectedClinic ? selectedClinic.value : null,
       action: hasOldData === true ? CRUD_ACTIONS.EDIT : CRUD_ACTIONS.CREATE,
     }) as any);
@@ -272,7 +317,9 @@ const ManageDoctor: React.FC = () => {
         doctorId: selectedOption.value,
       }) as any);
     }
-  }, [dispatch, intl, selectedOption, selectedPrice, selectedPayment, selectedProvince,
+    
+    navigate('/system/manage-doctor');
+  }, [dispatch, intl, navigate, selectedOption, selectedPrice, selectedPayment, selectedProvince,
     contentHTML, contentMarkdown, description, nameClinic, addressClinic, note,
     selectedSpecialty, selectedClinic, hasOldData]);
 
@@ -286,205 +333,566 @@ const ManageDoctor: React.FC = () => {
     }
   }, []);
 
+  const handleAddNew = () => {
+    setSelectedOption(null);
+    setContentHTML("");
+    setContentMarkdown("");
+    setDescription("");
+    setHasOldData(false);
+    setAddressClinic("");
+    setNameClinic("");
+    setNote("");
+    setSelectedPayment(null);
+    setSelectedPrice(null);
+    setSelectedProvince(null);
+    setSelectedSpecialty([]);
+    setSelectedClinic(null);
+    // Reset create form fields
+    setNewEmail("");
+    setNewPassword("");
+    setNewFirstName("");
+    setNewLastName("");
+    setNewPhoneNumber("");
+    setNewAddress("");
+    setNewAvatar("");
+    setNewAvatarPreview("");
+    navigate('/system/manage-doctor/create');
+  };
+
+  const handleCreateDoctorUser = async () => {
+    if (!newEmail || !newPassword || !newFirstName || !newLastName) {
+      toast.error("Please fill all required fields!");
+      return;
+    }
+    let res = await handleCreateNewUser({
+      email: newEmail,
+      password: newPassword,
+      firstName: newFirstName,
+      lastName: newLastName,
+      address: newAddress,
+      phoneNumber: newPhoneNumber,
+      gender: newGender,
+      roleId: 'R2',
+      positionId: newPosition,
+      avatar: newAvatar
+    });
+    if (res && res.errCode === 0) {
+      toast.success("Created new doctor successfully!");
+      dispatch(actions.fetchAllDoctors() as any);
+      navigate('/system/manage-doctor');
+    } else {
+      toast.error(res?.errMessage || "Error creating doctor");
+    }
+  };
+
+  const handleOnchangeImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    let data = event.target.files;
+    if (!data) return;
+    let file = data[0];
+    if (file) {
+      let Base64 = await CommonUtils.getBase64(file);
+      let objectUrl = URL.createObjectURL(file);
+      setNewAvatarPreview(objectUrl);
+      setNewAvatar(Base64);
+    }
+  };
+
+  const handleEditDoctor = (doctorOpt: any) => {
+    fetchDoctorDetails(doctorOpt);
+    navigate(`/system/manage-doctor/edit/${doctorOpt.value}`);
+  };
+
+  // Derive unique specialty & clinic options from loaded doctors
+  const specialtyOptions = Array.from(
+    new Set(listDoctors.map((d) => d.raw?.specialtyName).filter(Boolean))
+  ) as string[];
+
+  const clinicOptions = Array.from(
+    new Set(listDoctors.map((d) => d.raw?.clinicName).filter(Boolean))
+  ) as string[];
+
+  // Handle Search + Filter
+  const filteredDoctors = listDoctors.filter((doctor) => {
+    const searchLower = searchQuery.toLowerCase();
+    const label = doctor.label.toLowerCase();
+    const matchName = !searchQuery || label.includes(searchLower);
+    const matchSpecialty = !filterSpecialty || doctor.raw?.specialtyName === filterSpecialty;
+    const matchClinic = !filterClinic || doctor.raw?.clinicName === filterClinic;
+    return matchName && matchSpecialty && matchClinic;
+  });
+
+  if (viewMode === 'create') {
+    return (
+      <div className="create-doctor-wrapper">
+        <div className="create-header">
+          <div className="title-area">
+            <h1>Tạo mới tài khoản Bác sĩ</h1>
+            <p>Create a new medical professional account to access the system.</p>
+          </div>
+          <button className="btn-cancel-top" onClick={() => navigate('/system/manage-doctor')}>Cancel</button>
+        </div>
+
+        <div className="create-form-card">
+          <h2 className="card-title">Personal Information</h2>
+          
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Email <span className="required">*</span></label>
+              <input type="email" placeholder="doctor@hospital.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Password <span className="required">*</span></label>
+              <input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            </div>
+
+            <div className="form-group">
+              <label>First Name <span className="required">*</span></label>
+              <input type="text" placeholder="John" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Last Name <span className="required">*</span></label>
+              <input type="text" placeholder="Doe" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} />
+            </div>
+
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input type="text" placeholder="+1 (555) 000-0000" value={newPhoneNumber} onChange={(e) => setNewPhoneNumber(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Address</label>
+              <input type="text" placeholder="123 Medical Way, City" value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-bottom-grid">
+            <div className="selects-column">
+              <div className="form-group">
+                <label>Gender</label>
+                <div className="select-wrapper">
+                  <select value={newGender} onChange={(e) => setNewGender(e.target.value)}>
+                    {genderRedux && genderRedux.length > 0 ? (
+                      genderRedux.map((item: any, idx: number) => (
+                        <option key={idx} value={item.keyMap}>
+                          {language === LANGUAGES.VI ? item.valueVi : item.valueEn}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">Loading...</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Position</label>
+                <div className="select-wrapper">
+                  <select value={newPosition} onChange={(e) => setNewPosition(e.target.value)}>
+                    {positionRedux && positionRedux.length > 0 ? (
+                      positionRedux.map((item: any, idx: number) => (
+                        <option key={idx} value={item.keyMap}>
+                          {language === LANGUAGES.VI ? item.valueVi : item.valueEn}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">Loading...</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="avatar-column">
+              <label>Avatar</label>
+              <div className="upload-box" style={{ backgroundImage: newAvatarPreview ? `url(${newAvatarPreview})` : 'none' }} onClick={() => document.getElementById('previewImgCreate')?.click()}>
+                <input id="previewImgCreate" type="file" hidden onChange={handleOnchangeImage} />
+                {!newAvatarPreview && (
+                  <div className="upload-placeholder">
+                    <div className="icon-circle"><i className="fas fa-cloud-upload-alt"></i></div>
+                    <span className="upload-text">Upload image</span>
+                    <span className="upload-hint">PNG, JPG up to 5MB</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button className="btn-cancel" onClick={() => navigate('/system/manage-doctor')}>Cancel</button>
+            <button className="btn-submit" onClick={handleCreateDoctorUser}>Create Account</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (viewMode === 'list') {
+    return (
+      <div className="manage-doctor-list-container">
+        <div className="breadcrumb-nav">
+          Dashboard <i className="fas fa-chevron-right"></i> <span className="current">Doctor Management</span>
+        </div>
+        <div className="header-section">
+          <div className="title-area">
+            <h1>Physician Registry</h1>
+            <p>Manage {listDoctors.length} active medical professionals across {listClinic.length || 8} facilities.</p>
+          </div>
+          <button className="btn-add-new" onClick={handleAddNew}>
+            <i className="fas fa-plus"></i> Thêm bác sĩ
+          </button>
+        </div>
+
+        <div className="stats-cards-container">
+          <div className="stat-card">
+            <div className="card-top">
+              <div className="card-info">
+                <span className="label">TOTAL DOCTORS</span>
+                <span className="value">{listDoctors.length}</span>
+              </div>
+              <div className="card-icon"><i className="fas fa-user-friends"></i></div>
+            </div>
+            <div className="card-bottom">
+              <span className="badge-growth">+4 this month</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="card-top">
+              <div className="card-info">
+                <span className="label">ON LEAVE</span>
+                <span className="value">12</span>
+              </div>
+              <div className="card-icon red"><i className="far fa-calendar-times"></i></div>
+            </div>
+            <div className="card-bottom progress">
+              <div className="progress-bar"><div className="fill" style={{width: '20%'}}></div></div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="card-top">
+              <div className="card-info">
+                <span className="label">AVG EXPERIENCE</span>
+                <span className="value">8.4 <span className="unit">yrs</span></span>
+              </div>
+              <div className="card-icon purple"><i className="fas fa-star"></i></div>
+            </div>
+            <div className="card-bottom text">
+              <span>Clinical Excellence Peak</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="card-top">
+              <div className="card-info">
+                <span className="label">AVG LOAD</span>
+                <span className="value">82<span className="unit">%</span></span>
+              </div>
+              <div className="card-icon blue"><i className="fas fa-chart-line"></i></div>
+            </div>
+            <div className="card-bottom progress">
+               <div className="progress-bar"><div className="fill blue" style={{width: '82%'}}></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="table-controls">
+          <div className="filters">
+            <input 
+              type="text" 
+              className="filter-select search-input" 
+              placeholder="Search doctor name..." 
+              style={{ width: '250px' }} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="filter-select"
+              value={filterSpecialty}
+              onChange={(e) => setFilterSpecialty(e.target.value)}
+            >
+              <option value="">All Specialties</option>
+              {specialtyOptions.map((s, i) => (
+                <option key={i} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              className="filter-select"
+              value={filterClinic}
+              onChange={(e) => setFilterClinic(e.target.value)}
+            >
+              <option value="">All Facilities</option>
+              {clinicOptions.map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="doctor-table-wrapper">
+          <table className="doctor-table">
+            <thead>
+              <tr>
+                <th>DOCTOR NAME</th>
+                <th>SPECIALTY</th>
+                <th>FACILITY</th>
+                <th>STATUS</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDoctors && filteredDoctors.length > 0 ? (
+                filteredDoctors.map((doc, idx) => (
+                  <tr key={idx}>
+                    <td>
+                      <div className="doc-profile">
+                        <img src={doc.raw?.image ? getBase64FromBuffer(doc.raw.image) : 'https://i.pravatar.cc/150?img='+ ((idx%70)+1)} alt="doc" className="doc-avatar"/>
+                        <div className="doc-info">
+                          <span className="doc-name">{doc.label}</span>
+                          <span className="doc-id">ID: DOC-{doc.value + 1000}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span className="text-secondary">{doc.raw?.specialtyName || 'N/A'}</span></td>
+                    <td><span className="text-secondary">{doc.raw?.clinicName || 'N/A'}</span></td>
+                    <td>
+                      {(() => {
+                        const status = doc.raw?.statusData;
+                        if (!status) return <span className="badge-pill gray">N/A</span>;
+                        const colorMap: Record<string, string> = {
+                          SD1: 'orange', SD2: 'green', SD3: 'gray', SD4: 'blue', SD5: 'red'
+                        };
+                        const color = colorMap[status.keyMap] || 'gray';
+                        return (
+                          <span className={`badge-pill ${color}`}>
+                            <i className="fas fa-circle"></i> {status.valueEn}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td>
+                      <button className="btn-edit" onClick={() => handleEditDoctor(doc)}>
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">No doctors found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="pagination">
+          <span className="info">Showing <b>1-10</b> of <b>{listDoctors.length}</b> practitioners</span>
+          <div className="page-numbers">
+            <button className="btn-page"><i className="fas fa-chevron-left"></i></button>
+            <button className="btn-page active">1</button>
+            <button className="btn-page">2</button>
+            <button className="btn-page">3</button>
+            <span className="dots">...</span>
+            <button className="btn-page">15</button>
+            <button className="btn-page"><i className="fas fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="manage-doctor-container">
-      <div className="manage-doctor-title">
-        <FormattedMessage id="menu.manage-doctor.title" />
+    <div className="manage-doctor-form-container">
+      <div className="form-header">
+        <div className="title-area">
+          <h1>{hasOldData ? 'Chỉnh sửa thông tin bác sĩ' : 'Thêm thông tin bác sĩ'}</h1>
+          <p>Configure clinical profile and specialized service management.</p>
+        </div>
+        <button className="btn-preview">Preview Profile</button>
       </div>
 
-      <div className="info-card general-info">
-        <div className="card-body row">
-          <div className="content-left col-md-4 form-group">
-            <label className="label-bold">
-              <i className="fas fa-user-md"></i>{" "}
-              <FormattedMessage id="menu.manage-doctor.select-doctor" />
-            </label>
-            <Select
-              value={selectedOption}
-              onChange={handleChange}
-              options={listDoctors}
-              placeholder={
-                <FormattedMessage id="menu.manage-doctor.select-doctor" />
+      <div className="form-content">
+        {/* Block 1: General Info */}
+        <div className="form-card">
+          <div className="row">
+            <div className="col-md-5 form-group">
+              <label className="label-sm">CHOOSE DOCTOR</label>
+              <Select
+                value={selectedOption}
+                onChange={handleChange}
+                options={listDoctors}
+                placeholder="Select a clinician from directory..."
+                classNamePrefix="react-select"
+              />
+            </div>
+          </div>
+          <div className="row mt-3">
+            <div className="col-md-8 form-group">
+              <label className="label-sm">INTRODUCTORY INFORMATION</label>
+              <textarea
+                className="form-control"
+                rows={4}
+                placeholder="Provide a brief clinical background or bio using Markdown..."
+                onChange={(event) => handleOnChangeText(event, "description")}
+                value={description}
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        {/* Block 2: Professional Setting */}
+        <div className="form-card has-border-left blue">
+          <div className="card-title">Thiết lập chuyên môn & Quản trị</div>
+          <div className="row">
+            <div className="col-md-4 form-group">
+              <label className="label-sm">PRICE (VND)</label>
+              <Select
+                value={selectedPrice}
+                onChange={handleChangeSelectDoctorInfo}
+                options={listPrice}
+                name="selectedPrice"
+                placeholder="0.00 VND"
+                classNamePrefix="react-select"
+              />
+            </div>
+            <div className="col-md-4 form-group">
+              <label className="label-sm">PAYMENT METHOD</label>
+              <Select
+                value={selectedPayment}
+                onChange={handleChangeSelectDoctorInfo}
+                options={listPayment}
+                name="selectedPayment"
+                placeholder="Direct Cash"
+                classNamePrefix="react-select"
+              />
+            </div>
+            <div className="col-md-4 form-group">
+              <label className="label-sm">PROVINCE / CITY</label>
+              <Select
+                value={selectedProvince}
+                onChange={handleChangeSelectDoctorInfo}
+                options={listProvince}
+                name="selectedProvince"
+                placeholder="Ho Chi Minh City"
+                classNamePrefix="react-select"
+              />
+            </div>
+          </div>
+          <div className="row mt-3">
+            <div className="col-md-8 form-group">
+              <label className="label-sm">SPECIALTY (MULTI-SELECT)</label>
+              <Select
+                value={selectedSpecialty}
+                onChange={handleChangeSelectSpecialty}
+                options={listSpecialty}
+                name="selectedSpecialty"
+                isMulti
+                placeholder="+ Add more"
+                classNamePrefix="react-select"
+              />
+            </div>
+            <div className="col-md-4 form-group">
+              <label className="label-sm">CLINIC SELECTION</label>
+              <Select
+                value={selectedClinic}
+                onChange={handleChangeSelectClinic}
+                options={listClinic}
+                name="selectedClinic"
+                placeholder="Main Sovereign Hospital"
+                classNamePrefix="react-select"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Block 3: Clinic Details */}
+        <div className="form-card has-border-left blue">
+          <div className="card-title">Chi tiết tại phòng khám</div>
+          <div className="row">
+            <div className="col-md-6 form-group">
+              <label className="label-sm">CLINIC NAME</label>
+              <input
+                className="form-control"
+                placeholder="Sovereign International Clinic"
+                onChange={(event) => handleOnChangeText(event, "nameClinic")}
+                value={nameClinic}
+                disabled
+              />
+            </div>
+          </div>
+          <div className="row mt-3">
+            <div className="col-md-6 form-group">
+              <label className="label-sm">ADDRESS</label>
+              <input
+                className="form-control"
+                placeholder="123 Clinical Way..."
+                onChange={(event) => handleOnChangeText(event, "addressClinic")}
+                value={addressClinic}
+                disabled
+              />
+            </div>
+          </div>
+          <div className="row mt-3">
+            <div className="col-md-6 form-group">
+              <label className="label-sm">NOTE</label>
+              <textarea
+                className="form-control"
+                rows={3}
+                placeholder="Additional directions or instructions..."
+                onChange={(event) => handleOnChangeText(event, "note")}
+                value={note}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Block 4: Doctor Services */}
+        <div className="form-card has-border-left red p-0 pb-3">
+          <div className="card-title service-title-row">
+            <span>QUẢN LÝ DANH SÁCH DỊCH VỤ KHÁM</span>
+            <button className="btn-add-service-inline" onClick={() => {
+              if (serviceRef.current && serviceRef.current.handleAddService) {
+                serviceRef.current.handleAddService();
               }
-              menuPortalTarget={document.body}
-              styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-            />
+            }}>
+              <i className="fas fa-plus"></i> Thêm dịch vụ
+            </button>
           </div>
-          <div className="content-right col-md-8 form-group">
-            <label className="label-bold">
-              <i className="fas fa-info-circle"></i>{" "}
-              <FormattedMessage id="menu.manage-doctor.introductory-information" />
-            </label>
-            <textarea
-              className="doctor-description form-control"
-              rows={3}
-              onChange={(event) => handleOnChangeText(event, "description")}
-              value={description}
-            ></textarea>
-          </div>
-        </div>
-      </div>
-      <div className="row detail-info-grid">
-        <div className="col-md-6">
-          <div className="info-card">
-            <div className="card-header">
-              <span>
-                <i className="fas fa-cogs"></i> Thiết lập chuyên môn & Quản trị
-              </span>
-            </div>
-            <div className="card-body row">
-              <div className="col-6 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.select-price" />
-                </label>
-                <Select
-                  value={selectedPrice}
-                  onChange={handleChangeSelectDoctorInfo}
-                  options={listPrice}
-                  name="selectedPrice"
-                  placeholder={<FormattedMessage id="menu.manage-doctor.price" />}
-                />
+          <div className="service-list-container">
+            {selectedOption ? (
+              <DoctorServices
+                ref={serviceRef}
+                doctorIdFromParent={selectedOption.value}
+              />
+            ) : (
+              <div className="p-4 text-center text-secondary">
+                Vui lòng chọn bác sĩ để thêm dịch vụ
               </div>
-              <div className="col-6 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.select-payment" />
-                </label>
-                <Select
-                  value={selectedPayment}
-                  onChange={handleChangeSelectDoctorInfo}
-                  options={listPayment}
-                  name="selectedPayment"
-                  placeholder={<FormattedMessage id="menu.manage-doctor.payment" />}
-                />
-              </div>
-              <div className="col-6 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.select-province" />
-                </label>
-                <Select
-                  value={selectedProvince}
-                  onChange={handleChangeSelectDoctorInfo}
-                  options={listProvince}
-                  name="selectedProvince"
-                  placeholder={<FormattedMessage id="menu.manage-doctor.province" />}
-                />
-              </div>
-              <div className="col-6 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.select-specialty" defaultMessage="Chuyên khoa" />
-                </label>
-                <Select
-                  value={selectedSpecialty}
-                  onChange={handleChangeSelectSpecialty}
-                  options={listSpecialty}
-                  name="selectedSpecialty"
-                  isMulti
-                  placeholder={intl.formatMessage({ id: "menu.manage-doctor.select-specialty" })}
-                />
-              </div>
-              <div className="col-12 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.select-clinic" defaultMessage="Phòng khám" />
-                </label>
-                <Select
-                  value={selectedClinic}
-                  onChange={handleChangeSelectClinic}
-                  options={listClinic}
-                  name="selectedClinic"
-                  placeholder={intl.formatMessage({ id: "menu.manage-doctor.select-clinic" })}
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        <div className="col-md-6">
-          <div className="info-card">
-            <div className="card-header">
-              <span>
-                <i className="fas fa-clinic-medical"></i> Chi tiết tại phòng khám
-              </span>
-            </div>
-            <div className="card-body row">
-              <div className="col-12 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.name-clinic" />
-                </label>
-                <input
-                  className="form-control"
-                  onChange={(event) => handleOnChangeText(event, "nameClinic")}
-                  value={nameClinic}
-                  disabled
-                />
-              </div>
-              <div className="col-12 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.address-clinic" />
-                </label>
-                <input
-                  className="form-control"
-                  onChange={(event) => handleOnChangeText(event, "addressClinic")}
-                  value={addressClinic}
-                  disabled
-                />
-              </div>
-              <div className="col-12 form-group">
-                <label>
-                  <FormattedMessage id="menu.manage-doctor.note" />
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  onChange={(event) => handleOnChangeText(event, "note")}
-                  value={note}
-                />
-              </div>
-            </div>
-          </div>
+        {/* Block 5: Markdown */}
+        <div className="form-card has-border-left blue">
+           <div className="card-title">Chi tiết bài viết</div>
+           <div className="markdown-wrapper mt-3">
+              <MdEditor
+                value={contentMarkdown}
+                style={{ height: "500px" }}
+                renderHTML={(text) => mdParser.render(text)}
+                onChange={handleEditorChange}
+              />
+           </div>
         </div>
       </div>
 
-      <div className="doctor-services row mt-3">
-        <div className="col-12">
-          {selectedOption && (
-            <DoctorServices
-              ref={serviceRef}
-              doctorIdFromParent={selectedOption.value}
-            />
-          )}
+      <div className="form-footer-sticky">
+        <div className="footer-left">
+          <i className="fas fa-info-circle text-primary me-2"></i>
+          <span>Last updated: Oct 24, 2023 by System Admin</span>
+        </div>
+        <div className="footer-right">
+          <button className="btn-cancel" onClick={() => navigate('/system/manage-doctor')}>Hủy bỏ</button>
+          <button className="btn-save" onClick={handleSaveContentMarkDown}>
+            {hasOldData ? 'Cập nhật thông tin' : 'Lưu thông tin'}
+          </button>
         </div>
       </div>
-
-      <div className="manage-doctor-editor mt-4">
-        <label className="label-bold mb-2">
-          <i className="fas fa-pen-fancy"></i> Chi tiết bài viết
-        </label>
-        <MdEditor
-          value={contentMarkdown}
-          style={{ height: "500px" }}
-          renderHTML={(text) => mdParser.render(text)}
-          onChange={handleEditorChange}
-        />
-      </div>
-
-      <button
-        className={
-          hasOldData === true
-            ? "save-content-doctor btn btn-warning btn-lg mt-3"
-            : "create-content-doctor btn btn-primary btn-lg mt-3"
-        }
-        onClick={() => handleSaveContentMarkDown()}
-      >
-        {hasOldData === true ? (
-          <span>
-            <FormattedMessage id="menu.manage-doctor.edit" />
-          </span>
-        ) : (
-          <span>
-            <FormattedMessage id="menu.manage-doctor.save" />
-          </span>
-        )}
-      </button>
     </div>
   );
 };
