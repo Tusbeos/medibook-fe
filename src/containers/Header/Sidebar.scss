@@ -15,9 +15,13 @@
     margin-bottom: 40px;
     padding-left: 8px;
 
-    .logo-icon {
+    .logo-icon,
+    .logo-image {
       width: 40px;
       height: 40px;
+    }
+
+    .logo-icon {
       background-color: #0d47a1;
       border-radius: 8px;
       display: flex;
@@ -25,6 +29,11 @@
       align-items: center;
       color: white;
       font-size: 20px;
+    }
+
+    .logo-image {
+      border-radius: 10px;
+      object-fit: contain;
     }
 
     .logo-text {

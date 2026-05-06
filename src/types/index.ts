@@ -36,6 +36,8 @@ export interface IUser {
   positionData?: IAllCode;
   roleData?: IAllCode;
   genderData?: IAllCode;
+  clinicId?: number;
+  clinicName?: string;
 }
 
 // Kiểu dữ liệu Doctor Info

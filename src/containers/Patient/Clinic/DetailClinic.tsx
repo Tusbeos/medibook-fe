@@ -19,7 +19,7 @@ const normalizeString = (str: string) => {
 
 const DetailClinic = () => {
   const { id: idFromParams } = useParams<{ id: string }>();
-  const location = useLocation<any>();
+  const location = useLocation();
   const language = useSelector((state: IRootState) => state.app.language);
 
   const introRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,7 @@ const DetailClinic = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const idFromState = location?.state?.clinicId || null;
+      const idFromState = (location.state as any)?.clinicId || null;
       const id = idFromParams || idFromState;
 
       if (id) {
@@ -78,7 +78,11 @@ const DetailClinic = () => {
             doctorRes.errCode === 0 &&
             Array.isArray(doctorRes.data)
           ) {
-            setDoctorIds(doctorRes.data);
+            setDoctorIds(
+              doctorRes.data
+                .map((doctor: any) => (typeof doctor === "object" ? doctor.id : doctor))
+                .filter(Boolean),
+            );
           } else {
             setDoctorIds([]);
           }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 
 import * as actions from "../../store/actions";
 import Navigator from '../../components/Navigator';
-import { adminMenu, doctorMenu } from "./menuApp";
+import { adminMenu, clinicManagerMenu, doctorMenu } from "./menuApp";
 import { LANGUAGES, USER_ROLE } from "../../utils";
 import { changeLanguageApp } from "../../store/actions/appActions";
 import "./Header.scss";
@@ -14,11 +15,13 @@ import { IRootState, IMenuGroup } from "../../types";
 // Header chuyển sang Function Component + Hooks
 const Header: React.FC = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
 
   const [menuApp, setMenuApp] = useState<IMenuGroup[]>([]);
+  const [pageTitle, setPageTitle] = useState("");
 
   useEffect(() => {
     let menu: IMenuGroup[] = [];
@@ -30,9 +33,26 @@ const Header: React.FC = () => {
       if (role === USER_ROLE.DOCTOR) {
         menu = doctorMenu;
       }
+      if (role === USER_ROLE.CLINIC_MANAGER) {
+        menu = clinicManagerMenu;
+      }
     }
     setMenuApp(menu);
-  }, [userInfo]);
+
+    let title = "";
+    for (const group of menu) {
+      if (group.menus) {
+        for (const item of group.menus) {
+          if (location.pathname.startsWith(item.link)) {
+            title = item.name;
+            break;
+          }
+        }
+      }
+      if (title) break;
+    }
+    setPageTitle(title);
+  }, [userInfo, location.pathname]);
 
   const handleChangeLanguage = useCallback((lang: string) => {
     dispatch(changeLanguageApp(lang));
@@ -44,6 +64,10 @@ const Header: React.FC = () => {
 
   return (
     <div className="header-topbar">
+      <div className="page-title">
+        {pageTitle ? <FormattedMessage id={pageTitle} /> : null}
+      </div>
+
       <div className="search-container">
         <i className="fas fa-search search-icon"></i>
         <input type="text" placeholder="Search doctors, ID, or clinic..." />

@@ -12,6 +12,7 @@ import { CRUD_ACTIONS, LANGUAGES } from "utils";
 import {
   getDetailInfoDoctor,
   getSpecialtiesByDoctorId,
+  handleGetDoctorsPaginated
 } from "../../../services/doctorService";
 import { handleGetAllSpecialties } from "../../../services/specialtyService";
 import { handleGetAllClinics } from "../../../services/clinicService";
@@ -19,8 +20,8 @@ import { FormattedMessage, useIntl } from "react-intl";
 import DoctorServices from "./DoctorServices";
 import { IRootState } from "../../../types";
 import { toast } from "react-toastify";
-import { getBase64FromBuffer } from "../../../utils/CommonUtils";
-import { handleCreateNewUser } from "../../../services/userService";
+import CommonUtils, { getBase64FromBuffer } from "../../../utils/CommonUtils";
+import { handleCreateNewUser, handleEditUser } from "../../../services/userService";
 
 const mdParser = new MarkdownIt();
 
@@ -71,6 +72,18 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
   const [newPosition, setNewPosition] = useState("P0");
   const [newAvatar, setNewAvatar] = useState("");
   const [newAvatarPreview, setNewAvatarPreview] = useState("");
+
+  // Edit Profile States
+  const [activeEditMenu, setActiveEditMenu] = useState<string | null>(null);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editProfileData, setEditProfileData] = useState<any>(null);
+
+  // Pagination & Filter States
+  const [paginatedDoctors, setPaginatedDoctors] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [refreshData, setRefreshData] = useState(0);
 
   // select options
   const [listPrice, setListPrice] = useState<any[]>([]);
@@ -157,6 +170,33 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
       setListDoctors(buildDataInputSelect(allDoctors, "USERS"));
     }
   }, [allDoctors, buildDataInputSelect]);
+
+  // Paginated Doctors fetch
+  useEffect(() => {
+    const fetchPaginated = async () => {
+      try {
+        const res = await handleGetDoctorsPaginated(currentPage, 10, searchQuery, filterSpecialty, filterClinic);
+        if (res && res.errCode === 0 && res.data) {
+          const dataDocs = buildDataInputSelect(res.data.doctors, "USERS");
+          setPaginatedDoctors(dataDocs);
+          setTotalPages(res.data.totalPages);
+          setTotalElements(res.data.totalElements);
+        }
+      } catch (e) {
+        console.error("Error fetching paginated doctors", e);
+      }
+    };
+    // Debounce search
+    const delay = setTimeout(() => {
+      fetchPaginated();
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [currentPage, searchQuery, filterSpecialty, filterClinic, buildDataInputSelect, refreshData]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterSpecialty, filterClinic]);
 
   useEffect(() => {
     if (allRequiredDoctorInfo) {
@@ -398,8 +438,86 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
   };
 
   const handleEditDoctor = (doctorOpt: any) => {
+    setActiveEditMenu(null);
     fetchDoctorDetails(doctorOpt);
     navigate(`/system/manage-doctor/edit/${doctorOpt.value}`);
+  };
+
+  const toggleEditMenu = (id: string) => {
+    if (activeEditMenu === id) setActiveEditMenu(null);
+    else setActiveEditMenu(id);
+  };
+
+  const handleOpenEditProfile = (doc: any) => {
+    setActiveEditMenu(null);
+    const raw = doc.raw;
+    setEditProfileData({
+      id: raw.id,
+      email: raw.email,
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      phoneNumber: raw.phoneNumber,
+      address: raw.address,
+      positionId: raw.positionId || 'P0',
+      gender: raw.gender || 'M',
+      roleId: raw.roleId || 'R2',
+      avatar: raw.image ? getBase64FromBuffer(raw.image) : '',
+    });
+    setShowEditProfileModal(true);
+  };
+
+  const handleSaveEditProfile = async () => {
+    if (!editProfileData) return;
+    if (!editProfileData.firstName || !editProfileData.lastName) {
+      toast.error("Vui lòng nhập đầy đủ họ và tên!");
+      return;
+    }
+
+    const payload: any = {
+      id: editProfileData.id,
+      firstName: editProfileData.firstName,
+      lastName: editProfileData.lastName,
+      phoneNumber: editProfileData.phoneNumber,
+      address: editProfileData.address,
+      positionId: editProfileData.positionId,
+      gender: editProfileData.gender,
+      roleId: editProfileData.roleId,
+    };
+
+    // Chỉ gửi avatar nếu người dùng thực sự upload ảnh mới (Base64 string)
+    if (editProfileData.avatarPreview) {
+      payload.avatar = editProfileData.avatar;
+    }
+
+    try {
+      const res = await handleEditUser(payload);
+      if (res && res.errCode === 0) {
+        toast.success("Cập nhật thông tin bác sĩ thành công!");
+        setShowEditProfileModal(false);
+        setEditProfileData(null);
+        dispatch(actions.fetchAllDoctorsStart() as any);
+        setRefreshData(prev => prev + 1);
+      } else {
+        toast.error(res?.errMessage || "Cập nhật thất bại, vui lòng thử lại!");
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi hệ thống: Cập nhật thất bại!");
+    }
+  };
+
+  const handleOnchangeEditImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    let data = event.target.files;
+    if (!data) return;
+    let file = data[0];
+    if (file) {
+      let Base64 = await CommonUtils.getBase64(file);
+      let objectUrl = URL.createObjectURL(file);
+      setEditProfileData((prev: any) => ({
+        ...prev,
+        avatar: Base64,
+        avatarPreview: objectUrl
+      }));
+    }
   };
 
   // Derive unique specialty & clinic options from loaded doctors
@@ -411,15 +529,14 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
     new Set(listDoctors.map((d) => d.raw?.clinicName).filter(Boolean))
   ) as string[];
 
-  // Handle Search + Filter
-  const filteredDoctors = listDoctors.filter((doctor) => {
-    const searchLower = searchQuery.toLowerCase();
-    const label = doctor.label.toLowerCase();
-    const matchName = !searchQuery || label.includes(searchLower);
-    const matchSpecialty = !filterSpecialty || doctor.raw?.specialtyName === filterSpecialty;
-    const matchClinic = !filterClinic || doctor.raw?.clinicName === filterClinic;
-    return matchName && matchSpecialty && matchClinic;
-  });
+  // Render logic for pagination array
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
 
   if (viewMode === 'create') {
     return (
@@ -527,9 +644,6 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
   if (viewMode === 'list') {
     return (
       <div className="manage-doctor-list-container">
-        <div className="breadcrumb-nav">
-          Dashboard <i className="fas fa-chevron-right"></i> <span className="current">Doctor Management</span>
-        </div>
         <div className="header-section">
           <div className="title-area">
             <h1>Physician Registry</h1>
@@ -636,8 +750,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
               </tr>
             </thead>
             <tbody>
-              {filteredDoctors && filteredDoctors.length > 0 ? (
-                filteredDoctors.map((doc, idx) => (
+              {paginatedDoctors && paginatedDoctors.length > 0 ? (
+                paginatedDoctors.map((doc, idx) => (
                   <tr key={idx}>
                     <td>
                       <div className="doc-profile">
@@ -653,7 +767,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
                     <td>
                       {(() => {
                         const status = doc.raw?.statusData;
-                        if (!status) return <span className="badge-pill gray">N/A</span>;
+                        if (!status) return <span className="badge-pill green"><i className="fas fa-circle"></i> Active</span>;
                         const colorMap: Record<string, string> = {
                           SD1: 'orange', SD2: 'green', SD3: 'gray', SD4: 'blue', SD5: 'red'
                         };
@@ -665,10 +779,24 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
                         );
                       })()}
                     </td>
-                    <td>
-                      <button className="btn-edit" onClick={() => handleEditDoctor(doc)}>
-                        Edit
-                      </button>
+                    <td className="action-cell">
+                      <div className="dropdown-action">
+                        <button className="btn-edit" onClick={() => toggleEditMenu(doc.value)}>
+                          Edit <i className="fas fa-chevron-down ms-1 icon-chevron"></i>
+                        </button>
+                        {activeEditMenu === doc.value && (
+                          <div className="dropdown-menu-action">
+                            <div className="dropdown-item" onClick={() => handleOpenEditProfile(doc)}>
+                              <i className="far fa-edit"></i>
+                              <span>Cập nhật bác sĩ</span>
+                            </div>
+                            <div className="dropdown-item" onClick={() => handleEditDoctor(doc)}>
+                              <i className="fas fa-user-edit"></i>
+                              <span>Cập nhật thông tin bác sĩ</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -681,17 +809,109 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({ initialMode = 'list' }) => 
           </table>
         </div>
         <div className="pagination">
-          <span className="info">Showing <b>1-10</b> of <b>{listDoctors.length}</b> practitioners</span>
+          <span className="info">Showing <b>{(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, totalElements)}</b> of <b>{totalElements}</b> practitioners</span>
           <div className="page-numbers">
-            <button className="btn-page"><i className="fas fa-chevron-left"></i></button>
-            <button className="btn-page active">1</button>
-            <button className="btn-page">2</button>
-            <button className="btn-page">3</button>
-            <span className="dots">...</span>
-            <button className="btn-page">15</button>
-            <button className="btn-page"><i className="fas fa-chevron-right"></i></button>
+            <button className="btn-page" disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}><i className="fas fa-chevron-left"></i></button>
+            {getPageNumbers().map(p => (
+              <button key={p} className={`btn-page ${p === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+            ))}
+            <button className="btn-page" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}><i className="fas fa-chevron-right"></i></button>
           </div>
         </div>
+
+        {/* Edit Profile Modal */}
+        {showEditProfileModal && editProfileData && (
+          <div className="edit-profile-modal-overlay">
+            <div className="edit-profile-modal">
+              <div className="modal-header">
+                <h2>Edit Physician Profile</h2>
+                <button className="btn-close-modal" onClick={() => setShowEditProfileModal(false)}>
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="avatar-section">
+                  <div className="avatar-preview">
+                    {editProfileData.avatarPreview || editProfileData.avatar ? (
+                      <img src={editProfileData.avatarPreview || editProfileData.avatar} alt="avatar" />
+                    ) : (
+                      <div className="avatar-placeholder"><i className="fas fa-user-md"></i></div>
+                    )}
+                  </div>
+                  <div className="avatar-info">
+                    <h4>Profile Avatar</h4>
+                    <p>JPG or PNG. Max size 2MB.</p>
+                    <label className="btn-upload">
+                      Upload New
+                      <input type="file" hidden onChange={handleOnchangeEditImage} />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>FIRST NAME</label>
+                    <input 
+                      type="text" 
+                      value={editProfileData.firstName} 
+                      onChange={(e) => setEditProfileData({...editProfileData, firstName: e.target.value})} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>LAST NAME</label>
+                    <input 
+                      type="text" 
+                      value={editProfileData.lastName} 
+                      onChange={(e) => setEditProfileData({...editProfileData, lastName: e.target.value})} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>PHONE NUMBER</label>
+                    <div className="input-with-icon">
+                      <i className="fas fa-phone"></i>
+                      <input 
+                        type="text" 
+                        value={editProfileData.phoneNumber} 
+                        onChange={(e) => setEditProfileData({...editProfileData, phoneNumber: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>POSITION</label>
+                    <select 
+                      value={editProfileData.positionId} 
+                      onChange={(e) => setEditProfileData({...editProfileData, positionId: e.target.value})}
+                    >
+                      {positionRedux && positionRedux.length > 0 && positionRedux.map((item: any, idx: number) => (
+                        <option key={idx} value={item.keyMap}>
+                          {language === LANGUAGES.VI ? item.valueVi : item.valueEn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="form-group full-width">
+                  <label>OFFICE ADDRESS</label>
+                  <div className="input-with-icon">
+                    <i className="fas fa-map-marker-alt"></i>
+                    <input 
+                      type="text" 
+                      value={editProfileData.address} 
+                      onChange={(e) => setEditProfileData({...editProfileData, address: e.target.value})} 
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <span className="btn-cancel-link" onClick={() => setShowEditProfileModal(false)}>Cancel</span>
+                <button className="btn-save-changes" onClick={handleSaveEditProfile}>
+                  <i className="fas fa-check-circle"></i> Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

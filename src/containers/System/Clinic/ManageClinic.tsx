@@ -25,6 +25,7 @@ const ManageClinic = () => {
   const [descriptionHTML, setDescriptionHTML] = useState("");
   const [descriptionMarkdown, setDescriptionMarkdown] = useState("");
   const [clinics, setClinics] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editClinicId, setEditClinicId] = useState<number | string | null>(null);
 
@@ -88,6 +89,12 @@ const ManageClinic = () => {
     setDescriptionMarkdown("");
     setIsEditing(false);
     setEditClinicId(null);
+    if (fileInputLogo.current) {
+      fileInputLogo.current.value = "";
+    }
+    if (fileInputCover.current) {
+      fileInputCover.current.value = "";
+    }
   }, []);
 
   const handleSaveNewClinic = async () => {
@@ -185,198 +192,215 @@ const ManageClinic = () => {
   const coverPreviewUrl = previewImageCover
     ? `url(${previewImageCover})`
     : "";
+  const filteredClinics = clinics.filter((item) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    return (
+      (item.name || "").toLowerCase().includes(query) ||
+      (item.address || "").toLowerCase().includes(query)
+    );
+  });
 
   return (
     <div className="manage-clinic-container">
-      <div className="ms-title">Quản lý Phòng khám</div>
-
-      <div className="add-new-clinic row">
-        {/* --- CARD 1: GENERAL INFORMATION --- */}
-        <div className="col-12 mb-4">
-          <div className="info-card">
-            <div className="card-header">
-              <span>
-                <i className="fas fa-hospital-alt"></i> Thông tin chung
-              </span>
-            </div>
-            <div className="card-body row">
-              {/* LEFT COLUMN: INPUTS */}
-              <div className="col-md-6">
-                <div className="form-group">
-                  <label className="label-bold">
-                    Tên phòng khám <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    placeholder="Ví dụ: Bệnh viện Việt Đức..."
-                    value={name}
-                    onChange={(event) =>
-                      handleOnChangeInput(event, "name")
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="label-bold">
-                    Địa chỉ phòng khám <span className="text-danger">*</span>
-                  </label>
-                  <textarea
-                    className="form-control"
-                    rows={5}
-                    placeholder="Ví dụ: 40 Tràng Thi, Hoàn Kiếm, Hà Nội..."
-                    value={address}
-                    onChange={(event) =>
-                      handleOnChangeInput(event, "address")
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN: IMAGES */}
-              <div className="col-md-6">
-                <div className="row">
-                  {/* Logo Box */}
-                  <div className="col-md-6 form-group">
-                    <label className="label-bold">Logo</label>
-                    <div
-                      className="upload-box logo-box"
-                      style={{ backgroundImage: logoPreviewUrl }}
-                      onClick={() => fileInputLogo.current?.click()}
-                    >
-                      <input
-                        ref={fileInputLogo}
-                        type="file"
-                        hidden
-                        onChange={(event) =>
-                          handleOnChangeImage(event, "logo")
-                        }
-                      />
-                      {!imageBase64 && (
-                        <span className="upload-text">
-                          <i className="fas fa-cloud-upload-alt"></i> Tải Logo
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cover Box */}
-                  <div className="col-md-6 form-group">
-                    <label className="label-bold">Ảnh bìa (Cover)</label>
-                    <div
-                      className="upload-box cover-box"
-                      style={{ backgroundImage: coverPreviewUrl }}
-                      onClick={() => fileInputCover.current?.click()}
-                    >
-                      <input
-                        ref={fileInputCover}
-                        type="file"
-                        hidden
-                        onChange={(event) =>
-                          handleOnChangeImage(event, "cover")
-                        }
-                      />
-                      {!imageCoverBase64 && (
-                        <span className="upload-text">
-                          <i className="fas fa-image"></i> Tải Cover
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="clinic-panel clinic-general-panel">
+        <div className="panel-heading">
+          <h2>Thông tin chung</h2>
         </div>
-        <div className="col-12">
-          <div className="info-card">
-            <div className="card-header">
-              <span>
-                <i className="fas fa-pen-nib"></i> Thông tin giới thiệu chi
-                tiết
-              </span>
-            </div>
-            <div className="card-body">
-              <MdEditor
-                style={{ height: "400px" }}
-                renderHTML={(text) => mdParser.render(text)}
-                onChange={handleEditorChange}
-                value={descriptionMarkdown}
+
+        <div className="clinic-general-grid">
+          <div className="clinic-form-fields">
+            <div className="form-field">
+              <label htmlFor="clinic-name">Tên phòng khám</label>
+              <input
+                id="clinic-name"
+                className="clinic-input"
+                type="text"
+                placeholder="Nhập tên phòng khám..."
+                value={name}
+                onChange={(event) => handleOnChangeInput(event, "name")}
               />
             </div>
-          </div>
-        </div>
 
-        <div className="col-12 action-btn btn-container">
-          <button
-            className="btn btn-primary btn-lg btn-save-clinic"
-            onClick={() => handleSaveNewClinic()}
-          >
-            <i className="fas fa-save"></i>{" "}
-            {isEditing ? "Cập nhật" : "Lưu thông tin"}
-          </button>
-          {isEditing && (
-            <button
-              className="btn btn-secondary btn-lg ml-3 btn-cancel"
-              onClick={() => resetForm()}
-            >
-              <i className="fas fa-times"></i> Hủy
-            </button>
-          )}
+            <div className="form-field">
+              <label htmlFor="clinic-address">Địa chỉ phòng khám</label>
+              <div className="input-with-icon">
+                <i className="fas fa-map-marker-alt" />
+                <input
+                  id="clinic-address"
+                  className="clinic-input"
+                  type="text"
+                  placeholder="Nhập địa chỉ chi tiết..."
+                  value={address}
+                  onChange={(event) => handleOnChangeInput(event, "address")}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="clinic-upload-group">
+            <div className="upload-field">
+              <label>Logo</label>
+              <button
+                type="button"
+                className={`clinic-upload-box logo-box ${previewImage ? "has-image" : ""}`}
+                style={{ backgroundImage: logoPreviewUrl }}
+                onClick={() => fileInputLogo.current?.click()}
+              >
+                <input
+                  ref={fileInputLogo}
+                  type="file"
+                  hidden
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={(event) => handleOnChangeImage(event, "logo")}
+                />
+                {!imageBase64 && (
+                  <>
+                    <span className="upload-icon">
+                      <i className="fas fa-cloud-upload-alt" />
+                    </span>
+                    <span className="upload-title">Tải logo lên</span>
+                    <span className="upload-note">PNG, JPG (tối đa 2MB)</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="upload-field">
+              <label>Ảnh bìa (Cover)</label>
+              <button
+                type="button"
+                className={`clinic-upload-box cover-box ${previewImageCover ? "has-image" : ""}`}
+                style={{ backgroundImage: coverPreviewUrl }}
+                onClick={() => fileInputCover.current?.click()}
+              >
+                <input
+                  ref={fileInputCover}
+                  type="file"
+                  hidden
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={(event) => handleOnChangeImage(event, "cover")}
+                />
+                {!imageCoverBase64 && (
+                  <>
+                    <span className="upload-icon">
+                      <i className="far fa-image" />
+                    </span>
+                    <span className="upload-title">Tải ảnh bìa</span>
+                    <span className="upload-note">Tỷ lệ 16:9</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="clinic-list-container mt-5">
-        <div className="info-card">
-          <div className="card-header">
-            <span>
-              <i className="fas fa-list"></i> Danh sách phòng khám
-            </span>
+      <div className="clinic-panel clinic-editor-panel">
+        <div className="panel-heading">
+          <h2>Thông tin giới thiệu chi tiết</h2>
+        </div>
+
+        <div className="editor-shell">
+          <MdEditor
+            style={{ height: "360px" }}
+            renderHTML={(text) => mdParser.render(text)}
+            onChange={handleEditorChange}
+            value={descriptionMarkdown}
+            placeholder="Viết nội dung giới thiệu về phòng khám..."
+          />
+        </div>
+      </div>
+
+      <div className="clinic-actions">
+        <button type="button" className="save-clinic-button" onClick={handleSaveNewClinic}>
+          <i className="far fa-save" />
+          <span>{isEditing ? "CẬP NHẬT THÔNG TIN" : "LƯU THÔNG TIN"}</span>
+        </button>
+
+        {isEditing && (
+          <button type="button" className="cancel-clinic-button" onClick={resetForm}>
+            HỦY CHỈNH SỬA
+          </button>
+        )}
+      </div>
+
+      <div className="clinic-panel clinic-list-panel">
+        <div className="panel-heading panel-heading-row">
+          <h2>Danh sách phòng khám</h2>
+
+          <div className="clinic-search-box">
+            <i className="fas fa-search" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Tìm nhanh..."
+            />
           </div>
-          <div className="card-body p-0">
-            <table className="table table-striped table-bordered mb-0 table-hover">
-              <thead className="thead-light">
-                <tr>
-                  <th>Tên phòng khám</th>
-                  <th>Địa chỉ</th>
-                  <th style={{ width: "150px", textAlign: "center" }}>
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {clinics && clinics.length > 0 ? (
-                  clinics.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.name}</td>
-                      <td>{item.address}</td>
-                      <td className="text-center">
+        </div>
+
+        <div className="clinic-table-wrap">
+          <table className="clinic-table">
+            <thead>
+              <tr>
+                <th>Tên phòng khám</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredClinics.length > 0 ? (
+                filteredClinics.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <div className="clinic-name-cell">
+                        <span className="clinic-code">P{item.id}</span>
+                        <span>{item.name}</span>
+                      </div>
+                    </td>
+                    <td>{item.address}</td>
+                    <td>
+                      <span className="status-badge active">
+                        <i className="fas fa-circle" />
+                        Hoạt động
+                      </span>
+                    </td>
+                    <td>
+                      <div className="clinic-table-actions">
                         <button
-                          className="btn-edit"
+                          type="button"
+                          className="table-action edit-action"
                           onClick={() => handleEditClinic(item)}
                           title="Sửa"
                         >
-                          <i className="fas fa-pencil-alt"></i>
+                          <i className="fas fa-pencil-alt" />
                         </button>
                         <button
-                          className="btn-delete"
+                          type="button"
+                          className="table-action delete-action"
                           onClick={() => handleDeleteClinic(item)}
                           title="Xóa"
                         >
-                          <i className="fas fa-trash"></i>
+                          <i className="fas fa-trash" />
                         </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="text-center">
-                      Chưa có dữ liệu phòng khám
+                      </div>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="clinic-empty-state">
+                    Chưa có dữ liệu phòng khám
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

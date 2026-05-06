@@ -37,7 +37,8 @@
   },
   "menu": {
     "admin": {
-      "manage-user": "User",
+      "manage-user": "Clinic Manager",
+      "dashboard": "Clinic Manager - Admin",
       "manage-doctor": "Manage Doctor",
       "manage-admin": "Manage Admin",
       "crud": "CRUD User",

@@ -41,4 +41,5 @@ export const USER_ROLE = {
   ADMIN: "R1",
   DOCTOR: "R2",
   PATIENT: "R3",
+  CLINIC_MANAGER: "R4",
 };

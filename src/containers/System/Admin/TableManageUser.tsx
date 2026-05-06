@@ -22,7 +22,7 @@ const TableManageUser: React.FC<ITableManageUserProps> = ({ handleEditUserFromPa
 
   useEffect(() => {
     if (listUsers) {
-      setUserRedux(listUsers);
+      setUserRedux(listUsers.filter((user: any) => user.roleId === "R4"));
     }
   }, [listUsers]);
 
@@ -39,6 +39,7 @@ const TableManageUser: React.FC<ITableManageUserProps> = ({ handleEditUserFromPa
             <th>FirstName</th>
             <th>LastName</th>
             <th>Address</th>
+            <th>Cơ sở y tế</th>
             <th>Actions</th>
           </tr>
           {userRedux &&
@@ -50,6 +51,7 @@ const TableManageUser: React.FC<ITableManageUserProps> = ({ handleEditUserFromPa
                   <td>{item.firstName}</td>
                   <td>{item.lastName}</td>
                   <td>{item.address}</td>
+                  <td>{item.clinicName || "Chưa phân quyền"}</td>
                   <td>
                     <button
                       className="btn-edit"

@@ -29,6 +29,8 @@ const Login: React.FC = () => {
       const roleId = data.data?.roleId;
       if (roleId === USER_ROLE.ADMIN) {
         navigate("/system");
+      } else if (roleId === USER_ROLE.CLINIC_MANAGER) {
+        navigate("/system/clinic-manager");
       } else if (roleId === USER_ROLE.DOCTOR) {
         navigate("/doctor/manage-schedule");
       } else {
@@ -42,7 +44,7 @@ const Login: React.FC = () => {
       setErrMessage(msg);
       console.log("login error:", e);
     }
-  }, [username, password, dispatch, history]);
+  }, [username, password, dispatch, navigate]);
 
   const handleKeyDown = useCallback(
     (event: any) => {

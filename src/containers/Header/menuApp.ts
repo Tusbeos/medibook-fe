@@ -5,9 +5,14 @@ export const adminMenu: IMenuGroup[] = [
     name: "menu.admin.manage-user",
     menus: [
       {
-        name: "menu.admin.crud-redux",
-        link: "/system/user-crud-redux",
+        name: "menu.admin.manage-user",
+        link: "/system/user-management",
       },
+    ],
+  },
+  {
+    name: "menu.admin.doctor",
+    menus: [
       {
         name: "menu.admin.manage-doctor",
         link: "/system/manage-doctor",
@@ -71,6 +76,18 @@ export const doctorMenu: IMenuGroup[] = [
       {
         name: "menu.doctor.manage-patient",
         link: "/doctor/manage-patient",
+      },
+    ],
+  },
+];
+
+export const clinicManagerMenu: IMenuGroup[] = [
+  {
+    name: "menu.admin.dashboard",
+    menus: [
+      {
+        name: "menu.admin.dashboard",
+        link: "/system/clinic-manager",
       },
     ],
   },

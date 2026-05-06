@@ -8,6 +8,10 @@ const handleGetAllDoctors = (): Promise<any> => {
   return axios.get("/api/doctors");
 };
 
+const handleGetDoctorsPaginated = (page: number, limit: number, search?: string, specialty?: string, clinic?: string): Promise<any> => {
+  return axios.get("/api/doctors/paginated", { params: { page, limit, search, specialty, clinic } });
+};
+
 const saveDetailDoctor = (data: any): Promise<any> => {
   const { doctorId, ...body } = data;
   return axios.post(`/api/doctors/${doctorId}/info`, body);
@@ -58,9 +62,41 @@ const getDoctorsByClinicId = (clinicId: number | string): Promise<any> => {
   return axios.get(`/api/clinics/${clinicId}/doctors`);
 };
 
+const approveClinicManagerDoctor = (doctorId: number | string): Promise<any> => {
+  return axios.post(`/api/clinic-manager/doctors/${doctorId}/approve`);
+};
+
+const approveClinicManagerDoctorReview = (
+  doctorId: number | string,
+  reviewNote?: string,
+): Promise<any> => {
+  return axios.post(`/api/clinic-manager/doctors/${doctorId}/review/approve`, null, {
+    params: { reviewNote },
+  });
+};
+
+const rejectClinicManagerDoctorReview = (
+  doctorId: number | string,
+  reviewNote: string,
+): Promise<any> => {
+  return axios.post(`/api/clinic-manager/doctors/${doctorId}/review/reject`, null, {
+    params: { reviewNote },
+  });
+};
+
+const updateClinicManagerDoctorStatus = (
+  doctorId: number | string,
+  statusId: string,
+): Promise<any> => {
+  return axios.patch(`/api/clinic-manager/doctors/${doctorId}/status`, null, {
+    params: { statusId },
+  });
+};
+
 export {
   handleGetTopDoctorHome,
   handleGetAllDoctors,
+  handleGetDoctorsPaginated,
   saveDetailDoctor,
   getDetailInfoDoctor,
   saveBulkScheduleDoctor,
@@ -71,4 +107,8 @@ export {
   getSpecialtiesByDoctorId,
   HandleGetDoctorSpecialtyById,
   getDoctorsByClinicId,
+  approveClinicManagerDoctor,
+  approveClinicManagerDoctorReview,
+  rejectClinicManagerDoctorReview,
+  updateClinicManagerDoctorStatus,
 };

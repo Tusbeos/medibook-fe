@@ -13,8 +13,10 @@ const Home = () => {
   if (isLoggedIn) {
     if (userInfo?.roleId === USER_ROLE.DOCTOR) {
       linkToRedirect = "/doctor/manage-schedule";
+    } else if (userInfo?.roleId === USER_ROLE.CLINIC_MANAGER) {
+      linkToRedirect = "/system/clinic-manager";
     } else {
-      linkToRedirect = "/system/user-manage";
+      linkToRedirect = "/system/user-management";
     }
   }
 

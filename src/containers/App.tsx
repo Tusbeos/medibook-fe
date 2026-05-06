@@ -39,24 +39,6 @@ interface IAppProps {
 const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
   const started = useSelector((state: IRootState) => state.app.started);
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
-  const [bootstrapped, setBootstrapped] = useState(false);
-
-  const handlePersistorState = useCallback(() => {
-    let { bootstrapped: bsState } = persistor.getState();
-    if (bsState) {
-      if (onBeforeLift) {
-        Promise.resolve(onBeforeLift())
-          .then(() => setBootstrapped(true))
-          .catch(() => setBootstrapped(true));
-      } else {
-        setBootstrapped(true);
-      }
-    }
-  }, [persistor, onBeforeLift]);
-
-  useEffect(() => {
-    handlePersistorState();
-  }, [handlePersistorState]);
 
   return (
     <Fragment>

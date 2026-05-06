@@ -43,7 +43,7 @@ export const RequireAdmin: React.FC<IGuardProps> = ({ children }) => {
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
-  if (userInfo?.roleId === USER_ROLE.ADMIN) {
+  if (userInfo?.roleId === USER_ROLE.ADMIN || userInfo?.roleId === USER_ROLE.CLINIC_MANAGER) {
     return children;
   }
   if (userInfo?.roleId === USER_ROLE.DOCTOR) {

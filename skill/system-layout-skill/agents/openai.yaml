@@ -1,0 +1,4 @@
+interface:
+  display_name: "System Layout Skill"
+  short_description: "Guardrails for E-Medical system page layout"
+  default_prompt: "Use $system-layout-skill to build or review admin and doctor system page layouts in E-Medical Booking."

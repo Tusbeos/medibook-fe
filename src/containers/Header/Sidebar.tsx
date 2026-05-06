@@ -1,49 +1,80 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import './Sidebar.scss';
+import React from "react";
+import { useSelector } from "react-redux";
+import { NavLink } from "react-router-dom";
+import "./Sidebar.scss";
+import logo from "../../assets/Logo.png";
+import { IRootState } from "../../types";
+import { USER_ROLE } from "../../utils";
 
 const Sidebar: React.FC = () => {
+  const userInfo = useSelector((state: IRootState) => state.user.userInfo);
+  const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
+
+  const menuItems =
+    roleId === USER_ROLE.CLINIC_MANAGER
+      ? [
+          {
+            to: "/system/clinic-manager",
+            icon: "fas fa-th-large",
+            label: "Clinic Manager - Admin",
+          },
+        ]
+      : [
+          {
+            to: "/system/user-management",
+            icon: "fas fa-user-shield",
+            label: "Clinic Manager",
+          },
+          {
+            to: "/system/manage-doctor",
+            icon: "fas fa-user-md",
+            label: "Doctor Management",
+          },
+          {
+            to: "/system/manage-specialty",
+            icon: "fas fa-shapes",
+            label: "Specialty Management",
+          },
+          {
+            to: "/system/manage-clinic",
+            icon: "far fa-building",
+            label: "Facility Management",
+          },
+          {
+            to: "/system/manage-package",
+            icon: "far fa-calendar-alt",
+            label: "Management Package",
+          },
+          {
+            to: "/system/manage-patient",
+            icon: "far fa-user",
+            label: "Patient Management",
+          },
+        ];
+
   return (
     <div className="sovereign-sidebar">
       <div className="sidebar-logo">
-        <div className="logo-icon">
-          <i className="fas fa-briefcase-medical"></i>
-        </div>
+        <img className="logo-image" src={logo} alt="MediBookl logo" />
         <div className="logo-text">
-          <div className="title">Sovereign Admin</div>
-          <div className="subtitle">CLINICAL PRECISION</div>
+          <div className="title">MediBook</div>
+          <div className="subtitle">MEDICAL BOOKING</div>
         </div>
       </div>
 
       <div className="sidebar-menu">
-        <NavLink to="/system/dashboard" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="fas fa-th-large"></i>
-          <span>Dashboard</span>
-        </NavLink>
-        <NavLink to="/system/user-crud-redux" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="fas fa-user-friends"></i>
-          <span>User Management</span>
-        </NavLink>
-        <NavLink to="/system/manage-doctor" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="fas fa-user-md"></i>
-          <span>Doctor Management</span>
-        </NavLink>
-        <NavLink to="/system/manage-specialty" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="fas fa-shapes"></i>
-          <span>Specialty Management</span>
-        </NavLink>
-        <NavLink to="/system/manage-clinic" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="far fa-building"></i>
-          <span>Facility Management</span>
-        </NavLink>
-        <NavLink to="/system/manage-package" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="far fa-calendar-alt"></i>
-          <span>Appointment Management</span>
-        </NavLink>
-        <NavLink to="/system/manage-patient" className={({ isActive }) => isActive ? "menu-item active" : "menu-item"}>
-          <i className="far fa-user"></i>
-          <span>Patient Management</span>
-        </NavLink>
+        {menuItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              isActive ? "menu-item active" : "menu-item"
+            }
+          >
+            <i className={item.icon}></i>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </div>
 
       <div className="sidebar-bottom">

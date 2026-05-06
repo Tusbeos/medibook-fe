@@ -23,10 +23,20 @@ const getPackageById = (id: number | string): Promise<any> => {
   return axios.get(`/api/packages/${id}`);
 };
 
+const getClinicManagerPackages = (clinicId: number | string): Promise<any> => {
+  return axios.get(`/api/clinic-manager/clinics/${clinicId}/packages`);
+};
+
+const approveClinicManagerPackage = (packageId: number | string): Promise<any> => {
+  return axios.post(`/api/clinic-manager/packages/${packageId}/approve`);
+};
+
 export {
   createNewPackageService,
   updatePackageService,
   deletePackageService,
   handleGetAllPackages,
   getPackageById,
+  getClinicManagerPackages,
+  approveClinicManagerPackage,
 };
