@@ -1,15 +1,25 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CRUD_ACTIONS, USER_ROLE } from "../../../utils";
 import * as actions from "../../../store/actions";
 import { handleGetAllClinics } from "../../../services/clinicService";
+import {
+  Panel,
+  PanelHeading,
+  SearchBox,
+  DataTable,
+  ActionButtons,
+  StatusBadge,
+  FormField,
+} from "../../../components/System/SystemShared";
 import "./UserRedux.scss";
-import TableManageUser from "./TableManageUser";
 import { IRootState } from "../../../types";
 
 const UserRedux: React.FC = () => {
   const dispatch = useDispatch();
-  const listUsers = useSelector((state: IRootState) => (state.admin as any).users);
+  const listUsers = useSelector(
+    (state: IRootState) => (state.admin as any).users,
+  );
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,19 +28,25 @@ const UserRedux: React.FC = () => {
   const [clinicArr, setClinicArr] = useState<any[]>([]);
   const [currentAction, setCurrentAction] = useState(CRUD_ACTIONS.CREATE);
   const [userEditId, setUserEditId] = useState<number | string>("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchClinics = async () => {
       try {
         const res = await handleGetAllClinics();
-        setClinicArr(res?.errCode === 0 && Array.isArray(res.data) ? res.data : []);
+        setClinicArr(
+          res?.errCode === 0 && Array.isArray(res.data) ? res.data : [],
+        );
       } catch (error) {
         setClinicArr([]);
       }
     };
-
     fetchClinics();
   }, []);
+
+  useEffect(() => {
+    dispatch(actions.fetchAllUsersStart() as any);
+  }, [dispatch]);
 
   useEffect(() => {
     if (listUsers) {
@@ -51,21 +67,17 @@ const UserRedux: React.FC = () => {
       clinicId: String(clinicId),
     };
     const arrCheck = ["email", "password", "firstName", "clinicId"];
-
-    for (let i = 0; i < arrCheck.length; i++) {
-      if (!fields[arrCheck[i]]) {
-        alert("Missing parameter: " + arrCheck[i]);
+    for (const key of arrCheck) {
+      if (!fields[key]) {
+        alert("Missing parameter: " + key);
         return false;
       }
     }
-
     return true;
   }, [email, password, firstName, clinicId]);
 
   const handleSaveUser = useCallback(() => {
-    const isValid = checkValidateInput();
-    if (isValid === false) return;
-
+    if (!checkValidateInput()) return;
     const payload = {
       email,
       password,
@@ -74,33 +86,25 @@ const UserRedux: React.FC = () => {
       roleId: USER_ROLE.CLINIC_MANAGER,
       clinicId: Number(clinicId),
     };
-
     if (currentAction === CRUD_ACTIONS.CREATE) {
       dispatch(actions.createNewUser(payload) as any);
-    } else if (currentAction === CRUD_ACTIONS.EDIT) {
-      dispatch(actions.editUserStart({ id: userEditId as number, ...payload }) as any);
+    } else {
+      dispatch(
+        actions.editUserStart({ id: userEditId as number, ...payload }) as any,
+      );
     }
-  }, [checkValidateInput, clinicId, currentAction, dispatch, email, firstName, password, userEditId]);
+  }, [
+    checkValidateInput,
+    clinicId,
+    currentAction,
+    dispatch,
+    email,
+    firstName,
+    password,
+    userEditId,
+  ]);
 
-  const onChangeInput = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, id: string) => {
-    const value = event.target.value;
-    switch (id) {
-      case "email":
-        setEmail(value);
-        break;
-      case "password":
-        setPassword(value);
-        break;
-      case "firstName":
-        setFirstName(value);
-        break;
-      case "clinicId":
-        setClinicId(value);
-        break;
-    }
-  }, []);
-
-  const handleEditUserFromParent = useCallback((user: any) => {
+  const handleEditUser = useCallback((user: any) => {
     setEmail(user.email || "");
     setPassword("HARDCODE");
     setFirstName(user.firstName || "");
@@ -109,113 +113,143 @@ const UserRedux: React.FC = () => {
     setUserEditId(user.id);
   }, []);
 
+  const handleCancelEdit = useCallback(() => {
+    setEmail("");
+    setPassword("");
+    setFirstName("");
+    setClinicId("");
+    setCurrentAction(CRUD_ACTIONS.CREATE);
+    setUserEditId("");
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    const r4Users = (listUsers || []).filter((u: any) => u.roleId === "R4");
+    if (!searchTerm.trim()) return r4Users;
+    const term = searchTerm.toLowerCase();
+    return r4Users.filter(
+      (u: any) =>
+        (u.email || "").toLowerCase().includes(term) ||
+        (u.firstName || "").toLowerCase().includes(term) ||
+        (u.clinicName || "").toLowerCase().includes(term),
+    );
+  }, [listUsers, searchTerm]);
+
+  const columns = useMemo(
+    () => [
+      { key: "email", title: "Email" },
+      {
+        key: "name",
+        title: "Tên",
+        render: (item: any) => (
+          <span className="user-name-text">
+            {item.firstName} {item.lastName}
+          </span>
+        ),
+      },
+      {
+        key: "clinic",
+        title: "Cơ sở y tế",
+        render: (item: any) =>
+          item.clinicName ? (
+            <StatusBadge label={item.clinicName} variant="success" />
+          ) : (
+            <StatusBadge label="Chưa phân quyền" variant="warning" />
+          ),
+      },
+    ],
+    [],
+  );
+
   return (
-    <div className="user-crud-redux-container">
-      <div className="title">Quản lý tài khoản Clinic Manager</div>
+    <div className="manage-user-container">
+      <Panel>
+        <PanelHeading
+          title={
+            currentAction === CRUD_ACTIONS.EDIT
+              ? "Cập nhật tài khoản Clinic Manager"
+              : "Tạo tài khoản Clinic Manager"
+          }
+          icon="fas fa-user-plus"
+        />
 
-      <div className="user-redux-body">
-        <div className="container">
-          <div className="info-card">
-            <div className="card-header">
-              <span>
-                <i className="fas fa-user-plus"></i>{" "}
-                Tạo tài khoản R4 và phân quyền cơ sở y tế
-              </span>
-            </div>
+        <div className="user-form-grid">
+          <FormField label="Email">
+            <input
+              className="sys-input"
+              type="email"
+              placeholder="Nhập email..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={currentAction === CRUD_ACTIONS.EDIT}
+            />
+          </FormField>
 
-            <div className="card-body">
-              <div className="row">
-                <div className="col-md-6 form-group">
-                  <label>Email</label>
-                  <input
-                    className="form-control"
-                    type="email"
-                    value={email}
-                    onChange={(event) => onChangeInput(event, "email")}
-                    disabled={currentAction === CRUD_ACTIONS.EDIT}
-                  />
-                </div>
+          <FormField label="Mật khẩu">
+            <input
+              className="sys-input"
+              type="password"
+              placeholder="Nhập mật khẩu..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={currentAction === CRUD_ACTIONS.EDIT}
+            />
+          </FormField>
 
-                <div className="col-md-6 form-group">
-                  <label>Mật khẩu</label>
-                  <input
-                    className="form-control"
-                    type="password"
-                    value={password}
-                    onChange={(event) => onChangeInput(event, "password")}
-                    disabled={currentAction === CRUD_ACTIONS.EDIT}
-                  />
-                </div>
+          <FormField label="Tên">
+            <input
+              className="sys-input"
+              type="text"
+              placeholder="Nhập tên..."
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+          </FormField>
 
-                <div className="col-md-6 form-group">
-                  <label>Tên</label>
-                  <input
-                    className="form-control"
-                    type="text"
-                    value={firstName}
-                    onChange={(event) => onChangeInput(event, "firstName")}
-                  />
-                </div>
-
-                <div className="col-md-6 form-group">
-                  <label>Cơ sở y tế quản lý</label>
-                  <select
-                    className="form-select form-control"
-                    onChange={(event) => onChangeInput(event, "clinicId")}
-                    value={clinicId}
-                  >
-                    <option value="">-- Chọn cơ sở y tế --</option>
-                    {clinicArr.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="col-12 btn-container">
-                  <button
-                    className={
-                      currentAction === CRUD_ACTIONS.EDIT
-                        ? "btn btn-warning btn-save-user"
-                        : "btn btn-primary btn-save-user"
-                    }
-                    onClick={() => handleSaveUser()}
-                  >
-                    {currentAction === CRUD_ACTIONS.EDIT ? (
-                      <span>
-                        <i className="fas fa-edit"></i> Cập nhật
-                      </span>
-                    ) : (
-                      <span>
-                        <i className="fas fa-save"></i> Lưu user
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="row mt-4">
-            <div className="col-12">
-              <div className="info-card">
-                <div className="card-header">
-                  <span>
-                    <i className="fas fa-users"></i> Danh sách Clinic Manager
-                  </span>
-                </div>
-                <div className="card-body p-0">
-                  <TableManageUser
-                    handleEditUserFromParentKey={handleEditUserFromParent}
-                    actions={currentAction}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <FormField label="Cơ sở y tế quản lý">
+            <select
+              className="sys-input"
+              onChange={(e) => setClinicId(e.target.value)}
+              value={clinicId}
+            >
+              <option value="">-- Chọn cơ sở y tế --</option>
+              {clinicArr.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
         </div>
-      </div>
+
+        <ActionButtons
+          isEditing={currentAction === CRUD_ACTIONS.EDIT}
+          onSave={handleSaveUser}
+          onCancel={handleCancelEdit}
+          saveLabel="LƯU USER"
+          editLabel="CẬP NHẬT"
+        />
+      </Panel>
+
+      <Panel>
+        <PanelHeading title="Danh sách Clinic Manager" icon="fas fa-users">
+          <SearchBox
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Tìm kiếm theo tên, email, cơ sở..."
+          />
+        </PanelHeading>
+
+        <DataTable
+          columns={columns}
+          data={filteredUsers}
+          rowKey={(item: any) => item.id}
+          emptyText="Không tìm thấy người dùng nào"
+          onEdit={handleEditUser}
+          onDelete={(item: any) =>
+            dispatch(actions.deleteUserStart(item.id) as any)
+          }
+        />
+      </Panel>
     </div>
   );
 };

@@ -1,32 +1,7 @@
+@import "../../../styles/system";
+
 .manage-clinic-container {
-  color: #101828;
-
-  .clinic-panel {
-    background: #ffffff;
-    border: 1px solid #edf1f7;
-    border-radius: 20px;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
-    margin-bottom: 28px;
-    padding: 30px 34px;
-  }
-
-  .panel-heading {
-    margin-bottom: 24px;
-
-    h2 {
-      color: #111827;
-      font-size: 20px;
-      font-weight: 700;
-      margin: 0;
-    }
-  }
-
-  .panel-heading-row {
-    align-items: center;
-    display: flex;
-    gap: 16px;
-    justify-content: space-between;
-  }
+  color: $sys-text-page;
 
   .clinic-general-grid {
     display: grid;
@@ -38,41 +13,6 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-  }
-
-  .form-field,
-  .upload-field {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    label {
-      color: #111827;
-      font-size: 16px;
-      font-weight: 600;
-    }
-  }
-
-  .clinic-input {
-    background: #f7f9fc;
-    border: 1px solid #edf2f7;
-    border-radius: 12px;
-    color: #111827;
-    font-size: 16px;
-    height: 48px;
-    outline: none;
-    padding: 0 16px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    width: 100%;
-
-    &::placeholder {
-      color: #9aa4b2;
-    }
-
-    &:focus {
-      border-color: #7aa2ff;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
-    }
   }
 
   .input-with-icon {
@@ -87,7 +27,7 @@
       transform: translateY(-50%);
     }
 
-    .clinic-input {
+    .sys-input {
       padding-left: 44px;
     }
   }
@@ -98,30 +38,20 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .clinic-upload-box {
-    align-items: center;
-    background: #fbfcfe;
-    background-position: center;
-    background-repeat: no-repeat;
-    border: 1.5px dashed #cfd8e6;
-    border-radius: 18px;
-    color: #111827;
-    cursor: pointer;
+  .upload-field {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    justify-content: center;
-    min-height: 206px;
-    padding: 24px 18px;
-    text-align: center;
-    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    width: 100%;
+    gap: 12px;
 
-    &:hover {
-      border-color: #7aa2ff;
-      box-shadow: 0 16px 24px rgba(37, 99, 235, 0.08);
-      transform: translateY(-1px);
+    label {
+      color: $sys-text-primary;
+      font-size: 16px;
+      font-weight: 600;
     }
+  }
+
+  .clinic-upload-box {
+    @include sys-upload-box;
 
     &.logo-box {
       background-size: contain;
@@ -130,24 +60,10 @@
     &.cover-box {
       background-size: cover;
     }
-
-    &.has-image {
-      background-color: #f8fbff;
-      border-style: solid;
-      padding: 10px;
-    }
   }
 
   .upload-icon {
-    align-items: center;
-    background: #dce8ff;
-    border-radius: 16px;
-    color: #2459d3;
-    display: inline-flex;
-    font-size: 26px;
-    height: 50px;
-    justify-content: center;
-    width: 50px;
+    @include sys-upload-icon;
   }
 
   .upload-title {
@@ -162,147 +78,7 @@
   }
 
   .editor-shell {
-    border: 1px solid #edf1f7;
-    border-radius: 18px;
-    overflow: hidden;
-
-    .rc-md-editor {
-      border: 0;
-    }
-
-    .editor-container,
-    .section-container {
-      background: #ffffff;
-    }
-
-    .custom-html-style,
-    .input {
-      font-size: 15px;
-      line-height: 1.7;
-    }
-
-    .rc-md-navigation {
-      background: #f9fbff;
-      border-bottom: 1px solid #edf1f7;
-    }
-  }
-
-  .clinic-actions {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin: 8px 0 52px;
-  }
-
-  .save-clinic-button,
-  .cancel-clinic-button {
-    align-items: center;
-    border: 0;
-    border-radius: 10px;
-    cursor: pointer;
-    display: inline-flex;
-    font-size: 15px;
-    font-weight: 700;
-    justify-content: center;
-    min-width: 204px;
-    padding: 14px 24px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .save-clinic-button {
-    background: linear-gradient(180deg, #1f64db 0%, #1449b1 100%);
-    box-shadow: 0 16px 28px rgba(20, 73, 177, 0.22);
-    color: #ffffff;
-    gap: 10px;
-    text-transform: uppercase;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-  }
-
-  .cancel-clinic-button {
-    background: #e8edf6;
-    color: #344054;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-  }
-
-  .clinic-search-box {
-    align-items: center;
-    background: #f7f9fc;
-    border: 1px solid #eef2f7;
-    border-radius: 999px;
-    color: #6b7280;
-    display: inline-flex;
-    gap: 10px;
-    min-width: 270px;
-    padding: 0 16px;
-
-    input {
-      background: transparent;
-      border: 0;
-      color: #111827;
-      font-size: 15px;
-      height: 46px;
-      outline: none;
-      width: 100%;
-
-      &::placeholder {
-        color: #98a2b3;
-      }
-    }
-  }
-
-  .clinic-table-wrap {
-    border: 1px solid #e7edf5;
-    border-radius: 16px;
-    overflow-x: auto;
-  }
-
-  .clinic-table {
-    background: #ffffff;
-    border-collapse: collapse;
-    width: 100%;
-
-    thead th {
-      background: #edf7f5;
-      border-bottom: 1px solid #d7ebe6;
-      color: #0f766e;
-      font-size: 15px;
-      font-weight: 700;
-      padding: 16px 22px;
-      text-align: left;
-    }
-
-    thead th:first-child {
-      border-top-left-radius: 15px;
-    }
-
-    thead th:last-child {
-      border-top-right-radius: 15px;
-    }
-
-    tbody td {
-      border-bottom: 1px solid #f0f3f8;
-      color: #1f2937;
-      font-size: 15px;
-      padding: 20px 22px;
-      vertical-align: top;
-    }
-
-    tbody tr:last-child td {
-      border-bottom: 0;
-    }
-
-    thead th:last-child,
-    tbody td:last-child {
-      text-align: right;
-      width: 150px;
-    }
+    @include sys-editor-shell;
   }
 
   .clinic-name-cell {
@@ -314,9 +90,9 @@
 
   .clinic-code {
     align-items: center;
-    background: #dce8ff;
+    background: $sys-accent-blue-light;
     border-radius: 10px;
-    color: #2459d3;
+    color: $sys-accent-blue;
     display: inline-flex;
     flex: 0 0 34px;
     font-size: 13px;
@@ -325,63 +101,6 @@
     justify-content: center;
     min-width: 34px;
     padding: 0 8px;
-  }
-
-  .status-badge {
-    align-items: center;
-    background: #dcfce7;
-    border-radius: 999px;
-    color: #15803d;
-    display: inline-flex;
-    font-size: 13px;
-    font-weight: 600;
-    gap: 7px;
-    padding: 6px 12px;
-    white-space: nowrap;
-
-    i {
-      font-size: 7px;
-    }
-  }
-
-  .clinic-table-actions {
-    display: inline-flex;
-    gap: 10px;
-  }
-
-  .table-action {
-    align-items: center;
-    background: #f5f7fb;
-    border: 0;
-    border-radius: 10px;
-    color: #475467;
-    cursor: pointer;
-    display: inline-flex;
-    font-size: 14px;
-    height: 36px;
-    justify-content: center;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-    width: 36px;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-  }
-
-  .edit-action:hover {
-    background: #e4edff;
-    color: #2459d3;
-  }
-
-  .delete-action:hover {
-    background: #ffe6e6;
-    color: #d92d20;
-  }
-
-  .clinic-empty-state {
-    color: #98a2b3;
-    padding: 32px 18px;
-    text-align: center;
   }
 
   @media (max-width: 1100px) {
@@ -395,50 +114,8 @@
   }
 
   @media (max-width: 768px) {
-    .clinic-panel {
-      border-radius: 18px;
-      padding: 22px;
-    }
-
-    .panel-heading-row {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .clinic-search-box {
-      min-width: 100%;
-    }
-
     .clinic-upload-group {
       grid-template-columns: 1fr;
-    }
-
-    .clinic-table thead {
-      display: none;
-    }
-
-    .clinic-table,
-    .clinic-table tbody,
-    .clinic-table tr,
-    .clinic-table td {
-      display: block;
-      width: 100%;
-    }
-
-    .clinic-table tbody tr {
-      border-bottom: 1px solid #edf1f7;
-      padding: 6px 0;
-    }
-
-    .clinic-table tbody td {
-      border-bottom: 0;
-      padding: 10px 0;
-      text-align: left !important;
-      width: 100% !important;
-    }
-
-    .clinic-table-actions {
-      justify-content: flex-start;
     }
   }
 }

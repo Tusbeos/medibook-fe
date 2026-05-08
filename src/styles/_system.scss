@@ -1,0 +1,418 @@
+// ============================================
+// System Panel Design System - Shared Styles
+// ============================================
+
+// --- Colors ---
+$sys-text-primary: #111827;
+$sys-text-secondary: #475467;
+$sys-text-muted: #98a2b3;
+$sys-text-body: #1f2937;
+$sys-text-page: #101828;
+
+$sys-bg-white: #ffffff;
+$sys-bg-input: #f7f9fc;
+$sys-bg-panel-border: #edf1f7;
+$sys-bg-input-border: #edf2f7;
+
+$sys-accent-blue: #2459d3;
+$sys-accent-blue-light: #dce8ff;
+$sys-accent-blue-hover: #7aa2ff;
+$sys-accent-blue-focus: rgba(37, 99, 235, 0.08);
+
+$sys-teal-bg: #edf7f5;
+$sys-teal-border: #d7ebe6;
+$sys-teal-text: #0f766e;
+
+$sys-danger: #d92d20;
+$sys-danger-bg: #ffe6e6;
+
+$sys-success-bg: #dcfce7;
+$sys-success-text: #15803d;
+
+$sys-cancel-bg: #e8edf6;
+$sys-cancel-text: #344054;
+
+$sys-table-row-border: #f0f3f8;
+$sys-table-wrap-border: #e7edf5;
+
+// --- Shadows ---
+$sys-panel-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+$sys-save-shadow: 0 16px 28px rgba(20, 73, 177, 0.22);
+$sys-upload-hover-shadow: 0 16px 24px rgba(37, 99, 235, 0.08);
+
+// --- Radii ---
+$sys-radius-panel: 20px;
+$sys-radius-table-wrap: 16px;
+$sys-radius-table-corner: 15px;
+$sys-radius-input: 12px;
+$sys-radius-button: 10px;
+$sys-radius-upload: 18px;
+$sys-radius-pill: 999px;
+$sys-radius-editor: 18px;
+
+// --- Mixins ---
+@mixin sys-panel {
+  background: $sys-bg-white;
+  border: 1px solid $sys-bg-panel-border;
+  border-radius: $sys-radius-panel;
+  box-shadow: $sys-panel-shadow;
+  margin-bottom: 28px;
+  padding: 30px 34px;
+}
+
+@mixin sys-panel-heading {
+  margin-bottom: 24px;
+
+  h2 {
+    color: $sys-text-primary;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+  }
+}
+
+@mixin sys-panel-heading-row {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+@mixin sys-input {
+  background: $sys-bg-input;
+  border: 1px solid $sys-bg-input-border;
+  border-radius: $sys-radius-input;
+  color: $sys-text-primary;
+  font-size: 16px;
+  height: 48px;
+  outline: none;
+  padding: 0 16px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  width: 100%;
+
+  &::placeholder {
+    color: #9aa4b2;
+  }
+
+  &:focus {
+    border-color: $sys-accent-blue-hover;
+    box-shadow: 0 0 0 4px $sys-accent-blue-focus;
+  }
+
+  &:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+  }
+}
+
+@mixin sys-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  label {
+    color: $sys-text-primary;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+@mixin sys-search-box {
+  align-items: center;
+  background: $sys-bg-input;
+  border: 1px solid #eef2f7;
+  border-radius: $sys-radius-pill;
+  color: #6b7280;
+  display: inline-flex;
+  gap: 10px;
+  min-width: 270px;
+  padding: 0 16px;
+
+  input {
+    background: transparent;
+    border: 0;
+    color: $sys-text-primary;
+    font-size: 15px;
+    height: 46px;
+    outline: none;
+    width: 100%;
+
+    &::placeholder {
+      color: $sys-text-muted;
+    }
+  }
+}
+
+@mixin sys-table-wrap {
+  border: 1px solid $sys-table-wrap-border;
+  border-radius: $sys-radius-table-wrap;
+  overflow-x: auto;
+}
+
+@mixin sys-table {
+  background: $sys-bg-white;
+  border-collapse: collapse;
+  width: 100%;
+
+  thead th {
+    background: $sys-teal-bg;
+    border-bottom: 1px solid $sys-teal-border;
+    color: $sys-teal-text;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 16px 22px;
+    text-align: left;
+  }
+
+  thead th:first-child {
+    border-top-left-radius: $sys-radius-table-corner;
+  }
+
+  thead th:last-child {
+    border-top-right-radius: $sys-radius-table-corner;
+  }
+
+  tbody td {
+    border-bottom: 1px solid $sys-table-row-border;
+    color: $sys-text-body;
+    font-size: 15px;
+    padding: 20px 22px;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  thead th:last-child,
+  tbody td:last-child {
+    text-align: right;
+    width: 150px;
+  }
+}
+
+@mixin sys-table-actions {
+  display: inline-flex;
+  gap: 10px;
+}
+
+@mixin sys-table-action-button {
+  align-items: center;
+  background: #f5f7fb;
+  border: 0;
+  border-radius: $sys-radius-button;
+  color: $sys-text-secondary;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  height: 36px;
+  justify-content: center;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+  width: 36px;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@mixin sys-edit-action-hover {
+  &:hover {
+    background: #e4edff;
+    color: $sys-accent-blue;
+  }
+}
+
+@mixin sys-delete-action-hover {
+  &:hover {
+    background: $sys-danger-bg;
+    color: $sys-danger;
+  }
+}
+
+@mixin sys-save-button {
+  align-items: center;
+  background: linear-gradient(180deg, #1f64db 0%, #1449b1 100%);
+  border: 0;
+  border-radius: $sys-radius-button;
+  box-shadow: $sys-save-shadow;
+  color: $sys-bg-white;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 700;
+  gap: 10px;
+  justify-content: center;
+  min-width: 204px;
+  padding: 14px 24px;
+  text-transform: uppercase;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@mixin sys-cancel-button {
+  align-items: center;
+  background: $sys-cancel-bg;
+  border: 0;
+  border-radius: $sys-radius-button;
+  color: $sys-cancel-text;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 700;
+  justify-content: center;
+  min-width: 204px;
+  padding: 14px 24px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@mixin sys-actions-row {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 8px 0 52px;
+}
+
+@mixin sys-empty-state {
+  color: $sys-text-muted;
+  padding: 32px 18px;
+  text-align: center;
+}
+
+@mixin sys-status-badge {
+  align-items: center;
+  background: $sys-success-bg;
+  border-radius: $sys-radius-pill;
+  color: $sys-success-text;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 7px;
+  padding: 6px 12px;
+  white-space: nowrap;
+
+  i {
+    font-size: 7px;
+  }
+}
+
+@mixin sys-upload-box {
+  align-items: center;
+  background: #fbfcfe;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1.5px dashed #cfd8e6;
+  border-radius: $sys-radius-upload;
+  color: $sys-text-primary;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  min-height: 206px;
+  padding: 24px 18px;
+  text-align: center;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  width: 100%;
+
+  &:hover {
+    border-color: $sys-accent-blue-hover;
+    box-shadow: $sys-upload-hover-shadow;
+    transform: translateY(-1px);
+  }
+
+  &.has-image {
+    background-color: #f8fbff;
+    border-style: solid;
+    padding: 10px;
+  }
+}
+
+@mixin sys-upload-icon {
+  align-items: center;
+  background: $sys-accent-blue-light;
+  border-radius: 16px;
+  color: $sys-accent-blue;
+  display: inline-flex;
+  font-size: 26px;
+  height: 50px;
+  justify-content: center;
+  width: 50px;
+}
+
+@mixin sys-editor-shell {
+  border: 1px solid $sys-bg-panel-border;
+  border-radius: $sys-radius-editor;
+  overflow: hidden;
+
+  .rc-md-editor {
+    border: 0;
+  }
+
+  .editor-container,
+  .section-container {
+    background: $sys-bg-white;
+  }
+
+  .custom-html-style,
+  .input {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .rc-md-navigation {
+    background: #f9fbff;
+    border-bottom: 1px solid $sys-bg-panel-border;
+  }
+}
+
+// --- Responsive ---
+@mixin sys-panel-mobile {
+  border-radius: 18px;
+  padding: 22px;
+}
+
+@mixin sys-table-mobile($table-class) {
+  #{$table-class} thead {
+    display: none;
+  }
+
+  #{$table-class},
+  #{$table-class} tbody,
+  #{$table-class} tr,
+  #{$table-class} td {
+    display: block;
+    width: 100%;
+  }
+
+  #{$table-class} tbody tr {
+    border-bottom: 1px solid $sys-bg-panel-border;
+    padding: 6px 0;
+  }
+
+  #{$table-class} tbody td {
+    border-bottom: 0;
+    padding: 10px 0;
+    text-align: left !important;
+    width: 100% !important;
+  }
+}

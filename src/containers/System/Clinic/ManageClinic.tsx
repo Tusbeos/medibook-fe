@@ -12,6 +12,15 @@ import {
   handleGetAllClinics,
 } from "../../../services/clinicService";
 import { toast } from "react-toastify";
+import {
+  Panel,
+  PanelHeading,
+  SearchBox,
+  DataTable,
+  ActionButtons,
+  StatusBadge,
+  FormField,
+} from "../../../components/System/SystemShared";
 
 const mdParser = new MarkdownIt({ html: true });
 
@@ -27,14 +36,16 @@ const ManageClinic = () => {
   const [clinics, setClinics] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [editClinicId, setEditClinicId] = useState<number | string | null>(null);
+  const [editClinicId, setEditClinicId] = useState<number | string | null>(
+    null,
+  );
 
   const fileInputLogo = useRef<HTMLInputElement>(null);
   const fileInputCover = useRef<HTMLInputElement>(null);
 
   const fetchAllClinics = useCallback(async () => {
     try {
-      let res = await handleGetAllClinics();
+      const res = await handleGetAllClinics();
       if (res && res.errCode === 0) {
         setClinics(res.data ? res.data : []);
       }
@@ -43,28 +54,20 @@ const ManageClinic = () => {
     }
   }, []);
 
-  // Lấy danh sách phòng khám khi mount
   useEffect(() => {
     fetchAllClinics();
   }, [fetchAllClinics]);
 
-  const handleOnChangeInput = useCallback((event: any, id: string) => {
-    if (!event || !event.target) return;
-    const valueInput = event.target.value;
-    switch (id) {
-      case "name": setName(valueInput); break;
-      case "address": setAddress(valueInput); break;
-      default: break;
-    }
-  }, []);
-
-  const handleEditorChange = useCallback(({ html, text }: { html: string; text: string }) => {
-    setDescriptionHTML(html);
-    setDescriptionMarkdown(text);
-  }, []);
+  const handleEditorChange = useCallback(
+    ({ html, text }: { html: string; text: string }) => {
+      setDescriptionHTML(html);
+      setDescriptionMarkdown(text);
+    },
+    [],
+  );
 
   const handleOnChangeImage = useCallback(async (event: any, type = "logo") => {
-    if (!event || !event.target || !event.target.files) return;
+    if (!event?.target?.files) return;
     const file = event.target.files[0];
     if (!file) return;
 
@@ -89,12 +92,8 @@ const ManageClinic = () => {
     setDescriptionMarkdown("");
     setIsEditing(false);
     setEditClinicId(null);
-    if (fileInputLogo.current) {
-      fileInputLogo.current.value = "";
-    }
-    if (fileInputCover.current) {
-      fileInputCover.current.value = "";
-    }
+    if (fileInputLogo.current) fileInputLogo.current.value = "";
+    if (fileInputCover.current) fileInputCover.current.value = "";
   }, []);
 
   const handleSaveNewClinic = async () => {
@@ -145,7 +144,7 @@ const ManageClinic = () => {
   };
 
   const handleEditClinic = async (clinic: any) => {
-    if (!clinic || !clinic.id) return;
+    if (!clinic?.id) return;
     try {
       const res = await getDetailClinicById(clinic.id);
       if (res && res.errCode === 0 && res.data) {
@@ -173,7 +172,7 @@ const ManageClinic = () => {
   };
 
   const handleDeleteClinic = async (clinic: any) => {
-    if (!clinic || !clinic.id) return;
+    if (!clinic?.id) return;
     try {
       const res = await deleteClinicService(clinic.id);
       if (res && res.errCode === 0) {
@@ -189,56 +188,65 @@ const ManageClinic = () => {
   };
 
   const logoPreviewUrl = previewImage ? `url(${previewImage})` : "";
-  const coverPreviewUrl = previewImageCover
-    ? `url(${previewImageCover})`
-    : "";
+  const coverPreviewUrl = previewImageCover ? `url(${previewImageCover})` : "";
+
   const filteredClinics = clinics.filter((item) => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) {
-      return true;
-    }
-
+    if (!query) return true;
     return (
       (item.name || "").toLowerCase().includes(query) ||
       (item.address || "").toLowerCase().includes(query)
     );
   });
 
+  const columns = [
+    {
+      key: "name",
+      title: "Tên phòng khám",
+      render: (item: any) => (
+        <div className="clinic-name-cell">
+          <span className="clinic-code">P{item.id}</span>
+          <span>{item.name}</span>
+        </div>
+      ),
+    },
+    { key: "address", title: "Địa chỉ" },
+    {
+      key: "status",
+      title: "Trạng thái",
+      render: () => <StatusBadge label="Hoạt động" variant="success" />,
+    },
+  ];
+
   return (
     <div className="manage-clinic-container">
-      <div className="clinic-panel clinic-general-panel">
-        <div className="panel-heading">
-          <h2>Thông tin chung</h2>
-        </div>
+      <Panel className="clinic-general-panel">
+        <PanelHeading title="Thông tin chung" />
 
         <div className="clinic-general-grid">
           <div className="clinic-form-fields">
-            <div className="form-field">
-              <label htmlFor="clinic-name">Tên phòng khám</label>
+            <FormField label="Tên phòng khám">
               <input
-                id="clinic-name"
-                className="clinic-input"
+                className="sys-input"
                 type="text"
                 placeholder="Nhập tên phòng khám..."
                 value={name}
-                onChange={(event) => handleOnChangeInput(event, "name")}
+                onChange={(e) => setName(e.target.value)}
               />
-            </div>
+            </FormField>
 
-            <div className="form-field">
-              <label htmlFor="clinic-address">Địa chỉ phòng khám</label>
+            <FormField label="Địa chỉ phòng khám">
               <div className="input-with-icon">
                 <i className="fas fa-map-marker-alt" />
                 <input
-                  id="clinic-address"
-                  className="clinic-input"
+                  className="sys-input"
                   type="text"
                   placeholder="Nhập địa chỉ chi tiết..."
                   value={address}
-                  onChange={(event) => handleOnChangeInput(event, "address")}
+                  onChange={(e) => setAddress(e.target.value)}
                 />
               </div>
-            </div>
+            </FormField>
           </div>
 
           <div className="clinic-upload-group">
@@ -297,13 +305,10 @@ const ManageClinic = () => {
             </div>
           </div>
         </div>
-      </div>
+      </Panel>
 
-      <div className="clinic-panel clinic-editor-panel">
-        <div className="panel-heading">
-          <h2>Thông tin giới thiệu chi tiết</h2>
-        </div>
-
+      <Panel className="clinic-editor-panel">
+        <PanelHeading title="Thông tin giới thiệu chi tiết" />
         <div className="editor-shell">
           <MdEditor
             style={{ height: "360px" }}
@@ -313,96 +318,32 @@ const ManageClinic = () => {
             placeholder="Viết nội dung giới thiệu về phòng khám..."
           />
         </div>
-      </div>
+      </Panel>
 
-      <div className="clinic-actions">
-        <button type="button" className="save-clinic-button" onClick={handleSaveNewClinic}>
-          <i className="far fa-save" />
-          <span>{isEditing ? "CẬP NHẬT THÔNG TIN" : "LƯU THÔNG TIN"}</span>
-        </button>
+      <ActionButtons
+        isEditing={isEditing}
+        onSave={handleSaveNewClinic}
+        onCancel={resetForm}
+      />
 
-        {isEditing && (
-          <button type="button" className="cancel-clinic-button" onClick={resetForm}>
-            HỦY CHỈNH SỬA
-          </button>
-        )}
-      </div>
+      <Panel className="clinic-list-panel">
+        <PanelHeading title="Danh sách phòng khám">
+          <SearchBox
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Tìm nhanh..."
+          />
+        </PanelHeading>
 
-      <div className="clinic-panel clinic-list-panel">
-        <div className="panel-heading panel-heading-row">
-          <h2>Danh sách phòng khám</h2>
-
-          <div className="clinic-search-box">
-            <i className="fas fa-search" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Tìm nhanh..."
-            />
-          </div>
-        </div>
-
-        <div className="clinic-table-wrap">
-          <table className="clinic-table">
-            <thead>
-              <tr>
-                <th>Tên phòng khám</th>
-                <th>Địa chỉ</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredClinics.length > 0 ? (
-                filteredClinics.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="clinic-name-cell">
-                        <span className="clinic-code">P{item.id}</span>
-                        <span>{item.name}</span>
-                      </div>
-                    </td>
-                    <td>{item.address}</td>
-                    <td>
-                      <span className="status-badge active">
-                        <i className="fas fa-circle" />
-                        Hoạt động
-                      </span>
-                    </td>
-                    <td>
-                      <div className="clinic-table-actions">
-                        <button
-                          type="button"
-                          className="table-action edit-action"
-                          onClick={() => handleEditClinic(item)}
-                          title="Sửa"
-                        >
-                          <i className="fas fa-pencil-alt" />
-                        </button>
-                        <button
-                          type="button"
-                          className="table-action delete-action"
-                          onClick={() => handleDeleteClinic(item)}
-                          title="Xóa"
-                        >
-                          <i className="fas fa-trash" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="clinic-empty-state">
-                    Chưa có dữ liệu phòng khám
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <DataTable
+          columns={columns}
+          data={filteredClinics}
+          rowKey={(item: any) => item.id}
+          emptyText="Chưa có dữ liệu phòng khám"
+          onEdit={handleEditClinic}
+          onDelete={handleDeleteClinic}
+        />
+      </Panel>
     </div>
   );
 };
