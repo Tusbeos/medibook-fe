@@ -52,6 +52,15 @@
       "package": "Gói khám",
       "manage-package": "Quản lý gói khám"
     },
+    "clinic-manager": {
+      "overview": "Quản lý phòng khám",
+      "dashboard": "Tổng quan",
+      "doctors": "Bác sĩ",
+      "bookings": "Lịch hẹn",
+      "packages": "Gói khám",
+      "approvals": "Phê duyệt",
+      "review-doctor": "Xem xét bác sĩ"
+    },
     "doctor": {
       "manage-doctor": "Quản lý bác sĩ",
       "schedule": "Quản Lý Lịch Khám",

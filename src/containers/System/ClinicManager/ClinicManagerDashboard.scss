@@ -1,0 +1,228 @@
+.cm-dashboard {
+  padding: 24px 32px;
+  max-width: 100%;
+  margin: 0;
+
+  .cm-dashboard-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+
+    h2 {
+      font-size: 1.25rem;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+  }
+
+  .cm-dashboard-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+
+    .cm-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6366f1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 4px;
+    }
+
+    p {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    .cm-last-updated {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+  }
+
+  .cm-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+
+    .cm-metric-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #c7d2fe;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+        transform: translateY(-1px);
+      }
+
+      &.highlight {
+        border-color: #fbbf24;
+        background: #fffbeb;
+      }
+
+      .cm-metric-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        span {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 500;
+
+          i.fa-circle {
+            font-size: 0.4rem;
+            color: #f59e0b;
+            margin-right: 4px;
+            vertical-align: middle;
+          }
+        }
+
+        > i {
+          font-size: 1.1rem;
+          color: #94a3b8;
+        }
+      }
+
+      .cm-metric-value {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+
+        strong {
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+
+        .cm-chip {
+          font-size: 0.65rem;
+          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 12px;
+
+          &.warning {
+            background: #fef3c7;
+            color: #92400e;
+          }
+
+          &.neutral {
+            background: #f1f5f9;
+            color: #475569;
+          }
+
+          &.peach {
+            background: #fee2e2;
+            color: #991b1b;
+          }
+        }
+      }
+    }
+  }
+
+  .cm-quick-actions {
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 16px;
+    }
+
+    .cm-quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .cm-quick-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #c7d2fe;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
+      }
+
+      > i:first-child {
+        font-size: 1.5rem;
+        color: #6366f1;
+        width: 40px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      > div {
+        flex: 1;
+
+        strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #1e293b;
+          margin-bottom: 2px;
+        }
+
+        p {
+          margin: 0;
+          font-size: 0.8rem;
+          color: #94a3b8;
+        }
+      }
+
+      > i:last-child {
+        color: #cbd5e1;
+        font-size: 0.75rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .cm-dashboard .cm-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .cm-dashboard {
+    padding: 16px;
+
+    .cm-metrics {
+      grid-template-columns: 1fr;
+    }
+
+    .cm-quick-actions .cm-quick-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .cm-dashboard-heading {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+}

@@ -83,10 +83,30 @@ export const doctorMenu: IMenuGroup[] = [
 
 export const clinicManagerMenu: IMenuGroup[] = [
   {
-    name: "menu.admin.dashboard",
+    name: "menu.clinic-manager.overview",
     menus: [
       {
-        name: "menu.admin.dashboard",
+        name: "menu.clinic-manager.approvals",
+        link: "/system/clinic-manager/approvals",
+      },
+      {
+        name: "menu.clinic-manager.bookings",
+        link: "/system/clinic-manager/bookings",
+      },
+      {
+        name: "menu.clinic-manager.packages",
+        link: "/system/clinic-manager/packages",
+      },
+      {
+        name: "menu.clinic-manager.doctors",
+        link: "/system/clinic-manager/doctors",
+      },
+      {
+        name: "menu.clinic-manager.review-doctor",
+        link: "/system/clinic-manager/review-doctor",
+      },
+      {
+        name: "menu.clinic-manager.dashboard",
         link: "/system/clinic-manager",
       },
     ],

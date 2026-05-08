@@ -42,6 +42,16 @@ const handleChangePassword = (
   return axios.put(`/api/users/${userId}/change-password`, data);
 };
 
+const handleGenerateEmail = (
+  firstName: string,
+  lastName?: string,
+  role?: string,
+): Promise<any> => {
+  return axios.get("/api/users/generate-email", {
+    params: { firstName, lastName: lastName || "", role: role || "R2" },
+  });
+};
+
 export {
   handleLoginApi,
   handleGetAllUsers,
@@ -51,4 +61,5 @@ export {
   handleEditUser,
   handleGetAllCode,
   handleChangePassword,
+  handleGenerateEmail,
 };

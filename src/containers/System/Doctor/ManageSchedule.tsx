@@ -201,7 +201,7 @@ const ManageSchedule = () => {
           : "";
 
     if (!startDate) {
-      toast.error("Invalid date!");
+      toast.error("Ngày không hợp lệ!");
       return;
     }
     if (!resolvedDoctorId) {
@@ -210,7 +210,7 @@ const ManageSchedule = () => {
         resolvedDoctorId,
         userInfo,
       });
-      toast.error("Invalid selected doctor!");
+      toast.error("Chưa chọn bác sĩ!");
       return;
     }
 
@@ -236,7 +236,7 @@ const ManageSchedule = () => {
         : null;
 
     if (!formatDate) {
-      toast.error("Invalid date!");
+      toast.error("Ngày không hợp lệ!");
       return;
     }
 
@@ -252,7 +252,7 @@ const ManageSchedule = () => {
           return item;
         });
       } else {
-        toast.error("Invalid selected time!");
+        toast.error("Chưa chọn khung giờ!");
         return;
       }
 
@@ -269,12 +269,12 @@ const ManageSchedule = () => {
       });
 
       if (res && res.errCode === 0) {
-        toast.success("Save schedule succeed!");
+        toast.success("Lưu lịch khám thành công!");
         setRangeTime((prev) =>
           prev.map((item) => ({ ...item, isSelected: false })),
         );
       } else {
-        toast.error("Save schedule failed!");
+        toast.error("Lưu lịch khám thất bại!");
       }
     }
   };

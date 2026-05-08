@@ -416,3 +416,10 @@ $sys-radius-editor: 18px;
     width: 100% !important;
   }
 }
+
+// Readonly input style
+.readonly-input {
+  background-color: #f3f4f6 !important;
+  cursor: not-allowed;
+  color: #6b7280;
+}

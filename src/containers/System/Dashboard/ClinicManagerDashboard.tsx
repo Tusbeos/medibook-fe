@@ -9,7 +9,11 @@ import {
   updateClinicManagerDoctorStatus,
 } from "../../../services/doctorService";
 import { handleGetAllClinics } from "../../../services/clinicService";
-import { approveClinicManagerPackage, getClinicManagerPackages } from "../../../services/packageService";
+import {
+  approveClinicManagerPackage,
+  getClinicManagerPackages,
+} from "../../../services/packageService";
+import { getClinicBookings } from "../../../services/bookingService";
 import { IAllCode, IClinic, IRootState } from "../../../types";
 import { USER_ROLE } from "../../../utils";
 import "./ClinicManagerDashboard.scss";
@@ -99,7 +103,10 @@ const getDoctorStatusClass = (statusKey: string) => {
 
 const getDoctorStatusDisplayLabel = (doctor: IDashboardDoctor) => {
   const statusKey = getStatusKey(doctor);
-  return DOCTOR_STATUS_OPTIONS.find((option) => option.key === statusKey)?.label || getStatusLabel(doctor);
+  return (
+    DOCTOR_STATUS_OPTIONS.find((option) => option.key === statusKey)?.label ||
+    getStatusLabel(doctor)
+  );
 };
 
 const formatPrice = (price?: number) => {
@@ -121,8 +128,12 @@ const ClinicManagerDashboard: React.FC = () => {
   const [queueSearch, setQueueSearch] = useState("");
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
   const [doctorSearch, setDoctorSearch] = useState("");
-  const [openStatusDoctorId, setOpenStatusDoctorId] = useState<number | string>("");
+  const [openStatusDoctorId, setOpenStatusDoctorId] = useState<number | string>(
+    "",
+  );
   const [reviewNote, setReviewNote] = useState("");
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookingFilter, setBookingFilter] = useState<string>("");
 
   const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
   const isClinicManager = roleId === USER_ROLE.CLINIC_MANAGER;
@@ -157,7 +168,8 @@ const ClinicManagerDashboard: React.FC = () => {
 
       try {
         const res = await handleGetAllClinics();
-        const clinicList = res?.errCode === 0 && Array.isArray(res.data) ? res.data : [];
+        const clinicList =
+          res?.errCode === 0 && Array.isArray(res.data) ? res.data : [];
         setClinics(clinicList);
       } catch (error) {
         setClinics([]);
@@ -176,15 +188,27 @@ const ClinicManagerDashboard: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const [doctorRes, packageRes] = await Promise.all([
+      const [doctorRes, packageRes, bookingRes] = await Promise.all([
         getDoctorsByClinicId(selectedClinicId),
         getClinicManagerPackages(selectedClinicId),
+        getClinicBookings(selectedClinicId),
       ]);
-      const doctorList = doctorRes?.errCode === 0 && Array.isArray(doctorRes.data) ? doctorRes.data : [];
-      const packageList = packageRes?.errCode === 0 && Array.isArray(packageRes.data) ? packageRes.data : [];
+      const doctorList =
+        doctorRes?.errCode === 0 && Array.isArray(doctorRes.data)
+          ? doctorRes.data
+          : [];
+      const packageList =
+        packageRes?.errCode === 0 && Array.isArray(packageRes.data)
+          ? packageRes.data
+          : [];
+      const bookingList =
+        bookingRes?.errCode === 0 && Array.isArray(bookingRes.data)
+          ? bookingRes.data
+          : [];
 
       setDoctors(doctorList);
       setPackages(packageList);
+      setBookings(bookingList);
       setLastUpdated(
         new Intl.DateTimeFormat("vi-VN", {
           hour: "2-digit",
@@ -197,6 +221,7 @@ const ClinicManagerDashboard: React.FC = () => {
     } catch (error) {
       setDoctors([]);
       setPackages([]);
+      setBookings([]);
       toast.error("Không thể tải dữ liệu của cơ sở y tế.");
     } finally {
       setIsLoading(false);
@@ -208,10 +233,12 @@ const ClinicManagerDashboard: React.FC = () => {
   }, [fetchDashboardData]);
 
   const selectedClinic = useMemo(
-    () => clinics.find((clinic) => String(clinic.id) === String(selectedClinicId)),
+    () =>
+      clinics.find((clinic) => String(clinic.id) === String(selectedClinicId)),
     [clinics, selectedClinicId],
   );
-  const displayClinicName = selectedClinic?.name || userClinicName || "MediBook";
+  const displayClinicName =
+    selectedClinic?.name || userClinicName || "MediBook";
 
   const pendingDoctors = useMemo(
     () => doctors.filter((doctor) => getStatusKey(doctor) === "SD1"),
@@ -219,10 +246,11 @@ const ClinicManagerDashboard: React.FC = () => {
   );
 
   const pendingPackages = useMemo(
-    () => packages.filter((pkg) => {
-      const statusKey = getStatusKey(pkg);
-      return statusKey === "SD1" || !statusKey;
-    }),
+    () =>
+      packages.filter((pkg) => {
+        const statusKey = getStatusKey(pkg);
+        return statusKey === "SD1" || !statusKey;
+      }),
     [packages],
   );
 
@@ -294,7 +322,9 @@ const ClinicManagerDashboard: React.FC = () => {
   }, [queueFilter, queueItems, queueSearch]);
 
   const reviewDoctor = useMemo(
-    () => doctors.find((doctor) => String(doctor.id) === String(reviewDoctorId)) || null,
+    () =>
+      doctors.find((doctor) => String(doctor.id) === String(reviewDoctorId)) ||
+      null,
     [doctors, reviewDoctorId],
   );
 
@@ -338,7 +368,10 @@ const ClinicManagerDashboard: React.FC = () => {
     handleApprovePackage(item.id);
   };
 
-  const handleUpdateDoctorStatus = async (doctorId: number | string | undefined, statusId: string) => {
+  const handleUpdateDoctorStatus = async (
+    doctorId: number | string | undefined,
+    statusId: string,
+  ) => {
     if (!doctorId) return;
 
     try {
@@ -351,7 +384,10 @@ const ClinicManagerDashboard: React.FC = () => {
       }
       toast.error(res?.message || "Cập nhật trạng thái bác sĩ thất bại.");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Cập nhật trạng thái bác sĩ thất bại.");
+      toast.error(
+        error?.response?.data?.message ||
+          "Cập nhật trạng thái bác sĩ thất bại.",
+      );
     }
   };
 
@@ -380,7 +416,10 @@ const ClinicManagerDashboard: React.FC = () => {
     if (!reviewDoctor?.id) return;
 
     try {
-      const res = await approveClinicManagerDoctorReview(reviewDoctor.id, reviewNote.trim() || undefined);
+      const res = await approveClinicManagerDoctorReview(
+        reviewDoctor.id,
+        reviewNote.trim() || undefined,
+      );
       if (res?.errCode === 0 || res?.success) {
         toast.success("Đã phê duyệt và lưu thông tin yêu cầu.");
         setReviewNote("");
@@ -390,7 +429,9 @@ const ClinicManagerDashboard: React.FC = () => {
       }
       toast.error(res?.message || "Phê duyệt bác sĩ thất bại.");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Phê duyệt bác sĩ thất bại.");
+      toast.error(
+        error?.response?.data?.message || "Phê duyệt bác sĩ thất bại.",
+      );
     }
   };
 
@@ -403,7 +444,10 @@ const ClinicManagerDashboard: React.FC = () => {
     }
 
     try {
-      const res = await rejectClinicManagerDoctorReview(reviewDoctor.id, reviewNote.trim());
+      const res = await rejectClinicManagerDoctorReview(
+        reviewDoctor.id,
+        reviewNote.trim(),
+      );
       if (res?.errCode === 0 || res?.success) {
         toast.success("Đã từ chối và lưu lý do phê duyệt.");
         setReviewNote("");
@@ -435,7 +479,10 @@ const ClinicManagerDashboard: React.FC = () => {
       <div className="clinic-manager-dashboard-container">
         <section className="dashboard-panel access-panel">
           <h2>Clinic Manager Dashboard</h2>
-          <p>Tài khoản Clinic Manager này chưa được gán cơ sở y tế. Vui lòng kiểm tra lại clinicId của tài khoản.</p>
+          <p>
+            Tài khoản Clinic Manager này chưa được gán cơ sở y tế. Vui lòng kiểm
+            tra lại clinicId của tài khoản.
+          </p>
         </section>
       </div>
     );
@@ -446,8 +493,16 @@ const ClinicManagerDashboard: React.FC = () => {
       <div className="clinic-manager-dashboard-container">
         <section className="dashboard-panel access-panel">
           <h2>Chi tiết phê duyệt bác sĩ</h2>
-          <p>{isLoading ? "Đang tải thông tin bác sĩ..." : "Không tìm thấy bác sĩ trong cơ sở y tế này."}</p>
-          <button type="button" className="review-back-button" onClick={() => navigate("/system/clinic-manager")}>
+          <p>
+            {isLoading
+              ? "Đang tải thông tin bác sĩ..."
+              : "Không tìm thấy bác sĩ trong cơ sở y tế này."}
+          </p>
+          <button
+            type="button"
+            className="review-back-button"
+            onClick={() => navigate("/system/clinic-manager")}
+          >
             Quay lại
           </button>
         </section>
@@ -462,7 +517,11 @@ const ClinicManagerDashboard: React.FC = () => {
     return (
       <div className="clinic-manager-dashboard-container review-doctor-container">
         <div className="review-header">
-          <button type="button" className="review-back-icon" onClick={() => navigate("/system/clinic-manager")}>
+          <button
+            type="button"
+            className="review-back-icon"
+            onClick={() => navigate("/system/clinic-manager")}
+          >
             <i className="fas fa-arrow-left" />
           </button>
           <div>
@@ -472,7 +531,9 @@ const ClinicManagerDashboard: React.FC = () => {
                 {getDoctorStatusDisplayLabel(reviewDoctor)}
               </span>
               <span>•</span>
-              <span>Yêu cầu phê duyệt bác sĩ: {getDoctorName(reviewDoctor)}</span>
+              <span>
+                Yêu cầu phê duyệt bác sĩ: {getDoctorName(reviewDoctor)}
+              </span>
             </div>
           </div>
         </div>
@@ -492,7 +553,9 @@ const ClinicManagerDashboard: React.FC = () => {
                 </div>
                 <div>
                   <span>Cơ sở y tế</span>
-                  <strong>{reviewDoctor.clinicName || displayClinicName}</strong>
+                  <strong>
+                    {reviewDoctor.clinicName || displayClinicName}
+                  </strong>
                 </div>
                 <div>
                   <span>Email</span>
@@ -516,7 +579,9 @@ const ClinicManagerDashboard: React.FC = () => {
                 <div className="review-change-grid">
                   <div>
                     <span>Chuyên khoa</span>
-                    <strong>{reviewDoctor.specialtyName || "Chưa phân chuyên khoa"}</strong>
+                    <strong>
+                      {reviewDoctor.specialtyName || "Chưa phân chuyên khoa"}
+                    </strong>
                   </div>
                   <div>
                     <span>Trạng thái hiện tại</span>
@@ -526,8 +591,11 @@ const ClinicManagerDashboard: React.FC = () => {
                 <div>
                   <span>Mô tả yêu cầu</span>
                   <p>
-                    Bác sĩ {getDoctorName(reviewDoctor)} đang chờ được phê duyệt để hoạt động tại {reviewDoctor.clinicName || displayClinicName}.
-                    Vui lòng kiểm tra thông tin chuyên khoa, tài khoản và trạng thái trước khi phê duyệt.
+                    Bác sĩ {getDoctorName(reviewDoctor)} đang chờ được phê duyệt
+                    để hoạt động tại{" "}
+                    {reviewDoctor.clinicName || displayClinicName}. Vui lòng
+                    kiểm tra thông tin chuyên khoa, tài khoản và trạng thái
+                    trước khi phê duyệt.
                   </p>
                 </div>
               </div>
@@ -557,19 +625,32 @@ const ClinicManagerDashboard: React.FC = () => {
               onChange={(event) => setReviewNote(event.target.value)}
               placeholder="Nhập lý do từ chối hoặc ghi chú thêm (bắt buộc khi từ chối)..."
             />
-            <button type="button" className="review-approve-button" onClick={handleApproveReviewDoctor}>
+            <button
+              type="button"
+              className="review-approve-button"
+              onClick={handleApproveReviewDoctor}
+            >
               <i className="far fa-check-circle" />
               Phê duyệt
             </button>
-            <button type="button" className="review-reject-button" onClick={handleRejectReviewDoctor}>
+            <button
+              type="button"
+              className="review-reject-button"
+              onClick={handleRejectReviewDoctor}
+            >
               <i className="far fa-times-circle" />
               Từ chối
             </button>
-            <button type="button" className="review-back-button" onClick={() => navigate("/system/clinic-manager")}>
+            <button
+              type="button"
+              className="review-back-button"
+              onClick={() => navigate("/system/clinic-manager")}
+            >
               Quay lại
             </button>
             <div className="review-action-note">
-              Hành động này sẽ cập nhật trạng thái bác sĩ và làm mới danh sách yêu cầu.
+              Hành động này sẽ cập nhật trạng thái bác sĩ và làm mới danh sách
+              yêu cầu.
             </div>
           </aside>
         </div>
@@ -586,7 +667,10 @@ const ClinicManagerDashboard: React.FC = () => {
             Clinic Manager
           </span>
           <h1>{displayClinicName}</h1>
-          <p>Trung tâm điều phối bác sĩ, gói khám và các yêu cầu phê duyệt của cơ sở y tế.</p>
+          <p>
+            Trung tâm điều phối bác sĩ, gói khám và các yêu cầu phê duyệt của cơ
+            sở y tế.
+          </p>
         </div>
         <span>Last updated: {lastUpdated || "Đang cập nhật"}</span>
       </div>
@@ -632,6 +716,19 @@ const ClinicManagerDashboard: React.FC = () => {
             <span className="metric-chip peach">Requires Action</span>
           </div>
         </div>
+
+        <div className="metric-card">
+          <div className="metric-topline">
+            <span>Bookings</span>
+            <i className="fas fa-calendar-check" />
+          </div>
+          <div className="metric-value-row">
+            <strong>{isLoading ? "..." : bookings.length}</strong>
+            <span className="metric-chip blue">
+              {bookings.filter((b: any) => b.statusId === "S2").length} chờ xác nhận
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="dashboard-main-grid">
@@ -647,7 +744,9 @@ const ClinicManagerDashboard: React.FC = () => {
                   placeholder="Tìm kiếm bác sĩ..."
                 />
               </div>
-              <button type="button" onClick={fetchDashboardData}>Refresh</button>
+              <button type="button" onClick={fetchDashboardData}>
+                Refresh
+              </button>
             </div>
           </div>
 
@@ -662,7 +761,8 @@ const ClinicManagerDashboard: React.FC = () => {
               recentDoctors.map((doctor) => {
                 const statusKey = getStatusKey(doctor);
                 const statusClass = getDoctorStatusClass(statusKey);
-                const doctorKey = doctor.id || doctor.email || getDoctorName(doctor);
+                const doctorKey =
+                  doctor.id || doctor.email || getDoctorName(doctor);
 
                 return (
                   <div
@@ -670,10 +770,14 @@ const ClinicManagerDashboard: React.FC = () => {
                     key={doctorKey}
                   >
                     <div className="doctor-name-cell">
-                      <span className="doctor-avatar">{getDoctorInitials(doctor)}</span>
+                      <span className="doctor-avatar">
+                        {getDoctorInitials(doctor)}
+                      </span>
                       <span>{getDoctorName(doctor)}</span>
                     </div>
-                    <span>{doctor.specialtyName || "Chưa phân chuyên khoa"}</span>
+                    <span>
+                      {doctor.specialtyName || "Chưa phân chuyên khoa"}
+                    </span>
                     <div className="doctor-status-select">
                       <button
                         type="button"
@@ -681,35 +785,47 @@ const ClinicManagerDashboard: React.FC = () => {
                         disabled={statusKey === "SD1"}
                         onClick={() =>
                           statusKey !== "SD1" &&
-                          setOpenStatusDoctorId((current) => current === doctorKey ? "" : doctorKey)
+                          setOpenStatusDoctorId((current) =>
+                            current === doctorKey ? "" : doctorKey,
+                          )
                         }
                       >
                         <span className="status-dot" />
                         <span>{getDoctorStatusDisplayLabel(doctor)}</span>
-                        {statusKey !== "SD1" && <i className="fas fa-chevron-down" />}
+                        {statusKey !== "SD1" && (
+                          <i className="fas fa-chevron-down" />
+                        )}
                       </button>
 
-                      {statusKey !== "SD1" && openStatusDoctorId === doctorKey && (
-                        <div className="status-dropdown">
-                          {DOCTOR_STATUS_OPTIONS.map((option) => (
-                            <button
-                              type="button"
-                              key={option.key}
-                              className={option.className}
-                              onClick={() => handleUpdateDoctorStatus(doctor.id, option.key)}
-                            >
-                              <span className="status-dot" />
-                              <span>{option.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {statusKey !== "SD1" &&
+                        openStatusDoctorId === doctorKey && (
+                          <div className="status-dropdown">
+                            {DOCTOR_STATUS_OPTIONS.map((option) => (
+                              <button
+                                type="button"
+                                key={option.key}
+                                className={option.className}
+                                onClick={() =>
+                                  handleUpdateDoctorStatus(
+                                    doctor.id,
+                                    option.key,
+                                  )
+                                }
+                              >
+                                <span className="status-dot" />
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="empty-state">Chưa có bác sĩ trong cơ sở y tế này.</div>
+              <div className="empty-state">
+                Chưa có bác sĩ trong cơ sở y tế này.
+              </div>
             )}
           </div>
         </section>
@@ -723,7 +839,10 @@ const ClinicManagerDashboard: React.FC = () => {
           <div className="action-list">
             {queueItems.length > 0 ? (
               queueItems.slice(0, 3).map((item) => (
-                <div className="action-card" key={`${item.category}-${item.id}`}>
+                <div
+                  className="action-card"
+                  key={`${item.category}-${item.id}`}
+                >
                   <div className="action-card-heading">
                     <strong>{item.typeLabel}</strong>
                     <span>{item.submitted}</span>
@@ -748,22 +867,128 @@ const ClinicManagerDashboard: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="empty-state compact">Không có yêu cầu đang chờ duyệt.</div>
+              <div className="empty-state compact">
+                Không có yêu cầu đang chờ duyệt.
+              </div>
             )}
           </div>
 
-          <button type="button" className="view-queue-button" onClick={() => setIsQueueOpen(true)}>
+          <button
+            type="button"
+            className="view-queue-button"
+            onClick={() => setIsQueueOpen(true)}
+          >
             View All Queue ({totalPending})
           </button>
         </aside>
       </div>
 
+      {/* Booking Management Section */}
+      <section className="dashboard-panel bookings-panel">
+        <div className="panel-title-row">
+          <h2>
+            <i className="fas fa-calendar-check" /> Lịch hẹn khám
+          </h2>
+          <div className="booking-filters">
+            <button
+              type="button"
+              className={bookingFilter === "" ? "active" : ""}
+              onClick={() => setBookingFilter("")}
+            >
+              Tất cả ({bookings.length})
+            </button>
+            <button
+              type="button"
+              className={bookingFilter === "S2" ? "active" : ""}
+              onClick={() => setBookingFilter("S2")}
+            >
+              Chờ xác nhận (
+              {bookings.filter((b: any) => b.statusId === "S2").length})
+            </button>
+            <button
+              type="button"
+              className={bookingFilter === "S3" ? "active" : ""}
+              onClick={() => setBookingFilter("S3")}
+            >
+              Đã xác nhận (
+              {bookings.filter((b: any) => b.statusId === "S3").length})
+            </button>
+            <button
+              type="button"
+              className={bookingFilter === "S1" ? "active" : ""}
+              onClick={() => setBookingFilter("S1")}
+            >
+              Chờ email (
+              {bookings.filter((b: any) => b.statusId === "S1").length})
+            </button>
+          </div>
+        </div>
+
+        <div className="bookings-table-wrap">
+          <div className="bookings-table-header">
+            <span>Bệnh nhân</span>
+            <span>Bác sĩ</span>
+            <span>Ngày khám</span>
+            <span>Giờ khám</span>
+            <span>Trạng thái</span>
+            <span>Lý do khám</span>
+          </div>
+          {(() => {
+            const filtered = bookingFilter
+              ? bookings.filter((b: any) => b.statusId === bookingFilter)
+              : bookings;
+            if (filtered.length === 0) {
+              return <div className="empty-state">Chưa có lịch hẹn nào.</div>;
+            }
+            return filtered.map((booking: any) => {
+              const statusClass =
+                booking.statusId === "S1"
+                  ? "pending"
+                  : booking.statusId === "S2"
+                    ? "verified"
+                    : booking.statusId === "S3"
+                      ? "confirmed"
+                      : "neutral";
+              return (
+                <div className="booking-row" key={booking.id}>
+                  <div className="booking-patient">
+                    <strong>
+                      {booking.profileName || booking.patientName || "N/A"}
+                    </strong>
+                    <small>{booking.patientEmail}</small>
+                  </div>
+                  <span>{booking.doctorName || "N/A"}</span>
+                  <span>{booking.date}</span>
+                  <span>{booking.timeTypeValue || booking.timeType}</span>
+                  <span className={`booking-status ${statusClass}`}>
+                    {booking.statusValue || booking.statusId}
+                  </span>
+                  <span className="booking-reason">
+                    {booking.reason || "—"}
+                  </span>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </section>
+
       {isQueueOpen && (
-        <div className="approval-modal-backdrop" onMouseDown={() => setIsQueueOpen(false)}>
-          <section className="approval-modal" onMouseDown={(event) => event.stopPropagation()}>
+        <div
+          className="approval-modal-backdrop"
+          onMouseDown={() => setIsQueueOpen(false)}
+        >
+          <section
+            className="approval-modal"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <div className="approval-modal-header">
               <h2>Full Approval Queue</h2>
-              <button type="button" aria-label="Close queue" onClick={() => setIsQueueOpen(false)}>
+              <button
+                type="button"
+                aria-label="Close queue"
+                onClick={() => setIsQueueOpen(false)}
+              >
                 <i className="fas fa-times" />
               </button>
             </div>
@@ -815,7 +1040,10 @@ const ClinicManagerDashboard: React.FC = () => {
 
                 {filteredQueueItems.length > 0 ? (
                   filteredQueueItems.map((item) => (
-                    <div className="queue-row" key={`${item.category}-${item.id}`}>
+                    <div
+                      className="queue-row"
+                      key={`${item.category}-${item.id}`}
+                    >
                       <div className="queue-requester">
                         <span className="queue-avatar">{item.initials}</span>
                         <div>
@@ -823,14 +1051,24 @@ const ClinicManagerDashboard: React.FC = () => {
                           <small>{item.subtitle}</small>
                         </div>
                       </div>
-                      <span className={`queue-type ${item.typeClass}`}>{item.typeLabel}</span>
+                      <span className={`queue-type ${item.typeClass}`}>
+                        {item.typeLabel}
+                      </span>
                       <span>{item.submitted}</span>
                       <p>{item.details}</p>
                       <div className="queue-actions">
-                        <button type="button" className="queue-approve" onClick={() => handleApproveQueueItem(item)}>
+                        <button
+                          type="button"
+                          className="queue-approve"
+                          onClick={() => handleApproveQueueItem(item)}
+                        >
                           Approve
                         </button>
-                        <button type="button" className="queue-review" onClick={() => handleReviewQueueItem(item)}>
+                        <button
+                          type="button"
+                          className="queue-review"
+                          onClick={() => handleReviewQueueItem(item)}
+                        >
                           Review
                         </button>
                       </div>
@@ -844,13 +1082,16 @@ const ClinicManagerDashboard: React.FC = () => {
 
             <div className="approval-modal-footer">
               <span>
-                Showing {filteredQueueItems.length > 0 ? 1 : 0} to {filteredQueueItems.length} of {queueItems.length} entries
+                Showing {filteredQueueItems.length > 0 ? 1 : 0} to{" "}
+                {filteredQueueItems.length} of {queueItems.length} entries
               </span>
               <div className="queue-pagination">
                 <button type="button" disabled>
                   <i className="fas fa-chevron-left" />
                 </button>
-                <button type="button" className="active">1</button>
+                <button type="button" className="active">
+                  1
+                </button>
                 <button type="button" disabled>
                   <i className="fas fa-chevron-right" />
                 </button>

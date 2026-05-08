@@ -50,6 +50,15 @@
       "handbook": "Handbook",
       "manage-handbook": "Manage Handbook"
     },
+    "clinic-manager": {
+      "overview": "Clinic Management",
+      "dashboard": "Dashboard",
+      "doctors": "Doctors",
+      "bookings": "Bookings",
+      "packages": "Packages",
+      "approvals": "Approvals",
+      "review-doctor": "Review Doctor"
+    },
     "doctor": {
       "manage-doctor": "Manage Doctor",
       "schedule": "Manage Schedule",

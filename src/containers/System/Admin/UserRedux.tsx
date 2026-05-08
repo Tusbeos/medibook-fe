@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CRUD_ACTIONS, USER_ROLE } from "../../../utils";
+import { generateMedibookEmail } from "../../../utils/CommonUtils";
+import { handleGenerateEmail } from "../../../services/userService";
 import * as actions from "../../../store/actions";
 import { handleGetAllClinics } from "../../../services/clinicService";
 import {
@@ -29,6 +31,28 @@ const UserRedux: React.FC = () => {
   const [currentAction, setCurrentAction] = useState(CRUD_ACTIONS.CREATE);
   const [userEditId, setUserEditId] = useState<number | string>("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Auto-generate email for R4: firstName@mgr.medibook.com (BE API with debounce)
+  useEffect(() => {
+    if (currentAction !== CRUD_ACTIONS.CREATE) return;
+    if (!firstName) {
+      setEmail("");
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await handleGenerateEmail(firstName, undefined, "R4");
+        if (res?.errCode === 0 && res.data) {
+          setEmail(res.data);
+        } else {
+          setEmail(generateMedibookEmail(firstName, undefined, "R4"));
+        }
+      } catch {
+        setEmail(generateMedibookEmail(firstName, undefined, "R4"));
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [firstName, currentAction]);
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -175,11 +199,11 @@ const UserRedux: React.FC = () => {
         <div className="user-form-grid">
           <FormField label="Email">
             <input
-              className="sys-input"
+              className="sys-input readonly-input"
               type="email"
-              placeholder="Nhập email..."
+              placeholder="Tự động tạo từ tên"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              readOnly
               disabled={currentAction === CRUD_ACTIONS.EDIT}
             />
           </FormField>

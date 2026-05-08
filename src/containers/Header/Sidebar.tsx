@@ -15,40 +15,56 @@ const Sidebar: React.FC = () => {
       ? [
           {
             to: "/system/clinic-manager",
-            icon: "fas fa-th-large",
-            label: "Clinic Manager - Admin",
+            icon: "fas fa-chart-line",
+            label: "Tổng quan",
+            end: true,
+          },
+          {
+            to: "/system/clinic-manager/doctors",
+            icon: "fas fa-user-md",
+            label: "Bác sĩ",
+          },
+          {
+            to: "/system/clinic-manager/bookings",
+            icon: "fas fa-calendar-check",
+            label: "Lịch hẹn",
+          },
+          {
+            to: "/system/clinic-manager/packages",
+            icon: "fas fa-briefcase-medical",
+            label: "Gói khám",
+          },
+          {
+            to: "/system/clinic-manager/approvals",
+            icon: "fas fa-clipboard-check",
+            label: "Phê duyệt",
           },
         ]
       : [
           {
             to: "/system/user-management",
             icon: "fas fa-user-shield",
-            label: "Clinic Manager",
+            label: "Quản lý Clinic Manager",
           },
           {
             to: "/system/manage-doctor",
             icon: "fas fa-user-md",
-            label: "Doctor Management",
+            label: "Quản lý bác sĩ",
           },
           {
             to: "/system/manage-specialty",
             icon: "fas fa-shapes",
-            label: "Specialty Management",
+            label: "Quản lý chuyên khoa",
           },
           {
             to: "/system/manage-clinic",
             icon: "far fa-building",
-            label: "Facility Management",
+            label: "Quản lý cơ sở y tế",
           },
           {
             to: "/system/manage-package",
             icon: "far fa-calendar-alt",
-            label: "Management Package",
-          },
-          {
-            to: "/system/manage-patient",
-            icon: "far fa-user",
-            label: "Patient Management",
+            label: "Quản lý gói khám",
           },
         ];
 
@@ -67,6 +83,7 @@ const Sidebar: React.FC = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            end={(item as any).end}
             className={({ isActive }) =>
               isActive ? "menu-item active" : "menu-item"
             }

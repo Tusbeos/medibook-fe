@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import MarkdownIt from "markdown-it";
 import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
@@ -13,6 +19,14 @@ import {
 import { handleGetAllCode } from "../../../services/userService";
 import { handleGetAllClinics } from "../../../services/clinicService";
 import { toast } from "react-toastify";
+import {
+  Panel,
+  PanelHeading,
+  SearchBox,
+  DataTable,
+  ActionButtons,
+  FormField,
+} from "../../../components/System/SystemShared";
 
 const mdParser = new MarkdownIt();
 
@@ -41,13 +55,16 @@ const ManagePackage = () => {
   const [previewImgURL, setPreviewImgURL] = useState("");
   const [descriptionHTML, setDescriptionHTML] = useState("");
   const [descriptionMarkdown, setDescriptionMarkdown] = useState("");
-  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([createEmptyGroup()]);
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([
+    createEmptyGroup(),
+  ]);
   const [packages, setPackages] = useState<any[]>([]);
   const [packageTypes, setPackageTypes] = useState<any[]>([]);
   const [clinics, setClinics] = useState<any[]>([]);
   const [groupServices, setGroupServices] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editPackageId, setEditPackageId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -112,34 +129,47 @@ const ManagePackage = () => {
     [],
   );
 
-  const handleOnChangeImage = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+  const handleOnChangeImage = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
 
-    const base64 = await CommonUtils.getBase64(file) as string;
-    setImageBase64(base64);
-    setPreviewImgURL(base64);
-  }, []);
+      const base64 = (await CommonUtils.getBase64(file)) as string;
+      setImageBase64(base64);
+      setPreviewImgURL(base64);
+    },
+    [],
+  );
 
-  const handleGroupCodeChange = useCallback((groupIndex: number, value: string) => {
-    setServiceGroups((prev) =>
-      prev.map((group, index) =>
-        index === groupIndex ? { ...group, groupServiceCode: value } : group,
-      ),
-    );
-  }, []);
+  const handleGroupCodeChange = useCallback(
+    (groupIndex: number, value: string) => {
+      setServiceGroups((prev) =>
+        prev.map((group, index) =>
+          index === groupIndex ? { ...group, groupServiceCode: value } : group,
+        ),
+      );
+    },
+    [],
+  );
 
   const handleServiceChange = useCallback(
-    (groupIndex: number, serviceIndex: number, field: keyof ServiceEntry, value: string) => {
+    (
+      groupIndex: number,
+      serviceIndex: number,
+      field: keyof ServiceEntry,
+      value: string,
+    ) => {
       setServiceGroups((prev) =>
         prev.map((group, index) =>
           index === groupIndex
             ? {
                 ...group,
                 services: group.services.map((service, itemIndex) =>
-                  itemIndex === serviceIndex ? { ...service, [field]: value } : service,
+                  itemIndex === serviceIndex
+                    ? { ...service, [field]: value }
+                    : service,
                 ),
               }
             : group,
@@ -153,31 +183,45 @@ const ManagePackage = () => {
     setServiceGroups((prev) =>
       prev.map((group, index) =>
         index === groupIndex
-          ? { ...group, services: [...group.services, { serviceName: "", description: "" }] }
+          ? {
+              ...group,
+              services: [
+                ...group.services,
+                { serviceName: "", description: "" },
+              ],
+            }
           : group,
       ),
     );
   }, []);
 
-  const handleRemoveService = useCallback((groupIndex: number, serviceIndex: number) => {
-    setServiceGroups((prev) => {
-      const group = prev[groupIndex];
-      if (!group) {
-        return prev;
-      }
+  const handleRemoveService = useCallback(
+    (groupIndex: number, serviceIndex: number) => {
+      setServiceGroups((prev) => {
+        const group = prev[groupIndex];
+        if (!group) {
+          return prev;
+        }
 
-      if (group.services.length === 1) {
-        const next = prev.filter((_, index) => index !== groupIndex);
-        return next.length > 0 ? next : [createEmptyGroup()];
-      }
+        if (group.services.length === 1) {
+          const next = prev.filter((_, index) => index !== groupIndex);
+          return next.length > 0 ? next : [createEmptyGroup()];
+        }
 
-      return prev.map((item, index) =>
-        index === groupIndex
-          ? { ...item, services: item.services.filter((_, itemIndex) => itemIndex !== serviceIndex) }
-          : item,
-      );
-    });
-  }, []);
+        return prev.map((item, index) =>
+          index === groupIndex
+            ? {
+                ...item,
+                services: item.services.filter(
+                  (_, itemIndex) => itemIndex !== serviceIndex,
+                ),
+              }
+            : item,
+        );
+      });
+    },
+    [],
+  );
 
   const handleRemoveGroup = useCallback((groupIndex: number) => {
     setServiceGroups((prev) => {
@@ -224,7 +268,11 @@ const ManagePackage = () => {
           : await createNewPackageService(payload);
 
       if (res && res.errCode === 0) {
-        toast.success(isEditing ? "Cập nhật gói khám thành công." : "Lưu gói khám thành công.");
+        toast.success(
+          isEditing
+            ? "Cập nhật gói khám thành công."
+            : "Lưu gói khám thành công.",
+        );
         resetForm();
         fetchAllPackages();
         return;
@@ -232,7 +280,10 @@ const ManagePackage = () => {
 
       toast.error(res?.errMessage || "Đã có lỗi xảy ra.");
     } catch (e: any) {
-      const msg = e?.response?.data?.errMessage || e?.response?.data?.message || "Đã có lỗi xảy ra.";
+      const msg =
+        e?.response?.data?.errMessage ||
+        e?.response?.data?.message ||
+        "Đã có lỗi xảy ra.";
       toast.error(msg);
     }
   };
@@ -266,11 +317,15 @@ const ManagePackage = () => {
       });
     }
 
-    const loadedGroups = Object.entries(groupMap).map(([groupServiceCode, services]) => ({
-      groupServiceCode,
-      services,
-    }));
-    setServiceGroups(loadedGroups.length > 0 ? loadedGroups : [createEmptyGroup()]);
+    const loadedGroups = Object.entries(groupMap).map(
+      ([groupServiceCode, services]) => ({
+        groupServiceCode,
+        services,
+      }),
+    );
+    setServiceGroups(
+      loadedGroups.length > 0 ? loadedGroups : [createEmptyGroup()],
+    );
     setIsEditing(true);
     setEditPackageId(item?.id || null);
   };
@@ -297,44 +352,72 @@ const ManagePackage = () => {
     return item.typeData.valueVi || item.typeData.valueEn || item.typeCode;
   };
 
+  const filteredPackages = useMemo(() => {
+    if (!searchTerm.trim()) return packages;
+    const term = searchTerm.toLowerCase();
+    return packages.filter(
+      (item: any) =>
+        (item.name || "").toLowerCase().includes(term) ||
+        (item.clinicName || item.clinicData?.name || "")
+          .toLowerCase()
+          .includes(term) ||
+        (getTypeName(item) || "").toLowerCase().includes(term),
+    );
+  }, [packages, searchTerm]);
+
+  const packageColumns = useMemo(
+    () => [
+      { key: "name", title: "Tên gói khám" },
+      {
+        key: "type",
+        title: "Loại gói",
+        render: (item: any) => getTypeName(item),
+      },
+      {
+        key: "clinic",
+        title: "Phòng khám",
+        render: (item: any) =>
+          item.clinicName || item.clinicData?.name || item.clinicId,
+      },
+      {
+        key: "price",
+        title: "Giá (VNĐ)",
+        render: (item: any) => item.price?.toLocaleString("vi-VN"),
+      },
+    ],
+    [],
+  );
+
   return (
     <div className="manage-package-container">
-      <div className="package-panel package-info-panel">
-        <div className="panel-heading">
-          <h2>Thông tin chung</h2>
-        </div>
+      <Panel className="package-info-panel">
+        <PanelHeading title="Thông tin chung" icon="fas fa-briefcase-medical" />
 
         <div className="package-form-grid">
-          <div className="package-form-field">
-            <label htmlFor="package-name">Tên gói khám <span>*</span></label>
+          <FormField label="Tên gói khám *">
             <input
-              id="package-name"
-              className="package-input"
+              className="sys-input"
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Nhập tên gói khám..."
             />
-          </div>
+          </FormField>
 
-          <div className="package-form-field">
-            <label htmlFor="package-price">Giá gói khám (VNĐ) <span>*</span></label>
+          <FormField label="Giá gói khám (VNĐ) *">
             <input
-              id="package-price"
-              className="package-input"
+              className="sys-input"
               type="number"
               min={0}
               value={price}
               onChange={(event) => setPrice(event.target.value)}
               placeholder="Nhập giá gói khám (VNĐ)..."
             />
-          </div>
+          </FormField>
 
-          <div className="package-form-field">
-            <label htmlFor="package-type">Loại gói khám <span>*</span></label>
+          <FormField label="Loại gói khám *">
             <select
-              id="package-type"
-              className="package-input package-select"
+              className="sys-input"
               value={typeCode}
               onChange={(event) => setTypeCode(event.target.value)}
             >
@@ -345,13 +428,11 @@ const ManagePackage = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </FormField>
 
-          <div className="package-form-field">
-            <label htmlFor="package-clinic">Phòng khám <span>*</span></label>
+          <FormField label="Phòng khám *">
             <select
-              id="package-clinic"
-              className="package-input package-select"
+              className="sys-input"
               value={clinicId}
               onChange={(event) => setClinicId(event.target.value)}
             >
@@ -362,27 +443,26 @@ const ManagePackage = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </FormField>
         </div>
 
-        <div className="package-form-field">
-          <label htmlFor="package-note">Ghi chú</label>
+        <FormField label="Ghi chú">
           <input
-            id="package-note"
-            className="package-input"
+            className="sys-input"
             type="text"
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Nhập ghi chú (không bắt buộc)..."
           />
-        </div>
+        </FormField>
 
-        <div className="package-form-field">
-          <label>Ảnh gói khám</label>
+        <FormField label="Ảnh gói khám">
           <button
             type="button"
             className={`package-upload-card ${previewImgURL ? "has-image" : ""}`}
-            style={{ backgroundImage: previewImgURL ? `url(${previewImgURL})` : "" }}
+            style={{
+              backgroundImage: previewImgURL ? `url(${previewImgURL})` : "",
+            }}
             onClick={() => fileInput.current?.click()}
           >
             <input
@@ -401,13 +481,11 @@ const ManagePackage = () => {
               </>
             )}
           </button>
-        </div>
-      </div>
+        </FormField>
+      </Panel>
 
-      <div className="package-panel package-service-panel">
-        <div className="panel-heading">
-          <h2>Danh mục dịch vụ</h2>
-        </div>
+      <Panel className="package-service-panel">
+        <PanelHeading title="Danh mục dịch vụ" icon="fas fa-list-ul" />
 
         <div className="service-table-wrap">
           <table className="service-table">
@@ -429,11 +507,19 @@ const ManagePackage = () => {
                           <select
                             className="table-input package-select"
                             value={group.groupServiceCode}
-                            onChange={(event) => handleGroupCodeChange(groupIndex, event.target.value)}
+                            onChange={(event) =>
+                              handleGroupCodeChange(
+                                groupIndex,
+                                event.target.value,
+                              )
+                            }
                           >
                             <option value="">-- Chọn nhóm --</option>
                             {groupServices.map((groupService: any) => (
-                              <option key={groupService.keyMap} value={groupService.keyMap}>
+                              <option
+                                key={groupService.keyMap}
+                                value={groupService.keyMap}
+                              >
                                 {groupService.valueVi || groupService.valueEn}
                               </option>
                             ))}
@@ -449,7 +535,12 @@ const ManagePackage = () => {
                           value={service.serviceName}
                           placeholder="Tên dịch vụ..."
                           onChange={(event) =>
-                            handleServiceChange(groupIndex, serviceIndex, "serviceName", event.target.value)
+                            handleServiceChange(
+                              groupIndex,
+                              serviceIndex,
+                              "serviceName",
+                              event.target.value,
+                            )
                           }
                         />
                       </td>
@@ -460,7 +551,12 @@ const ManagePackage = () => {
                           value={service.description}
                           placeholder="Mô tả..."
                           onChange={(event) =>
-                            handleServiceChange(groupIndex, serviceIndex, "description", event.target.value)
+                            handleServiceChange(
+                              groupIndex,
+                              serviceIndex,
+                              "description",
+                              event.target.value,
+                            )
                           }
                         />
                       </td>
@@ -468,7 +564,9 @@ const ManagePackage = () => {
                         <button
                           type="button"
                           className="remove-service-button"
-                          onClick={() => handleRemoveService(groupIndex, serviceIndex)}
+                          onClick={() =>
+                            handleRemoveService(groupIndex, serviceIndex)
+                          }
                           title="Xóa dịch vụ"
                         >
                           <i className="fas fa-times" />
@@ -506,16 +604,18 @@ const ManagePackage = () => {
           </table>
         </div>
 
-        <button type="button" className="add-group-button" onClick={handleAddGroup}>
+        <button
+          type="button"
+          className="add-group-button"
+          onClick={handleAddGroup}
+        >
           <i className="fas fa-plus" />
           Thêm nhóm dịch vụ
         </button>
-      </div>
+      </Panel>
 
-      <div className="package-panel package-editor-panel">
-        <div className="panel-heading">
-          <h2>Mô tả gói khám</h2>
-        </div>
+      <Panel className="package-editor-panel">
+        <PanelHeading title="Mô tả gói khám" icon="fas fa-file-alt" />
 
         <div className="editor-shell">
           <MdEditor
@@ -527,78 +627,34 @@ const ManagePackage = () => {
             placeholder="Nhập nội dung mô tả gói khám..."
           />
         </div>
-      </div>
+      </Panel>
 
-      <div className="package-actions">
-        <button type="button" className="save-package-button" onClick={handleSavePackage}>
-          <i className="far fa-save" />
-          <span>{isEditing ? "CẬP NHẬT THÔNG TIN" : "LƯU THÔNG TIN"}</span>
-        </button>
+      <ActionButtons
+        isEditing={isEditing}
+        onSave={handleSavePackage}
+        onCancel={resetForm}
+        saveLabel="LƯU THÔNG TIN"
+        editLabel="CẬP NHẬT THÔNG TIN"
+      />
 
-        {isEditing && (
-          <button type="button" className="cancel-package-button" onClick={resetForm}>
-            HỦY CHỈNH SỬA
-          </button>
-        )}
-      </div>
+      <Panel className="package-list-panel">
+        <PanelHeading title="Danh sách gói khám" icon="fas fa-box-open">
+          <SearchBox
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Tìm kiếm theo tên, loại, phòng khám..."
+          />
+        </PanelHeading>
 
-      <div className="package-panel package-list-panel">
-        <div className="panel-heading">
-          <h2>Danh sách gói khám</h2>
-        </div>
-
-        <div className="package-table-wrap">
-          <table className="package-table">
-            <thead>
-              <tr>
-                <th>Tên gói khám</th>
-                <th>Loại gói</th>
-                <th>Phòng khám</th>
-                <th>Giá (VNĐ)</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {packages.length > 0 ? (
-                packages.map((item: any) => (
-                  <tr key={item.id || item.name}>
-                    <td>{item.name}</td>
-                    <td>{getTypeName(item)}</td>
-                    <td>{item.clinicName || item.clinicData?.name || item.clinicId}</td>
-                    <td>{item.price?.toLocaleString("vi-VN")}</td>
-                    <td>
-                      <div className="package-table-actions">
-                        <button
-                          type="button"
-                          className="table-action edit-action"
-                          onClick={() => handleEditPackage(item)}
-                          title="Chỉnh sửa"
-                        >
-                          <i className="fas fa-pencil-alt" />
-                        </button>
-                        <button
-                          type="button"
-                          className="table-action delete-action"
-                          onClick={() => handleDeletePackage(item)}
-                          title="Xóa"
-                        >
-                          <i className="fas fa-trash" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="package-empty-state">
-                    Chưa có gói khám nào.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <DataTable
+          columns={packageColumns}
+          data={filteredPackages}
+          rowKey={(item: any) => item.id || item.name}
+          emptyText="Chưa có gói khám nào."
+          onEdit={handleEditPackage}
+          onDelete={handleDeletePackage}
+        />
+      </Panel>
     </div>
   );
 };
