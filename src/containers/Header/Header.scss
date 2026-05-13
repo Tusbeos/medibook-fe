@@ -13,8 +13,9 @@
     font-size: 20px;
     font-weight: 600;
     color: #1e293b;
-    margin-right: auto;
     text-transform: capitalize;
+    white-space: nowrap;
+    margin-right: auto;
   }
 
   .search-container {
@@ -101,11 +102,20 @@
         height: 40px;
         border-radius: 50%;
         overflow: hidden;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+        }
+
+        i {
+          color: #64748b;
+          font-size: 28px;
         }
       }
     }

@@ -60,6 +60,7 @@
       "review-doctor": "Review Doctor"
     },
     "doctor": {
+      "workspace": "Doctor",
       "manage-doctor": "Manage Doctor",
       "schedule": "Manage Schedule",
       "manage-schedule": "Manage Doctor's Schedule",

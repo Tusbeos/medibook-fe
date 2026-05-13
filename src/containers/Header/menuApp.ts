@@ -67,7 +67,7 @@ export const adminMenu: IMenuGroup[] = [
 ];
 export const doctorMenu: IMenuGroup[] = [
   {
-    name: "menu.admin.manage-user",
+    name: "menu.doctor.workspace",
     menus: [
       {
         name: "menu.doctor.manage-schedule",

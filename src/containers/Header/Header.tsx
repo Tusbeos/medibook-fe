@@ -11,6 +11,9 @@ import "./Header.scss";
 import { FormattedMessage } from "react-intl";
 import _ from "lodash";
 import { IRootState, IMenuGroup } from "../../types";
+import { getBase64FromBuffer } from "../../utils/CommonUtils";
+import { handleGetUserById } from "../../services/userService";
+import { userLoginSuccess } from "../../store/actions/userActions";
 
 // Header chuyển sang Function Component + Hooks
 const Header: React.FC = () => {
@@ -19,9 +22,14 @@ const Header: React.FC = () => {
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
+  const token = useSelector((state: IRootState) => state.user.token);
 
   const [menuApp, setMenuApp] = useState<IMenuGroup[]>([]);
   const [pageTitle, setPageTitle] = useState("");
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
+  const [fetchedProfileUserId, setFetchedProfileUserId] = useState<
+    number | string | null
+  >(null);
 
   useEffect(() => {
     let menu: IMenuGroup[] = [];
@@ -54,6 +62,40 @@ const Header: React.FC = () => {
     setPageTitle(title);
   }, [userInfo, location.pathname]);
 
+  useEffect(() => {
+    setAvatarLoadError(false);
+  }, [userInfo?.image]);
+
+  useEffect(() => {
+    const userId = userInfo?.id || userInfo?.userId;
+    if (!isLoggedIn || !userId || fetchedProfileUserId === userId) return;
+
+    const fetchProfile = async () => {
+      try {
+        const res = await handleGetUserById(userId);
+        if (res?.data && (res.success || res.errCode === 0)) {
+          dispatch(
+            userLoginSuccess(
+              {
+                ...userInfo,
+                ...res.data,
+                token: (userInfo as any)?.token,
+                refreshToken: (userInfo as any)?.refreshToken,
+              },
+              token || undefined,
+            ),
+          );
+        }
+      } catch (e) {
+        // Header vẫn render fallback avatar nếu không lấy được profile.
+      } finally {
+        setFetchedProfileUserId(userId);
+      }
+    };
+
+    fetchProfile();
+  }, [dispatch, fetchedProfileUserId, isLoggedIn, token, userInfo]);
+
   const handleChangeLanguage = useCallback((lang: string) => {
     dispatch(changeLanguageApp(lang));
   }, [dispatch]);
@@ -61,6 +103,28 @@ const Header: React.FC = () => {
   const processLogout = useCallback(() => {
     dispatch(actions.processLogout());
   }, [dispatch]);
+
+  const getRoleLabel = useCallback(() => {
+    const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
+    switch (roleId) {
+      case USER_ROLE.ADMIN:
+        return "Admin";
+      case USER_ROLE.DOCTOR:
+        return "Bác sĩ";
+      case USER_ROLE.CLINIC_MANAGER:
+        return "Quản lý phòng khám";
+      case USER_ROLE.PATIENT:
+        return "Bệnh nhân";
+      default:
+        return "Người dùng";
+    }
+  }, [userInfo]);
+
+  const getAvatarSrc = useCallback(() => {
+    const image = userInfo?.image;
+    if (!image || avatarLoadError) return "";
+    return getBase64FromBuffer(image);
+  }, [userInfo, avatarLoadError]);
 
   return (
     <div className="header-topbar">
@@ -87,10 +151,18 @@ const Header: React.FC = () => {
             <span className="user-name">
               {userInfo && userInfo.lastName ? `${userInfo.lastName} ${userInfo.firstName}` : "Admin Profile"}
             </span>
-            <span className="user-role">Super Administrator</span>
+            <span className="user-role">{getRoleLabel()}</span>
           </div>
           <div className="user-avatar">
-            <img src="https://i.pravatar.cc/150?img=11" alt="avatar" />
+            {getAvatarSrc() ? (
+              <img
+                src={getAvatarSrc()}
+                alt="avatar"
+                onError={() => setAvatarLoadError(true)}
+              />
+            ) : (
+              <i className="fas fa-user-circle"></i>
+            )}
           </div>
         </div>
 

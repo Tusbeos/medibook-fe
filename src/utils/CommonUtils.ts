@@ -1,4 +1,7 @@
 import { Buffer } from "buffer";
+
+const DEFAULT_IMAGE_MIME = "image/jpeg";
+
 class CommonUtils {
   static getBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -10,24 +13,47 @@ class CommonUtils {
   }
 }
 
-export const getBase64FromBuffer = (image: any): string => {
-  let imageBase64 = "";
+export const normalizeImageSrc = (
+  image: any,
+  mimeType = DEFAULT_IMAGE_MIME,
+): string => {
   if (!image) return "";
+
   if (typeof image === "object" && image.type === "Buffer" && image.data) {
-    let buffer = new Buffer(image.data);
-    let base64String = buffer.toString("base64");
-    imageBase64 = `data:image/jpeg;base64,${base64String}`;
-  } else if (typeof image === "string") {
-    if (image.startsWith("ZGF0Y")) {
-      imageBase64 = new Buffer(image, "base64").toString("binary");
-    } else if (image.startsWith("data:image")) {
-      imageBase64 = image;
-    } else {
-      imageBase64 = `data:image/jpeg;base64,${image}`;
+    const base64String = Buffer.from(image.data).toString("base64");
+    return `data:${mimeType};base64,${base64String}`;
+  }
+
+  if (typeof image !== "string") return "";
+
+  const trimmed = image.trim();
+  if (!trimmed) return "";
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("data:image")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("ZGF0Y")) {
+    try {
+      return Buffer.from(trimmed, "base64").toString("utf-8");
+    } catch (e) {
+      return "";
     }
   }
-  return imageBase64;
+
+  return `data:${mimeType};base64,${trimmed}`;
 };
+
+export const toImageCssUrl = (image: any, mimeType = DEFAULT_IMAGE_MIME) => {
+  const src = normalizeImageSrc(image, mimeType);
+  return src ? `url(${src})` : "";
+};
+
+export const getBase64FromBuffer = normalizeImageSrc;
 
 /**
  * Remove Vietnamese diacritics and normalize to ASCII lowercase

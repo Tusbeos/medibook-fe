@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { createHistory, getHistoryByBooking } from "../../../services/historyService";
+import {
+  createHistory,
+  getHistoryByBooking,
+} from "../../../services/historyService";
 import "./Prescription.scss";
 
-interface RouteParams {
-  bookingId: string;
-}
-
 const Prescription: React.FC = () => {
-  const { bookingId } = useParams<RouteParams>();
-  const routerHistory = useHistory();
+  const { bookingId } = useParams<{ bookingId: string }>();
+  const navigate = useNavigate();
 
   const [diagnosis, setDiagnosis] = useState("");
   const [prescription, setPrescription] = useState("");
@@ -46,6 +45,11 @@ const Prescription: React.FC = () => {
   }, [bookingId]);
 
   const handleSubmit = async () => {
+    const parsedBookingId = Number(bookingId);
+    if (!Number.isFinite(parsedBookingId)) {
+      toast.error("Lịch hẹn không hợp lệ!");
+      return;
+    }
     if (!diagnosis.trim()) {
       toast.warn("Vui lòng nhập chẩn đoán!");
       return;
@@ -53,7 +57,7 @@ const Prescription: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await createHistory({
-        bookingId: parseInt(bookingId, 10),
+        bookingId: parsedBookingId,
         diagnosis,
         prescription,
         notes,
@@ -61,7 +65,7 @@ const Prescription: React.FC = () => {
       });
       if (res && res.errCode === 0) {
         toast.success("Lưu hồ sơ khám thành công!");
-        routerHistory.push("/doctor/manage-patient");
+        navigate("/doctor/manage-patient");
       } else {
         toast.error(res?.message || "Lưu thất bại!");
       }
@@ -77,7 +81,7 @@ const Prescription: React.FC = () => {
       <div className="prescription-header">
         <button
           className="btn btn-outline-secondary btn-sm back-btn"
-          onClick={() => routerHistory.push("/doctor/manage-patient")}
+          onClick={() => navigate("/doctor/manage-patient")}
         >
           <i className="fas fa-arrow-left mr-1"></i> Quay lại
         </button>
@@ -158,7 +162,7 @@ const Prescription: React.FC = () => {
           <div className="prescription-actions">
             <button
               className="btn btn-secondary mr-3"
-              onClick={() => routerHistory.push("/doctor/manage-patient")}
+              onClick={() => navigate("/doctor/manage-patient")}
               disabled={isLoading}
             >
               <i className="fas fa-times mr-1"></i> Hủy

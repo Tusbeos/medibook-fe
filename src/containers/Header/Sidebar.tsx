@@ -11,8 +11,22 @@ const Sidebar: React.FC = () => {
   const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
 
   const menuItems =
-    roleId === USER_ROLE.CLINIC_MANAGER
+    roleId === USER_ROLE.DOCTOR
       ? [
+          {
+            to: "/doctor/manage-schedule",
+            icon: "fas fa-calendar-alt",
+            label: "Quản lý lịch khám",
+            end: true,
+          },
+          {
+            to: "/doctor/manage-patient",
+            icon: "fas fa-procedures",
+            label: "Quản lý bệnh nhân",
+          },
+        ]
+      : roleId === USER_ROLE.CLINIC_MANAGER
+        ? [
           {
             to: "/system/clinic-manager",
             icon: "fas fa-chart-line",
@@ -40,7 +54,7 @@ const Sidebar: React.FC = () => {
             label: "Phê duyệt",
           },
         ]
-      : [
+        : [
           {
             to: "/system/user-management",
             icon: "fas fa-user-shield",

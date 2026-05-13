@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useIntl, FormattedMessage } from "react-intl";
 import "./BookingDoctor.scss";
-import { LANGUAGES } from "utils";
+import { LANGUAGES, toImageCssUrl } from "utils";
 import moment from "moment";
 import { NumericFormat } from "react-number-format";
 import HomeHeader from "containers/HomePage/HomeHeader";
@@ -105,10 +105,7 @@ const BookingDoctor = () => {
   );
 
   const getDoctorImage = useCallback((doctor: any) => {
-    if (doctor && doctor.image) {
-      return `url(data:image/png;base64,${doctor.image})`;
-    }
-    return "none";
+    return toImageCssUrl(doctor?.image, "image/png") || "none";
   }, []);
 
   const buildDoctorName = useCallback(

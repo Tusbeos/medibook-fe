@@ -11,7 +11,7 @@ import {
   handleChangePassword,
 } from "../../../services/userService";
 import { userLoginSuccess } from "../../../store/actions/userActions";
-import { LANGUAGES } from "../../../utils";
+import { LANGUAGES, normalizeImageSrc } from "../../../utils";
 import "./PatientProfile.scss";
 
 const PatientProfile: React.FC = () => {
@@ -50,10 +50,7 @@ const PatientProfile: React.FC = () => {
       setAddress(userInfo.address || "");
       setGender(userInfo.gender || "");
       if (userInfo.image) {
-        const src = userInfo.image.startsWith("data:")
-          ? userInfo.image
-          : `data:image/jpeg;base64,${userInfo.image}`;
-        setPreviewAvatar(src);
+        setPreviewAvatar(normalizeImageSrc(userInfo.image));
       }
     }
   }, [userInfo]);
@@ -74,7 +71,7 @@ const PatientProfile: React.FC = () => {
           setAddress(u.address || "");
           setGender(u.gender || "");
           if (u.image) {
-            setPreviewAvatar(`data:image/jpeg;base64,${u.image}`);
+            setPreviewAvatar(normalizeImageSrc(u.image));
           }
         }
       } catch (e) {
@@ -127,8 +124,7 @@ const PatientProfile: React.FC = () => {
       gender,
       roleId: userInfo.roleId || "R3",
       positionId: userInfo.positionId || "P0",
-      // Gửi ảnh dưới key "image" — BE UpdateUserRequest đọc field "image"
-      image: avatar || undefined,
+      avatar: avatar || undefined,
     };
 
     try {
@@ -146,9 +142,7 @@ const PatientProfile: React.FC = () => {
             const updatedUser: IUser = {
               ...userInfo,
               ...fresh.data,
-              image: fresh.data.image
-                ? `data:image/jpeg;base64,${fresh.data.image}`
-                : avatar || userInfo.image,
+              image: normalizeImageSrc(fresh.data.image) || avatar || userInfo.image,
             };
             dispatch(userLoginSuccess(updatedUser, token || undefined));
           }
@@ -267,10 +261,7 @@ const PatientProfile: React.FC = () => {
       setAddress(userInfo.address || "");
       setGender(userInfo.gender || "");
       if (userInfo.image) {
-        const src = userInfo.image.startsWith("data:")
-          ? userInfo.image
-          : `data:image/jpeg;base64,${userInfo.image}`;
-        setPreviewAvatar(src);
+        setPreviewAvatar(normalizeImageSrc(userInfo.image));
       }
       setAvatar("");
     }

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import * as actions from "../../store/actions";
 import "./Login.scss";
-import { handleLoginApi } from "../../services/userService";
+import { handleGetUserById, handleLoginApi } from "../../services/userService";
 import { USER_ROLE } from "../../utils";
 
 const Login: React.FC = () => {
@@ -23,10 +23,31 @@ const Login: React.FC = () => {
         return setErrMessage(data?.message || "Login failed");
       }
       dispatch(actions.userLoginSuccess(data.data, data.data?.token));
+
+      let userInfo = data.data;
+      if (data.data?.id) {
+        try {
+          const userDetailRes = await handleGetUserById(data.data.id);
+          if (
+            userDetailRes?.data &&
+            (userDetailRes.success || userDetailRes.errCode === 0)
+          ) {
+            userInfo = {
+              ...data.data,
+              ...userDetailRes.data,
+              token: data.data.token,
+              refreshToken: data.data.refreshToken,
+            };
+            dispatch(actions.userLoginSuccess(userInfo, data.data?.token));
+          }
+        } catch (e) {
+          // Login vẫn thành công; avatar sẽ fallback nếu không lấy được profile.
+        }
+      }
       console.log("Login success");
 
       // Redirect dựa theo roleId của user
-      const roleId = data.data?.roleId;
+      const roleId = userInfo?.roleId;
       if (roleId === USER_ROLE.ADMIN) {
         navigate("/system");
       } else if (roleId === USER_ROLE.CLINIC_MANAGER) {

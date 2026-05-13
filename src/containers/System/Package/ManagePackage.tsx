@@ -9,7 +9,7 @@ import MarkdownIt from "markdown-it";
 import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
 import "./ManagePackage.scss";
-import { CommonUtils } from "../../../utils";
+import { CommonUtils, getBase64FromBuffer } from "../../../utils";
 import {
   createNewPackageService,
   deletePackageService,
@@ -289,11 +289,7 @@ const ManagePackage = () => {
   };
 
   const handleEditPackage = (item: any) => {
-    const imgBase64 = item?.image
-      ? item.image.startsWith?.("data:")
-        ? item.image
-        : `data:image/jpeg;base64,${item.image}`
-      : "";
+    const imgBase64 = getBase64FromBuffer(item?.image);
 
     setName(item?.name || "");
     setPrice(item?.price || "");

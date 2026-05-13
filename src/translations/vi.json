@@ -62,6 +62,7 @@
       "review-doctor": "Xem xét bác sĩ"
     },
     "doctor": {
+      "workspace": "Bác sĩ",
       "manage-doctor": "Quản lý bác sĩ",
       "schedule": "Quản Lý Lịch Khám",
       "manage-schedule": "Quản lý lịch khám của bác sĩ",

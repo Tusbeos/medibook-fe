@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FormattedMessage } from "react-intl";
 import { IRootState } from "../../types";
 import { processLogout } from "../../store/actions/userActions";
+import { normalizeImageSrc } from "../../utils";
 import "./SidebarDrawer.scss";
 
 interface ISidebarDrawerProps {
@@ -39,6 +40,7 @@ const SidebarDrawer: React.FC<ISidebarDrawerProps> = ({ isOpen, onClose }) => {
   const displayName = userInfo
     ? `${userInfo.lastName || ""} ${userInfo.firstName || ""}`.trim()
     : "";
+  const avatarSrc = normalizeImageSrc(userInfo?.image);
 
   return (
     <>
@@ -82,15 +84,8 @@ const SidebarDrawer: React.FC<ISidebarDrawerProps> = ({ isOpen, onClose }) => {
               {/* Thông tin user */}
               <div className="drawer-section user-info-section">
                 <div className="user-avatar">
-                  {userInfo?.image ? (
-                    <img
-                      src={
-                        userInfo.image.startsWith("data:")
-                          ? userInfo.image
-                          : `data:image/jpeg;base64,${userInfo.image}`
-                      }
-                      alt="avatar"
-                    />
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt="avatar" />
                   ) : (
                     <i className="fas fa-user-circle" />
                   )}
