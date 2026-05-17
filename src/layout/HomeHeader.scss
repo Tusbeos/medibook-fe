@@ -1,0 +1,269 @@
+.home-header-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(248, 250, 252, 0.96);
+  border-bottom: 1px solid #d8dee8;
+  backdrop-filter: blur(12px);
+}
+
+.home-header-content {
+  width: min(1180px, calc(100% - 48px));
+  height: 64px;
+  margin-left: 300px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.brand,
+.primary-nav button,
+.header-actions button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  white-space: nowrap;
+
+  img {
+    display: block;
+    width: auto;
+    height: 120px;
+    object-fit: contain;
+  }
+}
+
+.primary-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+
+  button {
+    position: relative;
+    height: 64px;
+    color: #111827;
+    font-size: 17px;
+
+    &.active,
+    &:hover {
+      color: #003f9e;
+    }
+
+    &.active::after,
+    &:hover::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: #003f9e;
+    }
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  button {
+    color: #001c45;
+    font-size: 15px;
+  }
+  .menu-toggle {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: #003f9e;
+    font-size: 20px;
+
+    &:hover {
+      background: #e8f0ff;
+    }
+  }
+}
+
+.home-hero {
+  min-height: 610px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 104px;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(237, 245, 249, 0) 58%, #f5f7fa 94%),
+    linear-gradient(
+      90deg,
+      rgba(7, 15, 25, 0.78),
+      rgba(7, 15, 25, 0.28),
+      rgba(7, 15, 25, 0.78)
+    ),
+    url("../assets/home-hero-background.jpg") center/cover no-repeat;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 210px;
+    background: linear-gradient(180deg, rgba(245, 247, 250, 0), #f5f7fa 70%);
+  }
+}
+
+.hero-content {
+  width: min(760px, calc(100% - 40px));
+  text-align: center;
+  position: relative;
+  z-index: 1;
+
+  h1 {
+    margin: 0;
+    color: #050b13;
+    font-size: 56px;
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: 0;
+
+    span {
+      display: block;
+      color: #0647a7;
+    }
+  }
+
+  p {
+    width: min(620px, 100%);
+    margin: 22px auto 28px;
+    color: #f8fafc;
+    font-size: 15px;
+    line-height: 1.6;
+    text-shadow: 0 2px 12px rgba(3, 7, 18, 0.65);
+  }
+}
+
+.hero-search {
+  width: min(680px, 100%);
+  height: 66px;
+  margin: 0 auto;
+  padding: 8px 8px 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 6px solid rgba(255, 255, 255, 0.56);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.2);
+
+  i {
+    color: #6b7280;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  button {
+    height: 44px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 9px;
+    background: #0047b3;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+}
+
+.hero-stats {
+  width: min(440px, 100%);
+  margin: 54px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+
+  strong {
+    display: block;
+    color: #0047b3;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  span {
+    display: block;
+    margin-top: 8px;
+    color: #1f2937;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 900px) {
+  .home-header-content {
+    width: min(100% - 28px, 1180px);
+    gap: 16px;
+  }
+
+  .primary-nav {
+    gap: 12px;
+    overflow-x: auto;
+
+    button {
+      white-space: nowrap;
+      font-size: 30px;
+    }
+  }
+
+  .header-actions button:not(.menu-toggle) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-header-content {
+    height: auto;
+    min-height: 58px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+  }
+
+  .primary-nav {
+    order: 3;
+    width: 100%;
+  }
+
+  .home-hero {
+    min-height: 560px;
+    padding-top: 78px;
+  }
+
+  .hero-content h1 {
+    font-size: 42px;
+  }
+
+  .hero-search {
+    height: auto;
+    align-items: stretch;
+    flex-direction: column;
+    padding: 16px;
+
+    button {
+      width: 100%;
+    }
+  }
+}

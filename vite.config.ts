@@ -7,9 +7,12 @@ export default defineConfig({
   resolve: {
     alias: {
       src: path.resolve(__dirname, "src"),
-      // Support bare imports like `import X from "containers/..."` (baseUrl: "src")
-      containers: path.resolve(__dirname, "src/containers"),
-      components: path.resolve(__dirname, "src/components"),
+      // Support bare imports like `import X from "components/..."` (baseUrl: "src")
+      app: path.resolve(__dirname, "src/app"),
+      layout: path.resolve(__dirname, "src/layout"),
+      features: path.resolve(__dirname, "src/features"),
+      shared: path.resolve(__dirname, "src/shared"),
+      components: path.resolve(__dirname, "src/shared/components"),
       services: path.resolve(__dirname, "src/services"),
       store: path.resolve(__dirname, "src/store"),
       utils: path.resolve(__dirname, "src/utils"),

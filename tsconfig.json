@@ -16,6 +16,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": "src",
+    "paths": {
+      "components/*": ["shared/components/*"]
+    },
     "types": ["vite/client"]
   },
   "include": ["src"],

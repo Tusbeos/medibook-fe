@@ -3,13 +3,13 @@ import { createRoot } from 'react-dom/client';
 import 'react-toastify/dist/ReactToastify.css';
 import './styles/styles.scss';
 
-import App from './containers/App';
+import App from './app/App';
 import IntlProviderWrapper from "./hoc/IntlProviderWrapper";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import reduxStore, { persistor } from './reduxStore';
+import reduxStore, { persistor } from './app/store/reduxStore';
 import tokenManager from './utils/tokenManager';
 import { processLogout } from './store/actions';
 

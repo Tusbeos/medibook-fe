@@ -8,6 +8,12 @@ type ApiResponse<T = any> = {
   data?: T;
 };
 
+type HomeStats = {
+  clinicCount: number;
+  doctorCount: number;
+  bookingCount: number;
+};
+
 type AxiosBaseQueryArgs = {
   url: string;
   method?: AxiosRequestConfig["method"];
@@ -15,7 +21,12 @@ type AxiosBaseQueryArgs = {
   params?: AxiosRequestConfig["params"];
 };
 
-const axiosBaseQuery = async ({ url, method = "GET", data, params }: AxiosBaseQueryArgs) => {
+const axiosBaseQuery = async ({
+  url,
+  method = "GET",
+  data,
+  params,
+}: AxiosBaseQueryArgs) => {
   try {
     const result = await axios({ url, method, data, params });
     return { data: result };
@@ -44,11 +55,14 @@ export const publicApi = createApi({
     "History",
     "Booking",
   ],
-  keepUnusedDataFor: 300,
+  keepUnusedDataFor: 10,
   refetchOnMountOrArgChange: false,
   refetchOnFocus: false,
   refetchOnReconnect: false,
   endpoints: (builder) => ({
+    getHomeStats: builder.query<ApiResponse<HomeStats>, void>({
+      query: () => ({ url: "/api/home/stats" }),
+    }),
     getSpecialties: builder.query<ApiResponse<any[]>, number | void>({
       query: (limit) => ({
         url: "/api/specialties",
@@ -56,7 +70,10 @@ export const publicApi = createApi({
       }),
       providesTags: ["Specialty"],
     }),
-    getSpecialtiesByIds: builder.query<ApiResponse<any[]>, Array<number | string>>({
+    getSpecialtiesByIds: builder.query<
+      ApiResponse<any[]>,
+      Array<number | string>
+    >({
       query: (ids) => ({
         url: "/api/specialties/by-ids",
         params: { ids: ids.join(",") },
@@ -75,7 +92,9 @@ export const publicApi = createApi({
     }),
     getClinicById: builder.query<ApiResponse<any>, number | string>({
       query: (clinicId) => ({ url: `/api/clinics/${clinicId}` }),
-      providesTags: (_result, _error, clinicId) => [{ type: "Clinic", id: clinicId }],
+      providesTags: (_result, _error, clinicId) => [
+        { type: "Clinic", id: clinicId },
+      ],
     }),
     getTopDoctors: builder.query<ApiResponse<any[]>, number>({
       query: (limit) => ({
@@ -90,15 +109,21 @@ export const publicApi = createApi({
     }),
     getDoctorById: builder.query<ApiResponse<any>, number | string>({
       query: (doctorId) => ({ url: `/api/doctors/${doctorId}` }),
-      providesTags: (_result, _error, doctorId) => [{ type: "Doctor", id: doctorId }],
-    }),
-    getDoctorsBySpecialtyId: builder.query<ApiResponse<any[]>, number | string>({
-      query: (specialtyId) => ({ url: `/api/specialties/${specialtyId}/doctors` }),
-      providesTags: (_result, _error, specialtyId) => [
-        { type: "Specialty", id: specialtyId },
-        "Doctor",
+      providesTags: (_result, _error, doctorId) => [
+        { type: "Doctor", id: doctorId },
       ],
     }),
+    getDoctorsBySpecialtyId: builder.query<ApiResponse<any[]>, number | string>(
+      {
+        query: (specialtyId) => ({
+          url: `/api/specialties/${specialtyId}/doctors`,
+        }),
+        providesTags: (_result, _error, specialtyId) => [
+          { type: "Specialty", id: specialtyId },
+          "Doctor",
+        ],
+      },
+    ),
     getDoctorsByClinicId: builder.query<ApiResponse<any[]>, number | string>({
       query: (clinicId) => ({ url: `/api/clinics/${clinicId}/doctors` }),
       providesTags: (_result, _error, clinicId) => [
@@ -106,7 +131,10 @@ export const publicApi = createApi({
         "Doctor",
       ],
     }),
-    getDoctorSchedule: builder.query<ApiResponse<any[]>, { doctorId: number | string; date: number | string }>({
+    getDoctorSchedule: builder.query<
+      ApiResponse<any[]>,
+      { doctorId: number | string; date: number | string }
+    >({
       query: ({ doctorId, date }) => ({
         url: `/api/doctors/${doctorId}/schedules`,
         params: { date },
@@ -117,11 +145,15 @@ export const publicApi = createApi({
     }),
     getDoctorExtraInfo: builder.query<ApiResponse<any>, number | string>({
       query: (doctorId) => ({ url: `/api/doctors/${doctorId}/extra-info` }),
-      providesTags: (_result, _error, doctorId) => [{ type: "Doctor", id: doctorId }],
+      providesTags: (_result, _error, doctorId) => [
+        { type: "Doctor", id: doctorId },
+      ],
     }),
     getDoctorServices: builder.query<ApiResponse<any[]>, number | string>({
       query: (doctorId) => ({ url: `/api/doctors/${doctorId}/services` }),
-      providesTags: (_result, _error, doctorId) => [{ type: "Doctor", id: doctorId }],
+      providesTags: (_result, _error, doctorId) => [
+        { type: "Doctor", id: doctorId },
+      ],
     }),
     getPackages: builder.query<ApiResponse<any[]>, number | void>({
       query: (limit) => ({
@@ -132,7 +164,9 @@ export const publicApi = createApi({
     }),
     getPackageById: builder.query<ApiResponse<any>, number | string>({
       query: (packageId) => ({ url: `/api/packages/${packageId}` }),
-      providesTags: (_result, _error, packageId) => [{ type: "Package", id: packageId }],
+      providesTags: (_result, _error, packageId) => [
+        { type: "Package", id: packageId },
+      ],
     }),
     getUserById: builder.query<ApiResponse<any>, number | string>({
       query: (userId) => ({ url: `/api/users/${userId}` }),
@@ -172,11 +206,19 @@ export const publicApi = createApi({
         params: status ? { status } : undefined,
       }),
       providesTags: (_result, _error, arg) => [
-        { type: "Booking", id: `clinic-${arg.clinicId}-${arg.status || "all"}` },
+        {
+          type: "Booking",
+          id: `clinic-${arg.clinicId}-${arg.status || "all"}`,
+        },
       ],
     }),
-    getClinicManagerPackages: builder.query<ApiResponse<any[]>, number | string>({
-      query: (clinicId) => ({ url: `/api/clinic-manager/clinics/${clinicId}/packages` }),
+    getClinicManagerPackages: builder.query<
+      ApiResponse<any[]>,
+      number | string
+    >({
+      query: (clinicId) => ({
+        url: `/api/clinic-manager/clinics/${clinicId}/packages`,
+      }),
       providesTags: (_result, _error, clinicId) => [
         { type: "Package", id: `clinic-${clinicId}` },
       ],
@@ -191,6 +233,7 @@ export const publicApi = createApi({
 });
 
 export const {
+  useGetHomeStatsQuery,
   useGetSpecialtiesQuery,
   useGetSpecialtiesByIdsQuery,
   useGetClinicsQuery,
