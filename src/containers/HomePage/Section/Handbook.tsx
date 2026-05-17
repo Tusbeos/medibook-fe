@@ -30,7 +30,7 @@ const Handbook: React.FC<IHandbookProps> = ({ settings }) => {
 
   const handleViewDetailHandbook = useCallback((item: any) => {
     navigate(`/detail-handbook/${item.id}`);
-  }, [history]);
+  }, [navigate]);
 
   return (
     <div className="section-share section-handbook">

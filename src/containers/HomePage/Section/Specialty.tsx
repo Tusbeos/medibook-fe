@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Slider from "react-slick";
 import { FormattedMessage } from "react-intl";
-import { handleGetAllSpecialties } from "../../../services/specialtyService";
 import { useNavigate } from "react-router-dom";
 import SectionItem from "./SectionItem";
+import { useGetSpecialtiesQuery } from "../../../store/api/publicApi";
 
 interface ISpecialtyProps {
   settings: any;
@@ -12,25 +12,19 @@ interface ISpecialtyProps {
 // Specialty chuyển sang Function Component + Hooks
 const Specialty: React.FC<ISpecialtyProps> = ({ settings }) => {
   const navigate = useNavigate();
-  const [dataSpecialty, setDataSpecialty] = useState<any[]>([]);
-
-  useEffect(() => {
-    const getAllSpecialties = async () => {
-      let res = await handleGetAllSpecialties(6);
-      if (res && res.errCode === 0) {
-        setDataSpecialty(res.data ? res.data : []);
-      }
-    };
-    getAllSpecialties();
-  }, []);
+  const { data: specialtiesResponse } = useGetSpecialtiesQuery(6);
+  const dataSpecialty = useMemo(
+    () => specialtiesResponse?.data || [],
+    [specialtiesResponse],
+  );
 
   const handleViewDetailSpecialty = useCallback((item: any) => {
     navigate(`/specialty/detail-specialty/${item.id}`);
-  }, [history]);
+  }, [navigate]);
 
   const handleViewAllSpecialty = useCallback(() => {
     navigate(`/specialty`);
-  }, [history]);
+  }, [navigate]);
 
   return (
     <div className="section-share section-specialty">

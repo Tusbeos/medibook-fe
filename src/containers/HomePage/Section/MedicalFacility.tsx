@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Slider from "react-slick";
 import { useNavigate } from "react-router-dom";
 import { FormattedMessage } from "react-intl";
-import { handleGetAllClinics } from "../../../services/clinicService";
 import SectionItem from "./SectionItem";
+import { useGetClinicsQuery } from "../../../store/api/publicApi";
 
 interface IMedicalFacilityProps {
   settings: any;
@@ -12,25 +12,19 @@ interface IMedicalFacilityProps {
 // MedicalFacility chuyển sang Function Component + Hooks
 const MedicalFacility: React.FC<IMedicalFacilityProps> = ({ settings }) => {
   const navigate = useNavigate();
-  const [dataClinics, setDataClinics] = useState<any[]>([]);
-
-  useEffect(() => {
-    const getAllClinics = async () => {
-      let res = await handleGetAllClinics(6);
-      if (res && res.errCode === 0) {
-        setDataClinics(res.data ? res.data : []);
-      }
-    };
-    getAllClinics();
-  }, []);
+  const { data: clinicsResponse } = useGetClinicsQuery(6);
+  const dataClinics = useMemo(
+    () => clinicsResponse?.data || [],
+    [clinicsResponse],
+  );
 
   const handleViewDetailClinic = useCallback((clinic: any) => {
     navigate(`/clinic/detail-clinic/${clinic.id}`);
-  }, [history]);
+  }, [navigate]);
 
   const handleClinicClick = useCallback(() => {
     navigate("/clinic");
-  }, [history]);
+  }, [navigate]);
 
   return (
     <div className="section-share section-medical-facility">

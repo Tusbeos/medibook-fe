@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { handleGetAllClinics } from "../../../services/clinicService";
 import "./ClinicList.scss";
 import HomeHeader from "containers/HomePage/HomeHeader";
 import HomeFooter from "containers/HomePage/HomeFooter";
@@ -10,6 +9,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import "../../../components/Breadcrumb.scss";
 import { LANGUAGES } from "utils";
 import { IRootState } from "../../../types";
+import { useGetClinicsQuery } from "../../../store/api/publicApi";
 
 interface IClinicItemProps {
   name: string;
@@ -47,40 +47,24 @@ const ClinicItem = ({ name, address, imageUrl, isLast, onClick }: IClinicItemPro
 const ClinicList = () => {
   const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
-  const [clinics, setClinics] = useState<any[]>([]);
-
-  const fetchClinics = useCallback(async () => {
-    try {
-      const res = await handleGetAllClinics();
-      if (res && res.errCode === 0 && res.data && Array.isArray(res.data)) {
-        const dataArr = res.data;
-        const clinicsList = dataArr.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          address: item.address,
-          imageUrl:
-            getBase64FromBuffer(item.image) ||
-            "https://via.placeholder.com/60?text=No+Img",
-        }));
-        setClinics(clinicsList);
-      } else {
-        console.log("Fetch failed or no data:", res);
-        setClinics([]);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách phòng khám:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchClinics();
-  }, [fetchClinics]);
+  const { data: clinicsResponse } = useGetClinicsQuery();
+  const clinics = useMemo(() => {
+    const dataArr = Array.isArray(clinicsResponse?.data) ? clinicsResponse.data : [];
+    return dataArr.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      address: item.address,
+      imageUrl:
+        getBase64FromBuffer(item.image) ||
+        "https://via.placeholder.com/60?text=No+Img",
+    }));
+  }, [clinicsResponse]);
 
   const handleViewDetailClinic = useCallback(
     (id: any) => {
       navigate(`/clinic/detail-clinic/${id}`);
     },
-    [history]
+    [navigate]
   );
 
   const breadcrumbItems = [

@@ -1,18 +1,38 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
-  getClinicBookings,
   confirmClinicBooking,
   rejectClinicBooking,
 } from "../../../services/bookingService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
+import { useGetClinicBookingsQuery } from "../../../store/api/publicApi";
 
 const ClinicManagerBookings: React.FC = () => {
   const { isClinicManager, selectedClinicId, displayClinicName } =
     useClinicContext();
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    data: bookingsResponse,
+    isLoading,
+    refetch: refetchBookings,
+  } = useGetClinicBookingsQuery(
+    { clinicId: selectedClinicId },
+    { skip: !selectedClinicId },
+  );
+  const bookings = useMemo(
+    () =>
+      bookingsResponse?.errCode === 0 && Array.isArray(bookingsResponse.data)
+        ? bookingsResponse.data
+        : [],
+    [bookingsResponse],
+  );
+  const setBookings = useCallback((_data: any[]) => {}, []);
+  const setIsLoading = useCallback((_value: boolean) => {}, []);
+  const getClinicBookings = useCallback(
+    async (_clinicId: number | string) =>
+      bookingsResponse || { errCode: -1, data: [] },
+    [bookingsResponse],
+  );
   const [filter, setFilter] = useState<string>("");
   const [search, setSearch] = useState("");
 
@@ -58,7 +78,7 @@ const ClinicManagerBookings: React.FC = () => {
     try {
       await confirmClinicBooking(bookingId, selectedClinicId);
       toast.success("Xác nhận lịch hẹn thành công!");
-      fetchBookings();
+      refetchBookings();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Xác nhận thất bại.");
     }
@@ -68,7 +88,7 @@ const ClinicManagerBookings: React.FC = () => {
     try {
       await rejectClinicBooking(bookingId, selectedClinicId);
       toast.success("Từ chối lịch hẹn thành công!");
-      fetchBookings();
+      refetchBookings();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Từ chối thất bại.");
     }
@@ -149,7 +169,7 @@ const ClinicManagerBookings: React.FC = () => {
           </button>
         </div>
 
-        <button className="cm-refresh-btn" onClick={fetchBookings}>
+        <button className="cm-refresh-btn" onClick={refetchBookings}>
           <i className="fas fa-sync-alt" /> Refresh
         </button>
       </div>

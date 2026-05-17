@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { FormattedMessage } from "react-intl";
 import HomeHeader from "../../HomePage/HomeHeader";
 import { IRootState } from "../../../types";
-import { getPatientHistory } from "../../../services/patientService";
 import { LANGUAGES } from "../../../utils";
 import "./PatientHistory.scss";
+import { useGetPatientHistoryQuery } from "../../../store/api/publicApi";
 
 interface IHistoryRecord {
   id: number;
@@ -39,31 +39,20 @@ const PatientHistory: React.FC = () => {
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
 
-  const [histories, setHistories] = useState<IHistoryRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
-
-  useEffect(() => {
-    const fetchHistory = async () => {
-      const userId = userInfo?.id || (userInfo as any)?.userId;
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const res = await getPatientHistory(userId);
-        if (res && res.errCode === 0) {
-          setHistories(res.data || []);
-        }
-      } catch (e) {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHistory();
-  }, [userInfo?.id, (userInfo as any)?.userId]);
+  const userId = userInfo?.id || (userInfo as any)?.userId;
+  const { data: historyResponse, isLoading: loading } = useGetPatientHistoryQuery(
+    userId || "",
+    { skip: !userId },
+  );
+  const histories = useMemo<IHistoryRecord[]>(
+    () =>
+      historyResponse?.errCode === 0 && Array.isArray(historyResponse.data)
+        ? historyResponse.data
+        : [],
+    [historyResponse],
+  );
 
   // Lọc theo tab
   const filteredHistories = histories.filter((r) => {

@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import "./DoctorSchedules.scss";
 import moment from "moment";
 import { LANGUAGES, path } from "../../../utils";
-import { getScheduleDoctorByDate } from "../../../services/doctorService";
 import { FormattedMessage } from "react-intl";
 import { IRootState } from "../../../types";
+import { useGetDoctorScheduleQuery } from "../../../store/api/publicApi";
 
 interface IDoctorSchedulesProps {
   detailDoctorFromParent: number | string;
@@ -74,33 +74,27 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
   const [selectedDate, setSelectedDate] = useState<number>(
     moment().startOf("day").valueOf()
   );
+  const shouldSkipSchedule = !detailDoctorFromParent || detailDoctorFromParent === -1;
+  const { data: scheduleResponse } = useGetDoctorScheduleQuery(
+    { doctorId: detailDoctorFromParent, date: selectedDate },
+    { skip: shouldSkipSchedule },
+  );
 
   useEffect(() => {
-    const initSchedule = async () => {
-      let days = getArrDays(language);
-      setAllDays(days);
-      setSelectedDate(days[0].value);
-      if (detailDoctorFromParent) {
-        let res = await getScheduleDoctorByDate(
-          detailDoctorFromParent,
-          days[0].value
-        );
-        setAvailableTime(res.data ? res.data : []);
-      }
-    };
-    initSchedule();
+    let days = getArrDays(language);
+    setAllDays(days);
+    setSelectedDate(days[0].value);
   }, [detailDoctorFromParent, language]);
 
+  useEffect(() => {
+    setAvailableTime(scheduleResponse?.data ? scheduleResponse.data : []);
+  }, [scheduleResponse]);
+
   const handleOnChangeSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
       if (detailDoctorFromParent && detailDoctorFromParent !== -1) {
-        let doctorId = detailDoctorFromParent;
-        let date = event.target.value;
+        const date = event.target.value;
         setSelectedDate(Number(date));
-        let res = await getScheduleDoctorByDate(doctorId, date);
-        if (res && res.errCode === 0) {
-          setAvailableTime(res.data ? res.data : []);
-        }
       }
     },
     [detailDoctorFromParent]
@@ -113,15 +107,10 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
         (detailDoctorFromParent && (detailDoctorFromParent as any).id);
       if (path.BOOKING_DOCTOR && doctorId) {
         let linkRedirect = path.BOOKING_DOCTOR.replace(":id", doctorId);
-        navigate({
-          pathname: linkRedirect,
-          state: {
-            dataTime: scheduleTime,
-          },
-        });
+        navigate(linkRedirect, { state: { dataTime: scheduleTime } });
       }
     },
-    [detailDoctorFromParent, history]
+    [detailDoctorFromParent, navigate]
   );
 
   return (

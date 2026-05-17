@@ -1,12 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { handleGetAllClinics } from "../../../services/clinicService";
 import { IClinic, IRootState } from "../../../types";
 import { USER_ROLE } from "../../../utils";
+import { useGetClinicsQuery } from "../../../store/api/publicApi";
 
 export const useClinicContext = () => {
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
-  const [clinics, setClinics] = useState<IClinic[]>([]);
   const [selectedClinicId, setSelectedClinicId] = useState<number | string>("");
 
   const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
@@ -23,6 +22,16 @@ export const useClinicContext = () => {
     (userInfo as any)?.clinic?.name ||
     (userInfo as any)?.clinicData?.name ||
     "";
+  const { data: clinicsResponse } = useGetClinicsQuery(undefined, {
+    skip: !isClinicManager,
+  });
+  const clinics = useMemo<IClinic[]>(
+    () =>
+      clinicsResponse?.errCode === 0 && Array.isArray(clinicsResponse.data)
+        ? clinicsResponse.data
+        : [],
+    [clinicsResponse],
+  );
 
   useEffect(() => {
     if (!isClinicManager) {
@@ -31,24 +40,6 @@ export const useClinicContext = () => {
     }
     setSelectedClinicId(userClinicId ? String(userClinicId) : "");
   }, [isClinicManager, userClinicId]);
-
-  useEffect(() => {
-    const loadClinics = async () => {
-      if (!isClinicManager) {
-        setClinics([]);
-        return;
-      }
-      try {
-        const res = await handleGetAllClinics();
-        const clinicList =
-          res?.errCode === 0 && Array.isArray(res.data) ? res.data : [];
-        setClinics(clinicList);
-      } catch {
-        setClinics([]);
-      }
-    };
-    loadClinics();
-  }, [isClinicManager]);
 
   const selectedClinic = useMemo(
     () => clinics.find((c) => String(c.id) === String(selectedClinicId)),

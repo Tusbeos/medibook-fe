@@ -8,6 +8,7 @@ import Sidebar from "containers/Header/Sidebar";
 import ManageSpecialty from "containers/System/Specialty/ManageSpecialty";
 import ManageClinic from "containers/System/Clinic/ManageClinic";
 import ManagePackage from "containers/System/Package/ManagePackage";
+import ManageSchedule from "containers/System/Doctor/ManageSchedule";
 import ClinicManagerDashboard from "containers/System/ClinicManager/ClinicManagerDashboard";
 import ClinicManagerDoctors from "containers/System/ClinicManager/ClinicManagerDoctors";
 import ClinicManagerBookings from "containers/System/ClinicManager/ClinicManagerBookings";
@@ -31,40 +32,45 @@ const System = () => {
         <div className="system-container">
           <div className="system-list">
             <Routes>
-              {/* R4 Clinic Manager routes */}
-              <Route
-                path="clinic-manager"
-                element={<ClinicManagerDashboard />}
-              />
-              <Route
-                path="clinic-manager/doctors"
-                element={<ClinicManagerDoctors />}
-              />
-              <Route
-                path="clinic-manager/bookings"
-                element={<ClinicManagerBookings />}
-              />
-              <Route
-                path="clinic-manager/packages"
-                element={<ClinicManagerPackages />}
-              />
-              <Route
-                path="clinic-manager/approvals"
-                element={<ClinicManagerApprovals />}
-              />
-              <Route
-                path="clinic-manager/review-doctor/:doctorId"
-                element={<ClinicManagerReviewDoctor />}
-              />
-              <Route
-                path="dashboard"
-                element={<Navigate to="/system/clinic-manager" replace />}
-              />
               {isClinicManager ? (
-                <Route
-                  path="*"
-                  element={<Navigate to="/system/clinic-manager" replace />}
-                />
+                <>
+                  <Route
+                    path="clinic-manager"
+                    element={<ClinicManagerDashboard />}
+                  />
+                  <Route
+                    path="clinic-manager/doctors"
+                    element={<ClinicManagerDoctors />}
+                  />
+                  <Route
+                    path="clinic-manager/schedules"
+                    element={<ManageSchedule />}
+                  />
+                  <Route
+                    path="clinic-manager/bookings"
+                    element={<ClinicManagerBookings />}
+                  />
+                  <Route
+                    path="clinic-manager/packages"
+                    element={<ClinicManagerPackages />}
+                  />
+                  <Route
+                    path="clinic-manager/approvals"
+                    element={<ClinicManagerApprovals />}
+                  />
+                  <Route
+                    path="clinic-manager/review-doctor/:doctorId"
+                    element={<ClinicManagerReviewDoctor />}
+                  />
+                  <Route
+                    path="dashboard"
+                    element={<Navigate to="/system/clinic-manager" replace />}
+                  />
+                  <Route
+                    path="*"
+                    element={<Navigate to="/system/clinic-manager" replace />}
+                  />
+                </>
               ) : (
                 <>
                   <Route path="user-crud-redux" element={<UserRedux />} />

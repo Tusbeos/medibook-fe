@@ -1,34 +1,31 @@
-import React, { useEffect, useCallback } from 'react';
-import { useSelector, useDispatch } from "react-redux";
+import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
 import Slider from "react-slick";
 
-import * as actions from "../../../store/actions";
 import SectionItem from "./SectionItem";
 import { FormattedMessage } from "react-intl";
 import { path } from "utils";
-import { IRootState } from "../../../types";
+import { useGetTopDoctorsQuery } from "../../../store/api/publicApi";
 
 interface IOutStandingDoctorProps {
   settings: any;
 }
 
 const OutStandingDoctor: React.FC<IOutStandingDoctorProps> = ({ settings }) => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const topDoctors = useSelector((state: IRootState) => state.admin.topDoctors);
-
-  useEffect(() => {
-    dispatch(actions.fetchTopDoctorStart());
-  }, [dispatch]);
+  const { data: topDoctorsResponse } = useGetTopDoctorsQuery(10);
+  const topDoctors = useMemo(
+    () => topDoctorsResponse?.data || [],
+    [topDoctorsResponse],
+  );
 
   const handleViewDetailDoctor = useCallback((doctor: any) => {
     navigate(`/detail-doctor/${doctor.id}`);
-  }, [history]);
+  }, [navigate]);
 
   const handleViewAllDoctors = useCallback(() => {
     navigate(path.LIST_TOP_DOCTOR);
-  }, [history]);
+  }, [navigate]);
 
   return (
     <div className="section-share section-os-doctor">

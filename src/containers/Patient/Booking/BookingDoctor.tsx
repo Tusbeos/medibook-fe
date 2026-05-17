@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useIntl, FormattedMessage } from "react-intl";
@@ -7,15 +7,15 @@ import { LANGUAGES, toImageCssUrl } from "utils";
 import moment from "moment";
 import { NumericFormat } from "react-number-format";
 import HomeHeader from "containers/HomePage/HomeHeader";
-import { getDetailInfoDoctor } from "../../../services/doctorService";
 import { postPatientBookAppointment } from "../../../services/bookingService";
 import DatePicker from "../../../components/Input/DatePicker";
 import { toast } from "react-toastify";
 import { IRootState } from "../../../types";
+import { useGetDoctorByIdQuery } from "../../../store/api/publicApi";
 
 const BookingDoctor = () => {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation<any>();
+  const location = useLocation();
   const navigate = useNavigate();
   const intl = useIntl();
   const language = useSelector((state: IRootState) => state.app.language);
@@ -28,11 +28,6 @@ const BookingDoctor = () => {
   const [birthday, setBirthday] = useState<any>("");
   const [address, setAddress] = useState("");
   const [reason, setReason] = useState("");
-  const [doctorId, setDoctorId] = useState("");
-  const [timeType, setTimeType] = useState("");
-  const [detailDoctor, setDetailDoctor] = useState<any>({});
-  const [timeBooking, setTimeBooking] = useState<any>({});
-  const [doctorInfo, setDoctorInfo] = useState<any>({});
   const [paymentMethod, setPaymentMethod] = useState("cash");
 
   // State cho tính năng đặt hộ
@@ -46,26 +41,15 @@ const BookingDoctor = () => {
   const [relationship, setRelationship] = useState("");
   const [medicalHistory, setMedicalHistory] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (location && location.state) {
-        let { dataTime } = location.state;
-        try {
-          const time = dataTime;
-          const res = await getDetailInfoDoctor(id);
-          if (res && res.errCode === 0) {
-            setDoctorId(id);
-            setDoctorInfo(res.data.DoctorInfo);
-            setTimeBooking(time);
-            setDetailDoctor(res.data);
-            setTimeType(time.timeType);
-            setPaymentMethod("cash");
-          }
-        } catch (e) {}
-      }
-    };
-    fetchData();
-  }, [id, location]);
+  const routeState = location.state as { dataTime?: any } | null;
+  const timeBooking = useMemo(() => routeState?.dataTime || {}, [routeState]);
+  const { data: doctorResponse } = useGetDoctorByIdQuery(id || "", { skip: !id });
+  const detailDoctor = doctorResponse?.errCode === 0 && doctorResponse.data
+    ? doctorResponse.data
+    : {};
+  const doctorInfo = detailDoctor?.DoctorInfo || {};
+  const doctorId = id || "";
+  const timeType = timeBooking?.timeType || "";
 
   const renderTimeBooking = useCallback(
     (tb: any) => {
@@ -229,7 +213,6 @@ const BookingDoctor = () => {
     doctorId,
     timeType,
     language,
-    history,
     isForOther,
     profileLastName,
     profileFirstName,
@@ -239,6 +222,7 @@ const BookingDoctor = () => {
     profileAddress,
     relationship,
     medicalHistory,
+    navigate,
   ]);
 
   console.log("check props booking modal", {

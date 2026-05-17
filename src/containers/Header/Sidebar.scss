@@ -6,7 +6,7 @@
   flex-direction: column;
   border-right: 1px solid #edf0f5;
   padding: 24px 20px;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 
   .sidebar-logo {
     display: flex;
@@ -17,8 +17,8 @@
 
     .logo-icon,
     .logo-image {
-      width: 40px;
-      height: 40px;
+      width: 50px;
+      height: 50px;
     }
 
     .logo-icon {
@@ -38,13 +38,13 @@
 
     .logo-text {
       .title {
-        font-size: 18px;
+        font-size: 25px;
         font-weight: 700;
         color: #0d47a1;
         line-height: 1.2;
       }
       .subtitle {
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
         color: #64748b;
         letter-spacing: 1px;
@@ -91,7 +91,7 @@
 
   .sidebar-bottom {
     margin-top: auto;
-    
+
     .btn-quick-appointment {
       width: 100%;
       background-color: #0d47a1;

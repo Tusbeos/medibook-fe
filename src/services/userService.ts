@@ -11,6 +11,20 @@ const handleLoginApi = (
   });
 };
 
+const handleSystemLoginApi = (
+  userEmail: string,
+  userPassword: string,
+): Promise<any> => {
+  return handleLoginApi(userEmail, userPassword);
+};
+
+const handlePatientLoginApi = (
+  userEmail: string,
+  userPassword: string,
+): Promise<any> => {
+  return handleLoginApi(userEmail, userPassword);
+};
+
 const handleGetAllUsers = (): Promise<any> => {
   return axios.get("/api/users");
 };
@@ -54,6 +68,8 @@ const handleGenerateEmail = (
 
 export {
   handleLoginApi,
+  handleSystemLoginApi,
+  handlePatientLoginApi,
   handleGetAllUsers,
   handleGetUserById,
   handleCreateNewUser,

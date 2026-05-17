@@ -12,8 +12,8 @@ import { FormattedMessage } from "react-intl";
 import _ from "lodash";
 import { IRootState, IMenuGroup } from "../../types";
 import { getBase64FromBuffer } from "../../utils/CommonUtils";
-import { handleGetUserById } from "../../services/userService";
 import { userLoginSuccess } from "../../store/actions/userActions";
+import { useGetUserByIdQuery } from "../../store/api/publicApi";
 
 // Header chuyển sang Function Component + Hooks
 const Header: React.FC = () => {
@@ -23,6 +23,14 @@ const Header: React.FC = () => {
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const token = useSelector((state: IRootState) => state.user.token);
+  const userId = userInfo?.id || userInfo?.userId;
+  const { data: profileResponse } = useGetUserByIdQuery(userId || "", {
+    skip: !isLoggedIn || !userId,
+  });
+  const handleGetUserById = useCallback(
+    async (_userId: number | string) => profileResponse || { errCode: -1 },
+    [profileResponse],
+  );
 
   const [menuApp, setMenuApp] = useState<IMenuGroup[]>([]);
   const [pageTitle, setPageTitle] = useState("");
@@ -68,12 +76,12 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const userId = userInfo?.id || userInfo?.userId;
-    if (!isLoggedIn || !userId || fetchedProfileUserId === userId) return;
+    if (!isLoggedIn || !userId || !profileResponse || fetchedProfileUserId === userId) return;
 
     const fetchProfile = async () => {
       try {
         const res = await handleGetUserById(userId);
-        if (res?.data && (res.success || res.errCode === 0)) {
+        if (res?.data && res.errCode === 0) {
           dispatch(
             userLoginSuccess(
               {
@@ -94,7 +102,7 @@ const Header: React.FC = () => {
     };
 
     fetchProfile();
-  }, [dispatch, fetchedProfileUserId, isLoggedIn, token, userInfo]);
+  }, [dispatch, fetchedProfileUserId, handleGetUserById, isLoggedIn, profileResponse, token, userInfo]);
 
   const handleChangeLanguage = useCallback((lang: string) => {
     dispatch(changeLanguageApp(lang));

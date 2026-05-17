@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import HomeHeader from "containers/HomePage/HomeHeader";
@@ -6,32 +6,19 @@ import HomeFooter from "containers/HomePage/HomeFooter";
 import Breadcrumb from "../../../components/Breadcrumb";
 import "../../../components/Breadcrumb.scss";
 import "./DetailDoctor.scss";
-import { getDetailInfoDoctor } from "../../../services/doctorService";
 import { LANGUAGES } from "utils";
 import DoctorSchedules from "./DoctorSchedules";
 import DoctorExtraInfo from "./DoctorExtraInfo";
 import { IRootState } from "../../../types";
+import { useGetDoctorByIdQuery } from "../../../store/api/publicApi";
 
 const DetailDoctor = () => {
   const { id } = useParams<{ id: string }>();
   const language = useSelector((state: IRootState) => state.app.language);
-  const [detailDoctor, setDetailDoctor] = useState<any>({
-    image: "",
-    positionData: {},
-  });
-
-  useEffect(() => {
-    const fetchDoctor = async () => {
-      if (!id) return;
-      try {
-        const res = await getDetailInfoDoctor(id);
-        if (res && res.errCode === 0) {
-          setDetailDoctor(res.data);
-        }
-      } catch (e) {}
-    };
-    fetchDoctor();
-  }, [id]);
+  const { data: doctorResponse } = useGetDoctorByIdQuery(id || "", { skip: !id });
+  const detailDoctor = doctorResponse?.errCode === 0 && doctorResponse.data
+    ? doctorResponse.data
+    : { image: "", positionData: {} };
 
   const buildDoctorName = useCallback(
     (doctor: any) => {

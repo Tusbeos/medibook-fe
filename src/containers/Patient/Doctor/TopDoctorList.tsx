@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { handleGetTopDoctorHome } from "../../../services/doctorService";
 import "./TopDoctorList.scss";
 import HomeHeader from "containers/HomePage/HomeHeader";
 import HomeFooter from "containers/HomePage/HomeFooter";
@@ -10,6 +9,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import "../../../components/Breadcrumb.scss";
 import { LANGUAGES } from "utils";
 import { IRootState } from "../../../types";
+import { useGetTopDoctorsQuery } from "../../../store/api/publicApi";
 
 interface IDoctorItemProps {
   name: string;
@@ -53,7 +53,7 @@ const DoctorItem = ({
 const TopDoctorList = () => {
   const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
-  const [doctors, setDoctors] = useState<any[]>([]);
+  const { data: doctorsResponse } = useGetTopDoctorsQuery(100);
 
   const buildDoctorName = useCallback(
     (doctor: any) => {
@@ -88,38 +88,23 @@ const TopDoctorList = () => {
     [language],
   );
 
-  const fetchTopDoctors = useCallback(async () => {
-    try {
-      const res = await handleGetTopDoctorHome(100);
-      if (res && res.errCode === 0 && res.data && Array.isArray(res.data)) {
-        const dataArr = res.data;
-        const doctorsList = dataArr.map((item: any) => ({
-          id: item.id,
-          name: buildDoctorName(item),
-          subTitle: buildDoctorSubTitle(item),
-          imageUrl:
-            getBase64FromBuffer(item.image) ||
-            "https://via.placeholder.com/60?text=No+Img",
-        }));
-        setDoctors(doctorsList);
-      } else {
-        console.log("Fetch failed or no data:", res);
-        setDoctors([]);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách bác sĩ nổi bật:", error);
-    }
-  }, [buildDoctorName, buildDoctorSubTitle]);
-
-  useEffect(() => {
-    fetchTopDoctors();
-  }, [fetchTopDoctors]);
+  const doctors = useMemo(() => {
+    const dataArr = Array.isArray(doctorsResponse?.data) ? doctorsResponse.data : [];
+    return dataArr.map((item: any) => ({
+      id: item.id,
+      name: buildDoctorName(item),
+      subTitle: buildDoctorSubTitle(item),
+      imageUrl:
+        getBase64FromBuffer(item.image) ||
+        "https://via.placeholder.com/60?text=No+Img",
+    }));
+  }, [doctorsResponse, buildDoctorName, buildDoctorSubTitle]);
 
   const handleViewDetailDoctor = useCallback(
     (id: any) => {
       navigate(`/detail-doctor/${id}`);
     },
-    [history],
+    [navigate],
   );
 
   const breadcrumbItems = [

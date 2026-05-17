@@ -12,6 +12,7 @@ import moment from "moment";
 import {
   saveBulkScheduleDoctor,
   getScheduleDoctorByDate,
+  getDoctorsByClinicId,
 } from "../../../services/doctorService";
 import { handleGetAllDoctors } from "../../../services/doctorService";
 import { IRootState } from "../../../types";
@@ -34,6 +35,15 @@ const ManageSchedule = () => {
     new Date(new Date().setHours(0, 0, 0, 0)),
   );
   const [rangeTime, setRangeTime] = useState<any[]>([]);
+  const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
+  const isDoctor = roleId === USER_ROLE.DOCTOR;
+  const isClinicManager = roleId === USER_ROLE.CLINIC_MANAGER;
+  const userClinicId =
+    (userInfo as any)?.clinicId ||
+    (userInfo as any)?.clinic_id ||
+    (userInfo as any)?.clinic?.id ||
+    (userInfo as any)?.clinicData?.id ||
+    "";
 
   const buildDataInputSelect = useCallback(
     (inputData: any[] = []) => {
@@ -52,7 +62,7 @@ const ManageSchedule = () => {
   const initDoctorForRole = useCallback(async () => {
     if (!userInfo) return;
 
-    if (userInfo.roleId === USER_ROLE.DOCTOR) {
+    if (isDoctor) {
       let doctorId = userInfo.id || userInfo.userId;
       if (!doctorId && userInfo.email) {
         try {
@@ -75,14 +85,33 @@ const ManageSchedule = () => {
       });
       setListDoctors([]);
     }
-  }, [userInfo, language]);
+  }, [userInfo, language, isDoctor]);
+
+  const fetchClinicDoctors = useCallback(async () => {
+    if (!isClinicManager || !userClinicId) return;
+
+    try {
+      const res = await getDoctorsByClinicId(userClinicId);
+      const doctors =
+        res?.errCode === 0 && Array.isArray(res.data) ? res.data : [];
+      const dataSelect = buildDataInputSelect(doctors);
+      setListDoctors(dataSelect);
+      setSelectedDoctor((current: any) =>
+        current?.value ? current : dataSelect[0] || {},
+      );
+    } catch {
+      setListDoctors([]);
+      setSelectedDoctor({});
+      toast.error("Không thể tải danh sách bác sĩ của phòng khám.");
+    }
+  }, [isClinicManager, userClinicId, buildDataInputSelect]);
 
   useEffect(() => {
     if (!allScheduleTime || allScheduleTime.length === 0) return;
 
     const doctorId = selectedDoctor?.value
       ? selectedDoctor.value
-      : userInfo?.roleId === USER_ROLE.DOCTOR
+      : isDoctor
         ? userInfo?.id || userInfo?.userId
         : "";
 
@@ -116,51 +145,66 @@ const ManageSchedule = () => {
           allScheduleTime.map((item: any) => ({ ...item, isSelected: false })),
         );
       });
-  }, [allScheduleTime, selectedDoctor, startDate, userInfo]);
+  }, [allScheduleTime, selectedDoctor, startDate, userInfo, isDoctor]);
 
-  // Mount: lấy danh sách bác sĩ (nếu admin) hoặc init doctor cho role
+  // Mount: load schedule times and initialize doctor selection by role.
   useEffect(() => {
-    if (userInfo?.roleId === USER_ROLE.ADMIN) {
-      dispatch(actions.fetchAllDoctorsStart());
-    } else {
+    if (isClinicManager) {
+      fetchClinicDoctors();
+    } else if (isDoctor) {
       initDoctorForRole();
     }
     dispatch(actions.fetchAllScheduleTime());
-  }, [dispatch, userInfo, initDoctorForRole]);
+  }, [dispatch, isClinicManager, isDoctor, fetchClinicDoctors, initDoctorForRole]);
 
   // Khi allDoctors thay đổi → build lại select options
   useEffect(() => {
-    if (allDoctors) {
+    if (roleId === USER_ROLE.ADMIN && allDoctors) {
       let dataSelect = buildDataInputSelect(allDoctors);
       setListDoctors(dataSelect);
     }
-  }, [allDoctors, buildDataInputSelect]);
+  }, [allDoctors, buildDataInputSelect, roleId]);
 
   // Khi userInfo thay đổi → init lại doctor cho role
   useEffect(() => {
-    initDoctorForRole();
-  }, [userInfo, initDoctorForRole]);
+    if (isDoctor) {
+      initDoctorForRole();
+    }
+  }, [isDoctor, initDoctorForRole]);
 
   // Khi language thay đổi → rebuild select options & re-init
   useEffect(() => {
-    if (allDoctors) {
+    if (isClinicManager) {
+      fetchClinicDoctors();
+      return;
+    }
+    if (roleId === USER_ROLE.ADMIN && allDoctors) {
       let dataSelect = buildDataInputSelect(allDoctors);
       setListDoctors(dataSelect);
     }
-    if (userInfo?.roleId === USER_ROLE.DOCTOR) {
+    if (isDoctor) {
       initDoctorForRole();
     }
-  }, [language, allDoctors, buildDataInputSelect, userInfo, initDoctorForRole]);
+  }, [
+    language,
+    allDoctors,
+    buildDataInputSelect,
+    roleId,
+    isClinicManager,
+    isDoctor,
+    fetchClinicDoctors,
+    initDoctorForRole,
+  ]);
 
   // allScheduleTime, selectedDoctor, startDate được xử lý trong effect tổng hợp bên trên
 
   const handleChangeSelectDoctor = useCallback(
     async (selected: any) => {
-      if (userInfo?.roleId === USER_ROLE.DOCTOR) return;
+      if (isDoctor) return;
       if (!selected || !selected.value) return;
       setSelectedDoctor(selected);
     },
-    [userInfo],
+    [isDoctor],
   );
 
   // Khi selectedDoctor thay đổi → effect tổng hợp tự xử lý
@@ -196,7 +240,7 @@ const ManageSchedule = () => {
     const resolvedDoctorId =
       currentSelectedDoctor && currentSelectedDoctor.value
         ? currentSelectedDoctor.value
-        : userInfo?.roleId === USER_ROLE.DOCTOR
+        : isDoctor
           ? userInfo?.id || userInfo?.userId
           : "";
 
@@ -215,7 +259,7 @@ const ManageSchedule = () => {
     }
 
     if (!currentSelectedDoctor || _.isEmpty(currentSelectedDoctor)) {
-      if (userInfo?.roleId === USER_ROLE.DOCTOR && resolvedDoctorId) {
+      if (isDoctor && resolvedDoctorId) {
         const labelVi =
           `${userInfo.lastName ?? ""} ${userInfo.firstName ?? ""}`.trim();
         const labelEn =
@@ -284,7 +328,7 @@ const ManageSchedule = () => {
     () => new Date(new Date().setHours(0, 0, 0, 0)),
     [],
   );
-  const isAdmin = userInfo?.roleId === USER_ROLE.ADMIN;
+  const canSelectDoctor = isClinicManager;
   console.log("Check state manage schedule: ", {
     selectedDoctor,
     listDoctors,
@@ -309,7 +353,7 @@ const ManageSchedule = () => {
 
             <div className="card-body">
               <div className="row">
-                {isAdmin ? (
+                {canSelectDoctor ? (
                   <div className="col-md-6 form-group">
                     <label>
                       <FormattedMessage id="manage-schedule.select-doctor" />

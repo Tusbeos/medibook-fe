@@ -9,6 +9,14 @@ const axiosInstance = axios.create({
 // Gắn token JWT vào header Authorization cho mọi request
 axiosInstance.interceptors.request.use(
   (config) => {
+    if (
+      config.url === "/api/auth/login" ||
+      config.url === "/api/auth/refresh"
+    ) {
+      config.headers.delete("Authorization");
+      return config;
+    }
+
     const token = tokenManager.getToken();
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);

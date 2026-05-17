@@ -8,6 +8,13 @@ interface IGuardProps {
   children: React.ReactElement;
 }
 
+const getRoleHomePath = (roleId?: string) => {
+  if (roleId === USER_ROLE.DOCTOR) return "/doctor/manage-schedule";
+  if (roleId === USER_ROLE.CLINIC_MANAGER) return "/system/clinic-manager";
+  if (roleId === USER_ROLE.ADMIN) return "/system/user-management";
+  return "/home";
+};
+
 /**
  * Redirect to login if not authenticated
  */
@@ -26,11 +33,45 @@ export const RequireAuth: React.FC<IGuardProps> = ({ children }) => {
  */
 export const RedirectIfAuth: React.FC<IGuardProps> = ({ children }) => {
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const userInfo = useSelector((state: IRootState) => state.user.userInfo);
 
   if (isLoggedIn) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getRoleHomePath(userInfo?.roleId)} replace />;
   }
   return children;
+};
+
+/**
+ * Public screens are for guests and patients only.
+ * System roles are sent back to their own workspace.
+ */
+export const PublicOnly: React.FC<IGuardProps> = ({ children }) => {
+  const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const userInfo = useSelector((state: IRootState) => state.user.userInfo);
+
+  if (!isLoggedIn || userInfo?.roleId === USER_ROLE.PATIENT) {
+    return children;
+  }
+
+  return <Navigate to={getRoleHomePath(userInfo?.roleId)} replace />;
+};
+
+/**
+ * Patient-only guard.
+ */
+export const RequirePatient: React.FC<IGuardProps> = ({ children }) => {
+  const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const userInfo = useSelector((state: IRootState) => state.user.userInfo);
+
+  if (!isLoggedIn) {
+    return <Navigate to="/home?patientLogin=1" replace />;
+  }
+
+  if (userInfo?.roleId === USER_ROLE.PATIENT) {
+    return children;
+  }
+
+  return <Navigate to={getRoleHomePath(userInfo?.roleId)} replace />;
 };
 
 /**
@@ -55,7 +96,7 @@ export const RequireAdmin: React.FC<IGuardProps> = ({ children }) => {
 /**
  * Doctor or Admin guard — others go to /login or /
  */
-export const RequireDoctorOrAdmin: React.FC<IGuardProps> = ({ children }) => {
+export const RequireDoctor: React.FC<IGuardProps> = ({ children }) => {
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
 
@@ -63,10 +104,10 @@ export const RequireDoctorOrAdmin: React.FC<IGuardProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   const role = userInfo?.roleId;
-  if (role === USER_ROLE.DOCTOR || role === USER_ROLE.ADMIN) {
+  if (role === USER_ROLE.DOCTOR) {
     return children;
   }
-  return <Navigate to="/" replace />;
+  return <Navigate to={getRoleHomePath(role)} replace />;
 };
 
 // Keep backward-compatible exports for gradual migration
@@ -74,4 +115,5 @@ export const RequireDoctorOrAdmin: React.FC<IGuardProps> = ({ children }) => {
 export const userIsAuthenticated = RequireAuth;
 export const userIsNotAuthenticated = RedirectIfAuth;
 export const userIsAdmin = RequireAdmin;
-export const userIsDoctorOrAdmin = RequireDoctorOrAdmin;
+export const RequireDoctorOrAdmin = RequireDoctor;
+export const userIsDoctorOrAdmin = RequireDoctor;

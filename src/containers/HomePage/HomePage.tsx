@@ -5,6 +5,7 @@ import OutStandingDoctor from "./Section/OutStandingDoctor";
 // import Handbook from "./Section/Handbook";
 import About from "./Section/About";
 import MedicalFacility from "./Section/MedicalFacility";
+import PackageSection from "./Section/PackageSection";
 import HomeFooter from "./HomeFooter";
 import "./HomePage.scss";
 import "slick-carousel/slick/slick.css";
@@ -70,6 +71,7 @@ const HomePage: React.FC = () => {
       <HomeHeader isShowBanner={true} />
       <Specialty settings={settings} />
       <MedicalFacility settings={settings} />
+      <PackageSection settings={settings} />
       <OutStandingDoctor settings={settings} />
       {/* <Handbook settings={settings} /> */}
 

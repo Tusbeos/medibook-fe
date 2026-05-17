@@ -17,15 +17,6 @@ export const adminMenu: IMenuGroup[] = [
         name: "menu.admin.manage-doctor",
         link: "/system/manage-doctor",
       },
-
-      {
-        name: "menu.doctor.schedule",
-        link: "/doctor/manage-schedule",
-      },
-      {
-        name: "menu.doctor.manage-patient",
-        link: "/doctor/manage-patient",
-      },
     ],
   },
   {
@@ -100,6 +91,10 @@ export const clinicManagerMenu: IMenuGroup[] = [
       {
         name: "menu.clinic-manager.doctors",
         link: "/system/clinic-manager/doctors",
+      },
+      {
+        name: "menu.clinic-manager.schedules",
+        link: "/system/clinic-manager/schedules",
       },
       {
         name: "menu.clinic-manager.review-doctor",

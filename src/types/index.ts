@@ -1,4 +1,6 @@
 
+import { publicApi } from "../store/api/publicApi";
+
 export interface IApiResponse<T = any> {
   success?: boolean;
   errCode: number;
@@ -201,10 +203,10 @@ export interface IAdminState {
 }
 
 export interface IRootState {
-  router: any;
   user: IUserState;
   app: IAppState;
   admin: IAdminState;
+  [publicApi.reducerPath]: ReturnType<typeof publicApi.reducer>;
 }
 
 // =============================

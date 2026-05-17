@@ -10,7 +10,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-// Keep the existing custom type declarations from react-app-env.d.ts
+// App asset and library declarations.
 declare module "*.svg" {
   const content: string;
   export default content;

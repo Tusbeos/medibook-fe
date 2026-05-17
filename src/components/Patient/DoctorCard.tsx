@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import "./DoctorCard.scss";
 import { FormattedMessage } from "react-intl";
 import moment from "moment";
-import {
-  handleGetAllDoctors,
-  getDetailInfoDoctor,
-  getScheduleDoctorByDate,
-  HandleGetDoctorSpecialtyById,
-} from "../../services/doctorService";
 import { LANGUAGES, path } from "utils";
 import { getBase64FromBuffer } from "utils/CommonUtils";
 import DoctorExtraInfo from "../../containers/Patient/Doctor/DoctorExtraInfo";
 import { useNavigate } from "react-router-dom";
 import { IRootState } from "../../types";
+import { AppDispatch } from "../../reduxStore";
+import { publicApi } from "../../store/api/publicApi";
 
 // Kiểm tra slot đã đầy chưa
 const isSlotFull = (item: any): boolean => {
@@ -67,6 +63,8 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
   doctorIds,
 }) => {
   const language = useSelector((state: IRootState) => state.app.language);
+  const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<IRootState>();
   const navigate = useNavigate();
 
   const [doctors, setDoctors] = useState<any[]>([]);
@@ -120,7 +118,23 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
   const handleFetchSchedule = useCallback(
     async (doctorId: any, dateValue: number) => {
       try {
-        const res = await getScheduleDoctorByDate(doctorId, dateValue);
+        const queryArg = { doctorId, date: dateValue };
+        const cached = publicApi.endpoints.getDoctorSchedule.select(queryArg)(
+          store.getState(),
+        );
+        if (cached?.data) {
+          const schedules = cached.data.errCode === 0 ? cached.data.data || [] : [];
+          setSchedulesByDoctor((prev) => ({ ...prev, [doctorId]: schedules }));
+          setSelectedDateByDoctor((prev) => ({ ...prev, [doctorId]: dateValue }));
+          return;
+        }
+
+        const res = await dispatch(
+          publicApi.endpoints.getDoctorSchedule.initiate(
+            queryArg,
+            { subscribe: false, forceRefetch: false },
+          ),
+        ).unwrap();
         const schedules = res && res.errCode === 0 ? res.data || [] : [];
         setSchedulesByDoctor((prev) => ({ ...prev, [doctorId]: schedules }));
         setSelectedDateByDoctor((prev) => ({ ...prev, [doctorId]: dateValue }));
@@ -128,8 +142,71 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
         setSchedulesByDoctor((prev) => ({ ...prev, [doctorId]: [] }));
       }
     },
-    [],
+    [dispatch, store],
   );
+
+  const getDoctorById = useCallback(
+    async (doctorId: number | string) => {
+      const cached = publicApi.endpoints.getDoctorById.select(doctorId)(
+        store.getState(),
+      );
+      if (cached?.data) return cached.data;
+
+      return dispatch(
+        publicApi.endpoints.getDoctorById.initiate(doctorId, {
+          subscribe: false,
+          forceRefetch: false,
+        }),
+      ).unwrap();
+    },
+    [dispatch, store],
+  );
+
+  const getDoctorsBySpecialtyId = useCallback(
+    async (id: number | string) => {
+      const cached = publicApi.endpoints.getDoctorsBySpecialtyId.select(id)(
+        store.getState(),
+      );
+      if (cached?.data) return cached.data;
+
+      return dispatch(
+        publicApi.endpoints.getDoctorsBySpecialtyId.initiate(id, {
+          subscribe: false,
+          forceRefetch: false,
+        }),
+      ).unwrap();
+    },
+    [dispatch, store],
+  );
+
+  const getDoctorsByClinicId = useCallback(
+    async (id: number | string) => {
+      const cached = publicApi.endpoints.getDoctorsByClinicId.select(id)(
+        store.getState(),
+      );
+      if (cached?.data) return cached.data;
+
+      return dispatch(
+        publicApi.endpoints.getDoctorsByClinicId.initiate(id, {
+          subscribe: false,
+          forceRefetch: false,
+        }),
+      ).unwrap();
+    },
+    [dispatch, store],
+  );
+
+  const getAllDoctors = useCallback(async () => {
+    const cached = publicApi.endpoints.getAllDoctors.select()(store.getState());
+    if (cached?.data) return cached.data;
+
+    return dispatch(
+      publicApi.endpoints.getAllDoctors.initiate(undefined, {
+        subscribe: false,
+        forceRefetch: false,
+      }),
+    ).unwrap();
+  }, [dispatch, store]);
 
   const fetchDoctors = useCallback(async () => {
     try {
@@ -142,7 +219,7 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
           return;
         }
         const detailPromises = doctorIds.map((id) =>
-          getDetailInfoDoctor(id).catch(() => null),
+          getDoctorById(id).catch(() => null),
         );
         const detailResults = await Promise.all(detailPromises);
         const docs = detailResults
@@ -160,11 +237,11 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
         return;
       }
       if (specialtyId) {
-        res = await HandleGetDoctorSpecialtyById(specialtyId);
+        res = await getDoctorsBySpecialtyId(specialtyId);
       } else if (clinicId) {
-        // clinicId case
+        res = await getDoctorsByClinicId(clinicId);
       } else {
-        res = await handleGetAllDoctors();
+        res = await getAllDoctors();
       }
       if (res && res.errCode === 0) {
         let list: any[] = [];
@@ -184,7 +261,7 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
           }
           const doctorId = item.doctorId || item.id;
           if (!doctorId) return Promise.resolve(null);
-          return getDetailInfoDoctor(doctorId).catch(() => null);
+          return getDoctorById(doctorId).catch(() => null);
         });
 
         const detailResults = await Promise.all(detailPromises);
@@ -220,6 +297,10 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
     normalizeDoctor,
     buildProvinceOptions,
     handleFetchSchedule,
+    getDoctorById,
+    getDoctorsBySpecialtyId,
+    getDoctorsByClinicId,
+    getAllDoctors,
     dateOptions,
   ]);
 
@@ -245,24 +326,19 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
     (scheduleTime: any, doctorIdFromList: any) => {
       if (!scheduleTime) return;
       const doctorId = scheduleTime.doctorId || doctorIdFromList;
-      if (!doctorId || !path.BOOKING_DOCTOR || !history) return;
+      if (!doctorId || !path.BOOKING_DOCTOR) return;
 
       const linkRedirect = path.BOOKING_DOCTOR.replace(":id", doctorId);
-      navigate({
-        pathname: linkRedirect,
-        state: { dataTime: scheduleTime },
-      });
+      navigate(linkRedirect, { state: { dataTime: scheduleTime } });
     },
-    [history],
+    [navigate],
   );
 
   const handleViewDetailDoctor = useCallback(
     (doctorId: any) => {
-      if (history) {
-        navigate(`/detail-doctor/${doctorId}`);
-      }
+      navigate(`/detail-doctor/${doctorId}`);
     },
-    [history],
+    [navigate],
   );
 
   const handleChangeDate = useCallback(

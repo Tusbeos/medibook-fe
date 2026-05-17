@@ -6,19 +6,44 @@ import HomeHeader from "../../HomePage/HomeHeader";
 import { IRootState, IUser } from "../../../types";
 import {
   handleEditUser,
-  handleGetAllCode,
-  handleGetUserById,
   handleChangePassword,
 } from "../../../services/userService";
 import { userLoginSuccess } from "../../../store/actions/userActions";
 import { LANGUAGES, normalizeImageSrc } from "../../../utils";
 import "./PatientProfile.scss";
+import {
+  publicApi,
+  useGetAllCodeQuery,
+  useGetUserByIdQuery,
+} from "../../../store/api/publicApi";
+import { AppDispatch } from "../../../reduxStore";
 
 const PatientProfile: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const token = useSelector((state: IRootState) => state.user.token);
+  const userId = userInfo?.id || userInfo?.userId;
+  const { data: profileResponse } = useGetUserByIdQuery(userId || "", {
+    skip: !userId,
+  });
+  const { data: gendersResponse } = useGetAllCodeQuery("GENDER");
+  const profileUser = profileResponse?.errCode === 0 && profileResponse.data
+    ? { ...userInfo, ...profileResponse.data }
+    : userInfo;
+  const genders =
+    gendersResponse?.errCode === 0 && Array.isArray(gendersResponse.data)
+      ? gendersResponse.data
+      : [];
+  const handleGetUserById = useCallback(
+    async (_userId: number | string) => profileResponse || { errCode: -1 },
+    [profileResponse],
+  );
+  const handleGetAllCode = useCallback(
+    async (_type: string) => gendersResponse || { errCode: -1, data: [] },
+    [gendersResponse],
+  );
+  const setGenders = useCallback((_data: any[]) => {}, []);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -26,7 +51,6 @@ const PatientProfile: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [gender, setGender] = useState("");
-  const [genders, setGenders] = useState<any[]>([]);
   const [previewAvatar, setPreviewAvatar] = useState("");
   const [avatar, setAvatar] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -42,18 +66,18 @@ const PatientProfile: React.FC = () => {
 
   // Load thông tin user hiện tại vào form
   useEffect(() => {
-    if (userInfo) {
-      setFirstName(userInfo.firstName || "");
-      setLastName(userInfo.lastName || "");
-      setEmail(userInfo.email || "");
-      setPhoneNumber(userInfo.phoneNumber || "");
-      setAddress(userInfo.address || "");
-      setGender(userInfo.gender || "");
-      if (userInfo.image) {
-        setPreviewAvatar(normalizeImageSrc(userInfo.image));
+    if (profileUser) {
+      setFirstName(profileUser.firstName || "");
+      setLastName(profileUser.lastName || "");
+      setEmail(profileUser.email || "");
+      setPhoneNumber(profileUser.phoneNumber || "");
+      setAddress(profileUser.address || "");
+      setGender(profileUser.gender || "");
+      if (profileUser.image) {
+        setPreviewAvatar(normalizeImageSrc(profileUser.image));
       }
     }
-  }, [userInfo]);
+  }, [profileUser]);
 
   // Fetch dữ liệu mới nhất từ server khi vào trang (tránh Redux state cũ)
   useEffect(() => {
@@ -137,7 +161,12 @@ const PatientProfile: React.FC = () => {
         );
         // Fetch lại dữ liệu mới nhất từ server để cập nhật Redux store
         try {
-          const fresh = await handleGetUserById(userInfo.id);
+          const fresh = await dispatch(
+            publicApi.endpoints.getUserById.initiate(userInfo.id, {
+              subscribe: false,
+              forceRefetch: true,
+            }),
+          ).unwrap();
           if (fresh && fresh.errCode === 0 && fresh.data) {
             const updatedUser: IUser = {
               ...userInfo,

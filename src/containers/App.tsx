@@ -4,10 +4,10 @@ import { Route, Routes } from "react-router-dom";
 import { BrowserRouter } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import {
-  RequireAuth,
   RedirectIfAuth,
   RequireAdmin,
-  RequireDoctorOrAdmin,
+  RequireDoctor,
+  RequirePatient,
 } from "../hoc/authentication";
 import Doctor from "../routes/Doctor";
 
@@ -29,6 +29,8 @@ import ClinicList from "./Patient/Clinic/ClinicList";
 import TopDoctorList from "./Patient/Doctor/TopDoctorList";
 import PatientProfile from "./Patient/Profile/PatientProfile";
 import PatientHistory from "./Patient/History/PatientHistory";
+import PackageList from "./Patient/Package/PackageList";
+import DetailPackage from "./Patient/Package/DetailPackage";
 
 interface IAppProps {
   persistor: any;
@@ -75,13 +77,19 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 <Route
                   path="/doctor/*"
                   element={
-                    <RequireDoctorOrAdmin>
+                    <RequireDoctor>
                       <Doctor />
-                    </RequireDoctorOrAdmin>
+                    </RequireDoctor>
                   }
                 />
-                <Route path={path.HOMEPAGE} element={<HomePage />} />
-                <Route path={path.DETAIL_DOCTOR} element={<DetailDoctor />} />
+                <Route
+                  path={path.HOMEPAGE}
+                  element={<HomePage />}
+                />
+                <Route
+                  path={path.DETAIL_DOCTOR}
+                  element={<DetailDoctor />}
+                />
                 <Route
                   path={path.BOOKING_DOCTOR}
                   element={<BookingDoctor />}
@@ -90,8 +98,22 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                   path={path.VERIFY_EMAIL_BOOKING}
                   element={<VerifyEmail />}
                 />
-                <Route path={path.LIST_CLINIC} element={<ClinicList />} />
-                <Route path={path.DETAIL_CLINIC} element={<DetailClinic />} />
+                <Route
+                  path={path.LIST_CLINIC}
+                  element={<ClinicList />}
+                />
+                <Route
+                  path={path.DETAIL_CLINIC}
+                  element={<DetailClinic />}
+                />
+                <Route
+                  path={path.LIST_PACKAGE}
+                  element={<PackageList />}
+                />
+                <Route
+                  path={path.DETAIL_PACKAGE}
+                  element={<DetailPackage />}
+                />
                 <Route
                   path={path.LIST_TOP_DOCTOR}
                   element={<TopDoctorList />}
@@ -99,17 +121,17 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 <Route
                   path={path.PATIENT_PROFILE}
                   element={
-                    <RequireAuth>
+                    <RequirePatient>
                       <PatientProfile />
-                    </RequireAuth>
+                    </RequirePatient>
                   }
                 />
                 <Route
                   path={path.PATIENT_HISTORY}
                   element={
-                    <RequireAuth>
+                    <RequirePatient>
                       <PatientHistory />
-                    </RequireAuth>
+                    </RequirePatient>
                   }
                 />
               </Routes>

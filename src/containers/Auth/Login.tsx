@@ -4,7 +4,11 @@ import { useNavigate } from "react-router-dom";
 
 import * as actions from "../../store/actions";
 import "./Login.scss";
-import { handleGetUserById, handleLoginApi } from "../../services/userService";
+import systemLogo from "../../assets/Logo Medibook.png";
+import {
+  handleGetUserById,
+  handleSystemLoginApi,
+} from "../../services/userService";
 import { USER_ROLE } from "../../utils";
 
 const Login: React.FC = () => {
@@ -13,18 +17,26 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [errMessage, setErrMessage] = useState("");
 
   const handleLogin = useCallback(async () => {
     setErrMessage("");
     try {
-      const data = await handleLoginApi(username, password);
+      const data = await handleSystemLoginApi(username, password);
       if (!data || !data.success) {
         return setErrMessage(data?.message || "Login failed");
       }
-      dispatch(actions.userLoginSuccess(data.data, data.data?.token));
 
       let userInfo = data.data;
+      if (userInfo?.roleId === USER_ROLE.PATIENT) {
+        return setErrMessage(
+          "Tài khoản bệnh nhân vui lòng đăng nhập ở khu vực bệnh nhân.",
+        );
+      }
+
+      dispatch(actions.userLoginSuccess(userInfo, data.data?.token));
+
       if (data.data?.id) {
         try {
           const userDetailRes = await handleGetUserById(data.data.id);
@@ -46,7 +58,7 @@ const Login: React.FC = () => {
       }
       console.log("Login success");
 
-      // Redirect dựa theo roleId của user
+      // System login is only for Admin, Doctor, and Clinic Manager.
       const roleId = userInfo?.roleId;
       if (roleId === USER_ROLE.ADMIN) {
         navigate("/system");
@@ -78,65 +90,101 @@ const Login: React.FC = () => {
 
   return (
     <div className="login_background">
-      <div className="login-container">
-        <div className="login-content">
-          <div className="col-12 text-login">Login</div>
-
-          <div className="col-12 form-group input-login">
-            <label>Username</label>
-            <input
-              type="text"
-              className="form-control login"
-              placeholder="Enter Your Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+      <section className="login-brand-panel">
+        <div className="brand-content">
+          <div className="brand-logo-row">
+            <div className="brand-logo-icon">
+              <img src={systemLogo} alt="MediBook" />
+            </div>
+            <span>MediBook</span>
           </div>
 
-          <div className="col-12 form-group input-login">
-            <label>Password</label>
-            <div className="custom-input-password">
-              <input
-                type={showPassword ? "text" : "password"}
-                className="form-control"
-                placeholder="Enter Your Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              <span onClick={() => setShowPassword((s) => !s)}>
-                <i
-                  className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}
-                />
-              </span>
+          <h1>Cổng quản trị MediBook</h1>
+          <p>
+            Không gian làm việc dành cho quản trị viên, bác sĩ và quản lý phòng
+            khám.
+          </p>
+
+          <div className="brand-stats">
+            <div>
+              <strong>R1</strong>
+              <span>Quản trị hệ thống</span>
+            </div>
+            <div>
+              <strong>R2/R4</strong>
+              <span>Vận hành phòng khám</span>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="col-12" style={{ color: "red" }}>
-            {errMessage}
-          </div>
+      <section className="login-form-panel">
+        <div className="login-container">
+          <div className="login-content">
+            <div className="login-heading">
+              <h2>Đăng nhập hệ thống</h2>
+              <p>Dành cho Admin, Bác sĩ và Quản lý phòng khám</p>
+            </div>
 
-          <div className="col-12">
+            <div className="form-group input-login">
+              <label>Email nội bộ</label>
+              <div className="input-shell">
+                <i className="fas fa-at" />
+                <input
+                  type="text"
+                  placeholder="admin@medibook.vn"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+            </div>
+
+            <div className="form-group input-login">
+              <div className="password-label-row">
+                <label>Mật khẩu</label>
+                <button type="button" className="text-link">
+                  Quên mật khẩu?
+                </button>
+              </div>
+              <div className="input-shell password-shell">
+                <i className="fas fa-lock" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((s) => !s)}
+                >
+                  <i
+                    className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}
+                  />
+                </button>
+              </div>
+            </div>
+
+            <label className="remember-row">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span>Ghi nhớ đăng nhập</span>
+            </label>
+
+            {errMessage && <div className="login-error">{errMessage}</div>}
+
             <button className="btn-login" onClick={handleLogin}>
-              Login
+              Đăng nhập
             </button>
           </div>
-
-          <div className="col-12 forgot-password">
-            <span>Forgot your password!</span>
-          </div>
-
-          <div className="col-12 text-center mt-3">
-            <span className="text-other-login text-center">Or Login with:</span>
-          </div>
-
-          <div className="col-12 social-login">
-            <i className="fab fa-google"></i>
-            <i className="fab fa-facebook-f"></i>
-          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

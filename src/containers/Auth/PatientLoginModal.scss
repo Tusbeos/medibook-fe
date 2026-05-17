@@ -1,0 +1,147 @@
+.patient-login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+
+  .patient-login-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.48);
+  }
+
+  .patient-login-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+    left: 50%;
+    max-width: calc(100vw - 32px);
+    padding: 28px;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 430px;
+  }
+
+  .patient-login-close {
+    align-items: center;
+    background: #f2f4f7;
+    border: 0;
+    border-radius: 999px;
+    color: #475467;
+    cursor: pointer;
+    display: inline-flex;
+    height: 34px;
+    justify-content: center;
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    width: 34px;
+  }
+
+  .patient-login-header {
+    padding-right: 28px;
+
+    .patient-login-icon {
+      align-items: center;
+      background: #e8f8fa;
+      border-radius: 12px;
+      color: #159aaa;
+      display: inline-flex;
+      font-size: 22px;
+      height: 48px;
+      justify-content: center;
+      margin-bottom: 14px;
+      width: 48px;
+    }
+
+    h2 {
+      color: #101828;
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+
+    p {
+      color: #667085;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 22px;
+    }
+  }
+
+  .patient-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    label {
+      color: #344054;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input {
+      border: 1px solid #d7dee9;
+      border-radius: 8px;
+      color: #101828;
+      font-size: 14px;
+      height: 44px;
+      outline: none;
+      padding: 0 12px;
+      width: 100%;
+
+      &:focus {
+        border-color: #45c3d2;
+        box-shadow: 0 0 0 4px rgba(69, 195, 210, 0.12);
+      }
+    }
+  }
+
+  .patient-password-field {
+    display: flex;
+    position: relative;
+
+    input {
+      padding-right: 44px;
+    }
+
+    button {
+      background: transparent;
+      border: 0;
+      color: #667085;
+      cursor: pointer;
+      height: 44px;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 44px;
+    }
+  }
+
+  .patient-login-error {
+    background: #fff1f0;
+    border: 1px solid #ffccc7;
+    border-radius: 8px;
+    color: #b42318;
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 10px 12px;
+  }
+
+  .patient-login-submit {
+    background: #45c3d2;
+    border: 0;
+    border-radius: 8px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+    height: 46px;
+    margin-top: 8px;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  }
+}

@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useParams, useLocation } from "react-router-dom";
 import HomeHeader from "containers/HomePage/HomeHeader";
 import HomeFooter from "containers/HomePage/HomeFooter";
 import "./DetailClinic.scss";
 import { FormattedMessage } from "react-intl";
-import { getDetailClinicById } from "../../../services/clinicService";
-import { getDoctorsByClinicId } from "../../../services/doctorService";
 import { getBase64FromBuffer } from "../../../utils/CommonUtils";
 import DoctorCard from "../../../components/Patient/DoctorCard";
 import { IRootState } from "../../../types";
+import {
+  useGetClinicByIdQuery,
+  useGetDoctorsByClinicIdQuery,
+} from "../../../store/api/publicApi";
 const HEADER_SELECTOR = "h2";
 
 const normalizeString = (str: string) => {
@@ -21,15 +23,32 @@ const DetailClinic = () => {
   const { id: idFromParams } = useParams<{ id: string }>();
   const location = useLocation();
   const language = useSelector((state: IRootState) => state.app.language);
+  const idFromState = (location.state as any)?.clinicId || null;
+  const id = idFromParams || idFromState;
 
   const introRef = useRef<HTMLDivElement>(null);
   const doctorsRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const [clinic, setClinic] = useState<any>({});
-  const [notFound, setNotFound] = useState(false);
-  const [doctorIds, setDoctorIds] = useState<any[]>([]);
   const [tableOfContents, setTableOfContents] = useState<any[]>([]);
+  const {
+    data: clinicResponse,
+    isLoading: isClinicLoading,
+    isError: isClinicError,
+  } = useGetClinicByIdQuery(id || "", { skip: !id });
+  const { data: doctorsResponse } = useGetDoctorsByClinicIdQuery(id || "", {
+    skip: !id,
+  });
+  const clinic = clinicResponse?.errCode === 0 && clinicResponse.data
+    ? clinicResponse.data
+    : {};
+  const notFound = !isClinicLoading && (!id || isClinicError || !clinic?.id);
+  const doctorIds = useMemo(() => {
+    const data = Array.isArray(doctorsResponse?.data) ? doctorsResponse.data : [];
+    return data
+      .map((doctor: any) => (typeof doctor === "object" ? doctor.id : doctor))
+      .filter(Boolean);
+  }, [doctorsResponse]);
 
   const buildTableOfContents = useCallback(() => {
     const container = contentRef.current;
@@ -56,45 +75,6 @@ const DetailClinic = () => {
 
     setTableOfContents(toc);
   }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const idFromState = (location.state as any)?.clinicId || null;
-      const id = idFromParams || idFromState;
-
-      if (id) {
-        try {
-          let res = await getDetailClinicById(id);
-          if (res && res.errCode === 0 && res.data) {
-            setClinic(res.data);
-            setNotFound(false);
-          } else {
-            setNotFound(true);
-          }
-
-          const doctorRes = await getDoctorsByClinicId(id);
-          if (
-            doctorRes &&
-            doctorRes.errCode === 0 &&
-            Array.isArray(doctorRes.data)
-          ) {
-            setDoctorIds(
-              doctorRes.data
-                .map((doctor: any) => (typeof doctor === "object" ? doctor.id : doctor))
-                .filter(Boolean),
-            );
-          } else {
-            setDoctorIds([]);
-          }
-        } catch (e) {
-          setNotFound(true);
-        }
-      } else {
-        setNotFound(true);
-      }
-    };
-    fetchData();
-  }, [idFromParams, location]);
 
   useEffect(() => {
     if (clinic && clinic.descriptionHTML) {

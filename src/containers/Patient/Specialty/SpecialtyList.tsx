@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { FormattedMessage } from "react-intl";
-import { handleGetAllSpecialties } from "../../../services/specialtyService";
 import "./SpecialtyList.scss";
 import HomeHeader from "containers/HomePage/HomeHeader";
 import HomeFooter from "containers/HomePage/HomeFooter";
@@ -11,6 +10,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import "../../../components/Breadcrumb.scss";
 import { LANGUAGES } from "utils";
 import { IRootState } from "../../../types";
+import { useGetSpecialtiesQuery } from "../../../store/api/publicApi";
 
 interface ISpecialtyItemProps {
   name: string;
@@ -44,36 +44,25 @@ const SpecialtyItem = ({ name, imageUrl, isLast, onClick }: ISpecialtyItemProps)
 const SpecialtyList = () => {
   const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
-  const [specialties, setSpecialties] = useState<any[]>([]);
-
-  const fetchSpecialties = useCallback(async () => {
-    try {
-      const res = await handleGetAllSpecialties();
-      if (res && res.errCode === 0 && res.data && Array.isArray(res.data)) {
-        const dataArr = res.data;
-        const specialtiesList = dataArr.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          imageUrl:
-            getBase64FromBuffer(item.image) ||
-            "https://via.placeholder.com/60?text=No+Img",
-        }));
-        setSpecialties(specialtiesList);
-      } else {
-        setSpecialties([]);
-      }
-    } catch (error) {}
-  }, []);
-
-  useEffect(() => {
-    fetchSpecialties();
-  }, [fetchSpecialties]);
+  const { data: specialtiesResponse } = useGetSpecialtiesQuery();
+  const specialties = useMemo(() => {
+    const dataArr = Array.isArray(specialtiesResponse?.data)
+      ? specialtiesResponse.data
+      : [];
+    return dataArr.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      imageUrl:
+        getBase64FromBuffer(item.image) ||
+        "https://via.placeholder.com/60?text=No+Img",
+    }));
+  }, [specialtiesResponse]);
 
   const handleViewDetailSpecialty = useCallback(
     (id: any) => {
       navigate(`/specialty/detail-specialty/${id}`);
     },
-    [history]
+    [navigate]
   );
 
   const breadcrumbItems = [

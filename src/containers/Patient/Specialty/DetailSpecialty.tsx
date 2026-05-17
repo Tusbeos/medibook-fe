@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useIntl } from "react-intl";
 import { useSelector } from "react-redux";
-import { getSpecialtyByIds } from "../../../services/specialtyService";
-import { HandleGetDoctorSpecialtyById } from "../../../services/doctorService";
 import HomeHeader from "containers/HomePage/HomeHeader";
 import HomeFooter from "containers/HomePage/HomeFooter";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -13,45 +11,40 @@ import "./DetailSpecialty.scss";
 import DoctorCard from "components/Patient/DoctorCard";
 import { LANGUAGES } from "utils";
 import { IRootState } from "../../../types";
+import {
+  useGetDoctorsBySpecialtyIdQuery,
+  useGetSpecialtiesByIdsQuery,
+} from "../../../store/api/publicApi";
 
 const DetailSpecialty = () => {
   const { id } = useParams<{ id: string }>();
   const intl = useIntl();
   const language = useSelector((state: IRootState) => state.app.language);
-  const [specialty, setSpecialty] = useState<any>(null);
   const [isShowDetail, setIsShowDetail] = useState(false);
-  const [doctorIds, setDoctorIds] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (id) {
-        const res = await getSpecialtyByIds([id]);
-        if (res && res.errCode === 0 && Array.isArray(res.data)) {
-          const found = res.data && res.data[0];
-          if (found) {
-            setSpecialty({
-              ...found,
-              imageUrl: getBase64FromBuffer(found.image) || "",
-            });
-          }
+  const { data: specialtyResponse } = useGetSpecialtiesByIdsQuery(
+    id ? [id] : [],
+    { skip: !id },
+  );
+  const { data: doctorsResponse } = useGetDoctorsBySpecialtyIdQuery(id || "", {
+    skip: !id,
+  });
+  const specialty = useMemo(() => {
+    const found = Array.isArray(specialtyResponse?.data)
+      ? specialtyResponse.data[0]
+      : null;
+    return found
+      ? {
+          ...found,
+          imageUrl: getBase64FromBuffer(found.image) || "",
         }
-        const doctorRes = await HandleGetDoctorSpecialtyById(id);
-        if (
-          doctorRes &&
-          doctorRes.errCode === 0 &&
-          Array.isArray(doctorRes.data)
-        ) {
-          const ids = doctorRes.data
-            .map((item: any) => item && (item.id || item.doctorId))
-            .filter((value: any) => value);
-          setDoctorIds(ids);
-        } else {
-          setDoctorIds([]);
-        }
-      }
-    };
-    fetchData();
-  }, [id]);
+      : null;
+  }, [specialtyResponse]);
+  const doctorIds = useMemo(() => {
+    const data = Array.isArray(doctorsResponse?.data) ? doctorsResponse.data : [];
+    return data
+      .map((item: any) => item && (item.id || item.doctorId))
+      .filter((value: any) => value);
+  }, [doctorsResponse]);
 
   const handleShowHideDetail = useCallback(() => {
     setIsShowDetail((prev) => !prev);

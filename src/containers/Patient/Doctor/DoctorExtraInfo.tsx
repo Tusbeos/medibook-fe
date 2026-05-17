@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import "./DoctorExtraInfo.scss";
-import {
-  getExtraInfoDoctorById,
-  getAllDoctorService,
-} from "../../../services/doctorService";
 import { LANGUAGES } from "utils";
 import { NumericFormat } from "react-number-format";
 import { FormattedMessage } from "react-intl";
 import "moment/locale/vi";
 import { IRootState } from "../../../types";
+import {
+  useGetDoctorExtraInfoQuery,
+  useGetDoctorServicesQuery,
+} from "../../../store/api/publicApi";
 
 interface IDoctorExtraInfoProps {
   detailDoctorFromParent: number | string;
@@ -20,28 +20,17 @@ const DoctorExtraInfo = ({ detailDoctorFromParent }: IDoctorExtraInfoProps) => {
   const language = useSelector((state: IRootState) => state.app.language);
   const navigate = useNavigate();
   const [isShowDetailInfo, setIsShowDetailInfo] = useState(false);
-  const [extraInfo, setExtraInfo] = useState<any>({});
-  const [listDoctorServices, setListDoctorServices] = useState<any[]>([]);
-
-  const fetchExtraInfo = useCallback(async (doctorId: number | string) => {
-    try {
-      let data = await getExtraInfoDoctorById(doctorId);
-      let doctorServices = await getAllDoctorService(doctorId);
-      if (data && data.errCode === 0) {
-        setExtraInfo(data && data.data ? data.data : {});
-        setListDoctorServices(doctorServices.data ? doctorServices.data : []);
-      }
-    } catch (e) {
-      setExtraInfo({});
-      setListDoctorServices([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (detailDoctorFromParent) {
-      fetchExtraInfo(detailDoctorFromParent);
-    }
-  }, [detailDoctorFromParent, fetchExtraInfo]);
+  const shouldSkip = !detailDoctorFromParent || detailDoctorFromParent === -1;
+  const { data: extraInfoResponse } = useGetDoctorExtraInfoQuery(detailDoctorFromParent, {
+    skip: shouldSkip,
+  });
+  const { data: doctorServicesResponse } = useGetDoctorServicesQuery(detailDoctorFromParent, {
+    skip: shouldSkip,
+  });
+  const extraInfo = extraInfoResponse?.errCode === 0 ? extraInfoResponse.data || {} : {};
+  const listDoctorServices = Array.isArray(doctorServicesResponse?.data)
+    ? doctorServicesResponse.data
+    : [];
 
   const showHideDetailInfo = useCallback((status: boolean) => {
     setIsShowDetailInfo(status);
@@ -51,12 +40,9 @@ const DoctorExtraInfo = ({ detailDoctorFromParent }: IDoctorExtraInfoProps) => {
     const clinicId =
       extraInfo && extraInfo.clinicId ? extraInfo.clinicId : null;
     if (clinicId) {
-      navigate({
-        pathname: `/clinic/detail-clinic/${clinicId}`,
-        state: { clinicId },
-      });
+      navigate(`/clinic/detail-clinic/${clinicId}`, { state: { clinicId } });
     }
-  }, [extraInfo, history]);
+  }, [extraInfo, navigate]);
 
   return (
     <div className="doctor-extra-info-container">

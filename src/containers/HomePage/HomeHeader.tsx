@@ -1,54 +1,68 @@
-import React, { useCallback, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useCallback, useEffect, useState } from "react";
 import "./HomeHeader.scss";
-import { FormattedMessage } from "react-intl";
-import { LANGUAGES } from "../../utils";
-import { changeLanguageApp } from "../../store/actions/appActions";
-import { useNavigate } from "react-router-dom";
-import { IRootState } from "../../types";
+import { useLocation, useNavigate } from "react-router-dom";
 import SidebarDrawer from "../../components/SidebarDrawer/SidebarDrawer";
-
-import logo from "../../assets/Logo.svg";
+import PatientLoginModal from "../Auth/PatientLoginModal";
 
 interface IHomeHeaderProps {
   isShowBanner?: boolean;
 }
 
-// HomeHeader chuyển sang Function Component + Hooks
 const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const language = useSelector((state: IRootState) => state.app.language);
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const changeLanguage = useCallback(
-    (lang: string) => {
-      dispatch(changeLanguageApp(lang));
-    },
-    [dispatch],
-  );
+  const [isPatientLoginOpen, setIsPatientLoginOpen] = useState(false);
 
   const returnToHome = useCallback(() => {
     navigate("/home");
-  }, [history]);
+  }, [navigate]);
 
   const handleSpecialtyClick = useCallback(() => {
     navigate("/specialty");
-  }, [history]);
+  }, [navigate]);
 
   const handleClinicClick = useCallback(() => {
     navigate("/clinic");
-  }, [history]);
+  }, [navigate]);
 
   const handleViewTopDoctors = useCallback(() => {
     navigate("/top-doctor");
-  }, [history]);
+  }, [navigate]);
+
+  const handlePackageClick = useCallback(() => {
+    navigate("/package");
+  }, [navigate]);
+
+  const handleOpenPatientLogin = useCallback(() => {
+    setIsSidebarOpen(false);
+    setIsPatientLoginOpen(true);
+  }, []);
+
+  const handleClosePatientLogin = useCallback(() => {
+    setIsPatientLoginOpen(false);
+    if (location.search.includes("patientLogin=1")) {
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("patientLogin") === "1") {
+      setIsPatientLoginOpen(true);
+    }
+  }, [location.search]);
 
   return (
     <React.Fragment>
       <SidebarDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onRequestPatientLogin={handleOpenPatientLogin}
+      />
+      <PatientLoginModal
+        isOpen={isPatientLoginOpen}
+        onClose={handleClosePatientLogin}
       />
       <div className="home-header-container">
         <div className="home-header-content">
@@ -57,70 +71,59 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
               className="fas fa-bars"
               onClick={() => setIsSidebarOpen(true)}
             ></i>
-            <div className="header-logo" onClick={() => returnToHome()}></div>
+            <div className="header-logo" onClick={returnToHome}></div>
           </div>
           <div className="center-content">
             <div
-              className="child-content"
+              className={`child-content${
+                location.pathname.startsWith("/specialty") ? " active" : ""
+              }`}
               onClick={handleSpecialtyClick}
               style={{ cursor: "pointer" }}
             >
-              <div className="title">
-                <FormattedMessage id="home-header.speciality" />
-              </div>
-              <div className="sub-title">
-                <FormattedMessage id="home-header.search-doctor" />
-              </div>
+              <div className="title">Chuyên khoa</div>
+              <div className="sub-title">Tìm bác sĩ theo chuyên môn</div>
             </div>
             <div
-              className="child-content"
+              className={`child-content${
+                location.pathname.startsWith("/clinic") ? " active" : ""
+              }`}
               onClick={handleClinicClick}
               style={{ cursor: "pointer" }}
             >
-              <div className="title">
-                <FormattedMessage id="home-header.medical-facility" />
-              </div>
-              <div className="sub-title">
-                <FormattedMessage id="home-header.choose-hospital-clinic" />
-              </div>
+              <div className="title">Cơ sở y tế</div>
+              <div className="sub-title">Chọn bệnh viện, phòng khám</div>
             </div>
             <div
-              className="child-content"
+              className={`child-content${
+                location.pathname.startsWith("/top-doctor") ||
+                location.pathname.startsWith("/detail-doctor")
+                  ? " active"
+                  : ""
+              }`}
               onClick={handleViewTopDoctors}
               style={{ cursor: "pointer" }}
             >
-              <div className="title">
-                <FormattedMessage id="home-header.doctor" />
-              </div>
-              <div className="sub-title">
-                <FormattedMessage id="home-header.choose-doctor" />
-              </div>
+              <div className="title">Bác sĩ</div>
+              <div className="sub-title">Đặt lịch với chuyên gia</div>
             </div>
-            <div className="child-content">
-              <div className="title">
-                <FormattedMessage id="home-header.fee" />
-              </div>
-              <div className="sub-title">
-                <FormattedMessage id="home-header.check-health" />
-              </div>
+            <div
+              className={`child-content${
+                location.pathname.startsWith("/package") ? " active" : ""
+              }`}
+              onClick={handlePackageClick}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="title">Gói khám</div>
+              <div className="sub-title">Dịch vụ khám trọn gói</div>
             </div>
           </div>
           <div className="right-content">
-            <div className="support">
+            <div className="header-icon-button">
+              <i className="far fa-bell"></i>
+            </div>
+            <div className="header-icon-button">
               <i className="far fa-question-circle"></i>
-              <FormattedMessage id="home-header.support" />
-            </div>
-            <div
-              className={language === LANGUAGES.VI ? "flag active" : "flag"}
-              onClick={() => changeLanguage(LANGUAGES.VI)}
-            >
-              VN
-            </div>
-            <div
-              className={language === LANGUAGES.EN ? "flag active" : "flag"}
-              onClick={() => changeLanguage(LANGUAGES.EN)}
-            >
-              EN
             </div>
           </div>
         </div>
@@ -128,12 +131,8 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
       {isShowBanner === true && (
         <div className="home-header-banner">
           <div className="content-up">
-            <div className="title1">
-              <FormattedMessage id="banner.title1" />
-            </div>
-            <div className="title2">
-              <FormattedMessage id="banner.title2" />
-            </div>
+            <div className="title1">Nền tảng đặt lịch y tế</div>
+            <div className="title2">Chăm sóc sức khỏe toàn diện</div>
             <div className="search-box">
               <i className="fas fa-search"></i>
               <input
@@ -150,24 +149,19 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
                 </div>
                 <div className="stat-text">
                   <span className="stat-number">150+</span>
-                  <span className="stat-label">
-                    <FormattedMessage id="banner.child1" />
-                  </span>
+                  <span className="stat-label">Cơ sở y tế</span>
                 </div>
               </div>
 
               <div className="stat-divider"></div>
 
-              {/* Item 2 */}
               <div className="stat-item">
                 <div className="stat-icon">
-                  <i className="fas fa-user-md"></i> {/* Icon Bác sĩ */}
+                  <i className="fas fa-user-md"></i>
                 </div>
                 <div className="stat-text">
                   <span className="stat-number">1,500+</span>
-                  <span className="stat-label">
-                    <FormattedMessage id="banner.child6" />
-                  </span>
+                  <span className="stat-label">Bác sĩ</span>
                 </div>
               </div>
 
@@ -179,9 +173,7 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
                 </div>
                 <div className="stat-text">
                   <span className="stat-number">10k+</span>
-                  <span className="stat-label">
-                    <FormattedMessage id="banner.child4" />
-                  </span>
+                  <span className="stat-label">Lượt đặt lịch</span>
                 </div>
               </div>
             </div>
