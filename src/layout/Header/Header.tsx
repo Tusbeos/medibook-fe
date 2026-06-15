@@ -14,6 +14,7 @@ import { IRootState, IMenuGroup } from "types";
 import { getBase64FromBuffer } from "utils/CommonUtils";
 import { userLoginSuccess } from "store/actions/userActions";
 import { useGetUserByIdQuery } from "store/api/publicApi";
+import { handleLogoutApi } from "services/userService";
 
 // Header chuyển sang Function Component + Hooks
 const Header: React.FC = () => {
@@ -108,9 +109,18 @@ const Header: React.FC = () => {
     dispatch(changeLanguageApp(lang));
   }, [dispatch]);
 
-  const processLogout = useCallback(() => {
-    dispatch(actions.processLogout());
-  }, [dispatch]);
+  const processLogout = useCallback(async () => {
+    const refreshToken = (userInfo as any)?.refreshToken;
+    try {
+      if (refreshToken) {
+        await handleLogoutApi(refreshToken);
+      }
+    } catch (e) {
+      // Logout local vẫn phải hoàn tất kể cả khi backend không revoke được session.
+    } finally {
+      dispatch(actions.processLogout());
+    }
+  }, [dispatch, userInfo]);
 
   const getRoleLabel = useCallback(() => {
     const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;

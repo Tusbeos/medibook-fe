@@ -4,7 +4,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import PatientLoginModal from "features/auth/PatientLoginModal";
 import SidebarDrawer from "components/SidebarDrawer/SidebarDrawer";
 import headerLogo from "assets/Header Logo.png";
-import { useGetHomeStatsQuery } from "store/api/publicApi";
+import {
+  SearchResult,
+  useGetHomeStatsQuery,
+  useLazySearchPublicQuery,
+} from "store/api/publicApi";
+import { normalizeImageSrc } from "utils/CommonUtils";
 
 interface IHomeHeaderProps {
   isShowBanner?: boolean;
@@ -15,19 +20,79 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   const location = useLocation();
   const [isPatientLoginOpen, setIsPatientLoginOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [triggerSearch, { data: searchResponse, isFetching: isSearching }] =
+    useLazySearchPublicQuery();
   const { data: homeStatsResponse } = useGetHomeStatsQuery(undefined, {
     skip: !isShowBanner,
   });
   const homeStats = homeStatsResponse?.data;
+  const searchItems = searchResponse?.data?.items || [];
 
   const returnToHome = useCallback(() => navigate("/home"), [navigate]);
   const goSpecialty = useCallback(() => navigate("/specialty"), [navigate]);
   const goClinic = useCallback(() => navigate("/clinic"), [navigate]);
   const goDoctor = useCallback(() => navigate("/top-doctor"), [navigate]);
   const goPackage = useCallback(() => navigate("/package"), [navigate]);
+  const goSearch = useCallback(() => {
+    const query = searchTerm.trim();
+    if (query) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+    }
+  }, [navigate, searchTerm]);
   const formatStat = useCallback(
     (value?: number) => new Intl.NumberFormat("vi-VN").format(value || 0),
     [],
+  );
+  const getSearchTypeLabel = useCallback((type: SearchResult["type"]) => {
+    switch (type) {
+      case "doctor":
+        return "Bác sĩ";
+      case "clinic":
+        return "Cơ sở y tế";
+      case "specialty":
+        return "Chuyên khoa";
+      case "package":
+        return "Gói khám";
+      default:
+        return "Kết quả";
+    }
+  }, []);
+
+  const getSearchTypeIcon = useCallback((type: SearchResult["type"]) => {
+    switch (type) {
+      case "doctor":
+        return "fas fa-user-md";
+      case "clinic":
+        return "fas fa-hospital";
+      case "specialty":
+        return "fas fa-stethoscope";
+      case "package":
+        return "fas fa-briefcase-medical";
+      default:
+        return "fas fa-search";
+    }
+  }, []);
+
+  const handleOpenSearchResult = useCallback(
+    (item: SearchResult) => {
+      setIsSearchFocused(false);
+      navigate(item.url);
+    },
+    [navigate],
+  );
+
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        goSearch();
+      }
+      if (event.key === "Escape") {
+        setIsSearchFocused(false);
+      }
+    },
+    [goSearch],
   );
 
   const handleClosePatientLogin = useCallback(() => {
@@ -48,6 +113,19 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
       setIsPatientLoginOpen(true);
     }
   }, [location.search]);
+
+  useEffect(() => {
+    const query = searchTerm.trim();
+    if (!isShowBanner || query.length < 2) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      triggerSearch({ q: query, size: 6 });
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [isShowBanner, searchTerm, triggerSearch]);
 
   return (
     <>
@@ -145,10 +223,69 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
               <input
                 type="text"
                 placeholder="Tìm chuyên khoa, bác sĩ hoặc cơ sở y tế..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setIsSearchFocused(false), 150);
+                }}
+                onKeyDown={handleSearchKeyDown}
               />
-              <button type="button" onClick={goSpecialty}>
+              <button type="button" onClick={goSearch}>
                 Tìm kiếm
               </button>
+
+              {isSearchFocused && searchTerm.trim().length >= 2 && (
+                <div className="hero-search-results">
+                  {isSearching && (
+                    <div className="search-state">Đang tìm kiếm...</div>
+                  )}
+
+                  {!isSearching && searchItems.length === 0 && (
+                    <div className="search-state">Không có kết quả phù hợp</div>
+                  )}
+
+                  {!isSearching &&
+                    searchItems.map((item) => (
+                      <button
+                        key={`${item.type}-${item.id}`}
+                        type="button"
+                        className="search-result-item"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleOpenSearchResult(item)}
+                      >
+                        <span className="result-thumbnail">
+                          {normalizeImageSrc(item.thumbnail) ? (
+                            <img
+                              src={normalizeImageSrc(item.thumbnail)}
+                              alt={item.title}
+                            />
+                          ) : (
+                            <i className={getSearchTypeIcon(item.type)} />
+                          )}
+                        </span>
+                        <span className="result-type">
+                          {getSearchTypeLabel(item.type)}
+                        </span>
+                        <span className="result-text">
+                          <strong>{item.title}</strong>
+                          {item.subtitle && <small>{item.subtitle}</small>}
+                        </span>
+                      </button>
+                    ))}
+
+                  {!isSearching && searchItems.length > 0 && (
+                    <button
+                      type="button"
+                      className="search-view-all"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={goSearch}
+                    >
+                      Xem tất cả kết quả
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="hero-stats">

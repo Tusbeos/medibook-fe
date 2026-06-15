@@ -11,7 +11,8 @@ axiosInstance.interceptors.request.use(
   (config) => {
     if (
       config.url === "/api/auth/login" ||
-      config.url === "/api/auth/refresh"
+      config.url === "/api/auth/refresh" ||
+      config.url === "/api/auth/logout"
     ) {
       config.headers.delete("Authorization");
       return config;
@@ -43,7 +44,8 @@ axiosInstance.interceptors.response.use(
         originalRequest &&
         !(originalRequest as any)._retry &&
         originalRequest.url !== '/api/auth/login' &&
-        originalRequest.url !== '/api/auth/refresh'
+        originalRequest.url !== '/api/auth/refresh' &&
+        originalRequest.url !== '/api/auth/logout'
     ) {
         (originalRequest as any)._retry = true;
 

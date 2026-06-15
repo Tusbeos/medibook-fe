@@ -9,7 +9,7 @@ $border-color: #f1f0f0;
 
     .doctor-specialty-filter {
         background-color: $bg-white;
-        padding:0px 0px 20px 0px;
+        padding: 0 0 18px;
         .province-select {
             padding: 10px;
             border-radius: 4px;
@@ -20,22 +20,26 @@ $border-color: #f1f0f0;
     }
 
     .doctor-card {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1.08fr) minmax(380px, 0.92fr);
         background: $bg-white;
         border-radius: 8px;
         box-shadow: 0 1px 6px rgba(0,0,0,0.1);
-        padding: 20px;
-        margin-bottom: 15px;
+        padding: 18px 20px;
+        margin-bottom: 14px;
         border: 1px solid #e6e6e6;
+        gap: 18px;
+
         .doctor-card-left {
-            width: 50%;
-            padding-right: 15px;
+            min-width: 0;
+            padding-right: 16px;
             border-right: 1px solid $border-color;
             display: flex;
             flex-direction: column;
+
             .doctor-intro {
                 display: flex;
-                gap: 15px;
+                gap: 18px;
                 
                 .doctor-avatar {
                     width: 90px;
@@ -49,6 +53,8 @@ $border-color: #f1f0f0;
                 }
 
                 .doctor-info {
+                    min-width: 0;
+
                     .doctor-name {
                         color: $text-main;
                         font-size: 16px;
@@ -64,7 +70,7 @@ $border-color: #f1f0f0;
                         color: $text-light;
                         margin-bottom: 10px;
                         line-height: 1.5;
-                        max-height: 80px;
+                        max-height: 64px;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         display: -webkit-box;
@@ -91,8 +97,8 @@ $border-color: #f1f0f0;
         }
 
         .doctor-card-right {
-            width: 50%;
-            padding-left: 15px;
+            min-width: 0;
+            padding-left: 0;
             display: flex;
             flex-direction: column;
 
@@ -180,6 +186,45 @@ $border-color: #f1f0f0;
             
             .doctor-extra-info-container {
                 border-top: 1px solid $border-color;
+            }
+        }
+    }
+}
+
+@media (max-width: 1024px) {
+    .doctor-specialty-container {
+        .doctor-card {
+            grid-template-columns: minmax(0, 1fr);
+
+            .doctor-card-left {
+                padding-right: 0;
+                padding-bottom: 16px;
+                border-right: 0;
+                border-bottom: 1px solid $border-color;
+            }
+
+            .doctor-card-right {
+                width: 100%;
+                padding-left: 0;
+            }
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .doctor-specialty-container {
+        .doctor-card {
+            padding: 16px;
+
+            .doctor-card-left {
+                .doctor-intro {
+                    align-items: flex-start;
+
+                    .doctor-avatar {
+                        width: 72px;
+                        height: 72px;
+                    }
+                }
             }
         }
     }

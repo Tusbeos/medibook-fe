@@ -5,6 +5,7 @@ import { FormattedMessage } from "react-intl";
 import { IRootState } from "types";
 import { processLogout } from "store/actions/userActions";
 import { normalizeImageSrc, USER_ROLE } from "utils";
+import { handleLogoutApi } from "services/userService";
 import "./SidebarDrawer.scss";
 
 interface ISidebarDrawerProps {
@@ -42,11 +43,20 @@ const SidebarDrawer: React.FC<ISidebarDrawerProps> = ({
     navigate("/home?patientLogin=1");
   }, [navigate, onClose, onRequestPatientLogin]);
 
-  const handleLogout = useCallback(() => {
-    dispatch(processLogout());
-    onClose();
-    navigate("/home");
-  }, [dispatch, navigate, onClose]);
+  const handleLogout = useCallback(async () => {
+    const refreshToken = userInfo?.refreshToken;
+    try {
+      if (refreshToken) {
+        await handleLogoutApi(refreshToken);
+      }
+    } catch (e) {
+      // Vẫn xóa token local để trình duyệt này thoát đăng nhập ngay.
+    } finally {
+      dispatch(processLogout());
+      onClose();
+      navigate("/home");
+    }
+  }, [dispatch, navigate, onClose, userInfo?.refreshToken]);
 
   const displayName = isPatientLoggedIn
     ? `${userInfo.lastName || ""} ${userInfo.firstName || ""}`.trim()

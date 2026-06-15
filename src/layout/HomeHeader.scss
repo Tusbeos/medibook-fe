@@ -162,6 +162,7 @@
   border: 6px solid rgba(255, 255, 255, 0.56);
   border-radius: 14px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.2);
+  position: relative;
 
   i {
     color: #6b7280;
@@ -176,7 +177,7 @@
     font-size: 14px;
   }
 
-  button {
+  > button {
     height: 44px;
     padding: 0 24px;
     border: 0;
@@ -186,6 +187,111 @@
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
+  }
+}
+
+.hero-search-results {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 4;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  text-align: left;
+}
+
+.search-state {
+  padding: 12px 14px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.search-result-item,
+.search-view-all {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-result-item {
+  min-height: 64px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 44px 92px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border-radius: 8px;
+
+  &:hover {
+    background: #eef5ff;
+  }
+}
+
+.result-thumbnail {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #eef5ff;
+  color: #0047b3;
+  font-size: 18px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.result-type {
+  color: #0047b3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.result-text {
+  min-width: 0;
+
+  strong,
+  small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  small {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 12px;
+  }
+}
+
+.search-view-all {
+  padding: 11px 12px;
+  border-radius: 8px;
+  color: #0047b3;
+  font-weight: 700;
+
+  &:hover {
+    background: #eef5ff;
   }
 }
 
@@ -262,8 +368,27 @@
     flex-direction: column;
     padding: 16px;
 
-    button {
+    > button {
       width: 100%;
     }
+  }
+
+  .hero-search-results {
+    position: static;
+    margin-top: 2px;
+    box-shadow: none;
+  }
+
+  .search-result-item {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 6px 10px;
+  }
+
+  .result-thumbnail {
+    grid-row: span 2;
+  }
+
+  .result-type {
+    align-self: end;
   }
 }

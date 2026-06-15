@@ -23,8 +23,9 @@ const renderApp = () => {
       // Khôi phục token từ Redux persisted state (sau khi refresh trang)
       const state = reduxStore.getState() as any;
       const persistedToken = state?.user?.token;
+      const persistedRefreshToken = state?.user?.userInfo?.refreshToken;
       if (persistedToken) {
-        tokenManager.setToken(persistedToken);
+        tokenManager.setToken(persistedToken, persistedRefreshToken || null);
       }
     };
 

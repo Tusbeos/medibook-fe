@@ -14,7 +14,13 @@ const appReducer = (
 ): IUserState => {
   switch (action.type) {
     case actionTypes.USER_LOGIN_SUCCESS:
-      tokenManager.setToken(action.token || null);
+      {
+        const refreshToken =
+          action.userInfo?.refreshToken ||
+          state.userInfo?.refreshToken ||
+          tokenManager.getRefreshToken();
+        tokenManager.setToken(action.token || null, refreshToken || null);
+      }
       return {
         ...state,
         isLoggedIn: true,

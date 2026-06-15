@@ -32,6 +32,7 @@ import PatientProfile from "features/patient/Profile/PatientProfile";
 import PatientHistory from "features/patient/History/PatientHistory";
 import PackageList from "features/patient/Package/PackageList";
 import DetailPackage from "features/patient/Package/DetailPackage";
+import SearchPage from "features/public/search/SearchPage";
 
 const ScrollToTopOnRouteChange: React.FC<{
   scrollbarsRef: React.RefObject<Scrollbars>;
@@ -104,6 +105,10 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 <Route
                   path={path.HOMEPAGE}
                   element={<HomePage />}
+                />
+                <Route
+                  path={path.SEARCH}
+                  element={<SearchPage />}
                 />
                 <Route
                   path={path.DETAIL_DOCTOR}

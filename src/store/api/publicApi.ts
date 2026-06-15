@@ -14,6 +14,22 @@ type HomeStats = {
   bookingCount: number;
 };
 
+export type SearchResult = {
+  type: "doctor" | "clinic" | "specialty" | "package";
+  id: number;
+  title: string;
+  subtitle?: string;
+  url: string;
+  thumbnail?: string;
+};
+
+export type SearchResponse = {
+  query: string;
+  type: string;
+  total: number;
+  items: SearchResult[];
+};
+
 type AxiosBaseQueryArgs = {
   url: string;
   method?: AxiosRequestConfig["method"];
@@ -62,6 +78,15 @@ export const publicApi = createApi({
   endpoints: (builder) => ({
     getHomeStats: builder.query<ApiResponse<HomeStats>, void>({
       query: () => ({ url: "/api/home/stats" }),
+    }),
+    searchPublic: builder.query<
+      ApiResponse<SearchResponse>,
+      { q: string; type?: string; size?: number }
+    >({
+      query: ({ q, type = "all", size = 10 }) => ({
+        url: "/api/search",
+        params: { q, type, size },
+      }),
     }),
     getSpecialties: builder.query<ApiResponse<any[]>, number | void>({
       query: (limit) => ({
@@ -234,6 +259,8 @@ export const publicApi = createApi({
 
 export const {
   useGetHomeStatsQuery,
+  useSearchPublicQuery,
+  useLazySearchPublicQuery,
   useGetSpecialtiesQuery,
   useGetSpecialtiesByIdsQuery,
   useGetClinicsQuery,

@@ -40,6 +40,8 @@ export interface IUser {
   genderData?: IAllCode;
   clinicId?: number;
   clinicName?: string;
+  token?: string;
+  refreshToken?: string;
 }
 
 // Kiểu dữ liệu Doctor Info

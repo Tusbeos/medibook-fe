@@ -16,9 +16,9 @@ const tokenManager = {
   getRefreshToken: (): string | null => _refreshToken,
 
   /** Cập nhật token và refresh token (gọi khi login thành công) */
-  setToken: (token: string | null, refreshToken: string | null = null): void => {
+  setToken: (token: string | null, refreshToken?: string | null): void => {
     _token = token;
-    if (refreshToken) _refreshToken = refreshToken;
+    if (refreshToken !== undefined) _refreshToken = refreshToken;
   },
 
   /** Xóa token (gọi khi logout) */
