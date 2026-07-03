@@ -26,6 +26,13 @@ const saveBulkScheduleDoctor = (data: any): Promise<any> => {
   return axios.post(`/api/doctors/${doctorId}/schedules`, body);
 };
 
+const deleteScheduleDoctor = (
+  doctorId: number | string,
+  scheduleId: number | string,
+): Promise<any> => {
+  return axios.delete(`/api/doctors/${doctorId}/schedules/${scheduleId}`);
+};
+
 const getScheduleDoctorByDate = (
   doctorId: number | string,
   date: number | string,
@@ -100,6 +107,7 @@ export {
   saveDetailDoctor,
   getDetailInfoDoctor,
   saveBulkScheduleDoctor,
+  deleteScheduleDoctor,
   getScheduleDoctorByDate,
   saveBulkDoctor,
   getAllDoctorService,

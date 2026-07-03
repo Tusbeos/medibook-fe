@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { FormattedMessage } from "react-intl";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import "./ManageSchedule.scss";
 import Select from "react-select";
-import * as actions from "../../../store/actions";
 import { LANGUAGES, USER_ROLE } from "../../../utils";
 import DatePicker from "components/Input/DatePicker";
 import { toast } from "react-toastify";
@@ -11,23 +10,67 @@ import _ from "lodash";
 import moment from "moment";
 import {
   saveBulkScheduleDoctor,
+  deleteScheduleDoctor,
   getScheduleDoctorByDate,
   getDoctorsByClinicId,
 } from "../../../services/doctorService";
 import { handleGetAllDoctors } from "../../../services/doctorService";
 import { IRootState } from "../../../types";
 
+const DEFAULT_MAX_NUMBER = 5;
+const MIN_MAX_NUMBER = 1;
+const MAX_MAX_NUMBER = 20;
+
+const TIME_SLOT_GROUPS = [
+  { key: "morning", label: "Buổi sáng" },
+  { key: "afternoon", label: "Buổi chiều" },
+  { key: "evening", label: "Buổi tối" },
+];
+
+const FIXED_TIME_SLOTS = [
+  { keyMap: "T1", valueVi: "07:30 - 08:00", valueEn: "07:30 AM - 08:00 AM", group: "morning" },
+  { keyMap: "T2", valueVi: "08:00 - 08:30", valueEn: "08:00 AM - 08:30 AM", group: "morning" },
+  { keyMap: "T3", valueVi: "08:30 - 09:00", valueEn: "08:30 AM - 09:00 AM", group: "morning" },
+  { keyMap: "T4", valueVi: "09:00 - 09:30", valueEn: "09:00 AM - 09:30 AM", group: "morning" },
+  { keyMap: "T5", valueVi: "09:30 - 10:00", valueEn: "09:30 AM - 10:00 AM", group: "morning" },
+  { keyMap: "T6", valueVi: "10:00 - 10:30", valueEn: "10:00 AM - 10:30 AM", group: "morning" },
+  { keyMap: "T7", valueVi: "10:30 - 11:00", valueEn: "10:30 AM - 11:00 AM", group: "morning" },
+  { keyMap: "T8", valueVi: "11:00 - 11:30", valueEn: "11:00 AM - 11:30 AM", group: "morning" },
+  { keyMap: "T9", valueVi: "13:00 - 13:30", valueEn: "01:00 PM - 01:30 PM", group: "afternoon" },
+  { keyMap: "T10", valueVi: "13:30 - 14:00", valueEn: "01:30 PM - 02:00 PM", group: "afternoon" },
+  { keyMap: "T11", valueVi: "14:00 - 14:30", valueEn: "02:00 PM - 02:30 PM", group: "afternoon" },
+  { keyMap: "T12", valueVi: "14:30 - 15:00", valueEn: "02:30 PM - 03:00 PM", group: "afternoon" },
+  { keyMap: "T13", valueVi: "15:00 - 15:30", valueEn: "03:00 PM - 03:30 PM", group: "afternoon" },
+  { keyMap: "T14", valueVi: "15:30 - 16:00", valueEn: "03:30 PM - 04:00 PM", group: "afternoon" },
+  { keyMap: "T15", valueVi: "16:00 - 16:30", valueEn: "04:00 PM - 04:30 PM", group: "afternoon" },
+  { keyMap: "T16", valueVi: "16:30 - 17:00", valueEn: "04:30 PM - 05:00 PM", group: "afternoon" },
+  { keyMap: "T17", valueVi: "17:30 - 18:00", valueEn: "05:30 PM - 06:00 PM", group: "evening" },
+  { keyMap: "T18", valueVi: "18:00 - 18:30", valueEn: "06:00 PM - 06:30 PM", group: "evening" },
+  { keyMap: "T19", valueVi: "18:30 - 19:00", valueEn: "06:30 PM - 07:00 PM", group: "evening" },
+  { keyMap: "T20", valueVi: "19:00 - 19:30", valueEn: "07:00 PM - 07:30 PM", group: "evening" },
+];
+
+const getScheduleSnapshot = (slots: any[] = []) => {
+  return JSON.stringify(
+    slots.map((item) => ({
+      id: item.id || null,
+      keyMap: item.keyMap,
+      isSelected: Boolean(item.isSelected),
+      pendingDelete: Boolean(item.pendingDelete),
+      maxNumber:
+        item.isSelected && !item.pendingDelete
+          ? Number(item.maxNumber || DEFAULT_MAX_NUMBER)
+          : null,
+    })),
+  );
+};
+
 const ManageSchedule = () => {
-  const dispatch = useDispatch();
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const allDoctors = useSelector(
     (state: IRootState) => (state as any).admin.allDoctors,
   );
-  const allScheduleTime = useSelector(
-    (state: IRootState) => (state as any).admin.allScheduleTime,
-  );
-
   const [selectedDoctor, setSelectedDoctor] = useState<any>({});
   const [listDoctors, setListDoctors] = useState<any[]>([]);
   // Khởi tạo startDate về nửa đêm để khớp timestamp khi query/lưu lịch
@@ -35,6 +78,8 @@ const ManageSchedule = () => {
     new Date(new Date().setHours(0, 0, 0, 0)),
   );
   const [rangeTime, setRangeTime] = useState<any[]>([]);
+  const [defaultMaxNumber, setDefaultMaxNumber] = useState(DEFAULT_MAX_NUMBER);
+  const scheduleSnapshotRef = useRef(getScheduleSnapshot([]));
   const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
   const isDoctor = roleId === USER_ROLE.DOCTOR;
   const isClinicManager = roleId === USER_ROLE.CLINIC_MANAGER;
@@ -58,6 +103,24 @@ const ManageSchedule = () => {
     },
     [language],
   );
+
+  const buildTimeSlots = useCallback((scheduled: any[] = []) => {
+    const scheduledByKey = new Map(
+      scheduled.map((item: any) => [item.timeType, item]),
+    );
+
+    return FIXED_TIME_SLOTS.map((slot) => {
+      const existing = scheduledByKey.get(slot.keyMap);
+      return {
+        ...slot,
+        id: existing?.id,
+        isSelected: Boolean(existing),
+        pendingDelete: false,
+        maxNumber: existing?.maxNumber || DEFAULT_MAX_NUMBER,
+        currentNumber: existing?.currentNumber || 0,
+      };
+    });
+  }, []);
 
   const initDoctorForRole = useCallback(async () => {
     if (!userInfo) return;
@@ -107,8 +170,6 @@ const ManageSchedule = () => {
   }, [isClinicManager, userClinicId, buildDataInputSelect]);
 
   useEffect(() => {
-    if (!allScheduleTime || allScheduleTime.length === 0) return;
-
     const doctorId = selectedDoctor?.value
       ? selectedDoctor.value
       : isDoctor
@@ -116,9 +177,9 @@ const ManageSchedule = () => {
         : "";
 
     if (!doctorId || !startDate) {
-      setRangeTime(
-        allScheduleTime.map((item: any) => ({ ...item, isSelected: false })),
-      );
+      const emptySlots = buildTimeSlots();
+      scheduleSnapshotRef.current = getScheduleSnapshot(emptySlots);
+      setRangeTime(emptySlots);
       return;
     }
 
@@ -130,32 +191,25 @@ const ManageSchedule = () => {
     getScheduleDoctorByDate(doctorId, dateValue)
       .then((res) => {
         const scheduled = res && res.errCode === 0 ? res.data || [] : [];
-        const scheduledKeys = new Set(
-          scheduled.map((item: any) => item.timeType),
-        );
-        setRangeTime(
-          allScheduleTime.map((item: any) => ({
-            ...item,
-            isSelected: scheduledKeys.has(item.keyMap),
-          })),
-        );
+        const nextSlots = buildTimeSlots(scheduled);
+        scheduleSnapshotRef.current = getScheduleSnapshot(nextSlots);
+        setRangeTime(nextSlots);
       })
       .catch(() => {
-        setRangeTime(
-          allScheduleTime.map((item: any) => ({ ...item, isSelected: false })),
-        );
+        const emptySlots = buildTimeSlots();
+        scheduleSnapshotRef.current = getScheduleSnapshot(emptySlots);
+        setRangeTime(emptySlots);
       });
-  }, [allScheduleTime, selectedDoctor, startDate, userInfo, isDoctor]);
+  }, [selectedDoctor, startDate, userInfo, isDoctor, buildTimeSlots]);
 
-  // Mount: load schedule times and initialize doctor selection by role.
+  // Mount: initialize doctor selection by role.
   useEffect(() => {
     if (isClinicManager) {
       fetchClinicDoctors();
     } else if (isDoctor) {
       initDoctorForRole();
     }
-    dispatch(actions.fetchAllScheduleTime());
-  }, [dispatch, isClinicManager, isDoctor, fetchClinicDoctors, initDoctorForRole]);
+  }, [isClinicManager, isDoctor, fetchClinicDoctors, initDoctorForRole]);
 
   // Khi allDoctors thay đổi → build lại select options
   useEffect(() => {
@@ -196,7 +250,7 @@ const ManageSchedule = () => {
     initDoctorForRole,
   ]);
 
-  // allScheduleTime, selectedDoctor, startDate được xử lý trong effect tổng hợp bên trên
+  // selectedDoctor, startDate được xử lý trong effect tổng hợp bên trên
 
   const handleChangeSelectDoctor = useCallback(
     async (selected: any) => {
@@ -224,14 +278,78 @@ const ManageSchedule = () => {
   const handleClickTime = useCallback((time: any) => {
     setRangeTime((prev) => {
       return prev.map((item) => {
-        // Dùng keyMap để so sánh – AllCode không có trường id
         if (item.keyMap === time.keyMap) {
-          return { ...item, isSelected: !item.isSelected };
+          if (item.isSelected && item.currentNumber > 0) {
+            toast.warning("Khung giờ đã có bệnh nhân đặt lịch, không thể bỏ chọn.");
+            return item;
+          }
+          return {
+            ...item,
+            isSelected: !item.isSelected,
+            pendingDelete: item.isSelected && item.id ? true : false,
+            maxNumber: item.maxNumber || defaultMaxNumber,
+          };
         }
         return item;
       });
     });
+  }, [defaultMaxNumber]);
+
+  const handleChangeDefaultMaxNumber = useCallback((value: string) => {
+    const nextValue = Number(value);
+    if (!Number.isFinite(nextValue)) return;
+    setDefaultMaxNumber(
+      Math.min(MAX_MAX_NUMBER, Math.max(MIN_MAX_NUMBER, nextValue)),
+    );
   }, []);
+
+  const handleApplyDefaultMaxNumber = useCallback(() => {
+    setRangeTime((prev) =>
+      prev.map((item) => ({
+        ...item,
+        maxNumber: item.pendingDelete
+          ? item.maxNumber
+          : Math.max(defaultMaxNumber, item.currentNumber || 0),
+      })),
+    );
+    toast.success("Đã áp dụng số bệnh nhân mặc định cho các khung giờ.");
+  }, [defaultMaxNumber]);
+
+  const handleChangeSlotMaxNumber = useCallback((time: any, value: string) => {
+    const nextValue = Number(value);
+    if (!Number.isFinite(nextValue)) return;
+
+    setRangeTime((prev) =>
+      prev.map((item) => {
+        if (item.keyMap !== time.keyMap) return item;
+        const minValue = Math.max(MIN_MAX_NUMBER, item.currentNumber || 0);
+        return {
+          ...item,
+          maxNumber: Math.min(MAX_MAX_NUMBER, Math.max(minValue, nextValue)),
+        };
+      }),
+    );
+  }, []);
+
+  const handleToggleGroup = useCallback((groupKey: string, selected: boolean) => {
+    setRangeTime((prev) =>
+      prev.map((item) => {
+        if (item.group !== groupKey) return item;
+        if (!selected && item.currentNumber > 0) return item;
+        return {
+          ...item,
+          isSelected: selected,
+          pendingDelete: !selected && item.id ? true : false,
+          maxNumber: item.maxNumber || defaultMaxNumber,
+        };
+      }),
+    );
+  }, [defaultMaxNumber]);
+
+  const hasScheduleChanges = useMemo(
+    () => getScheduleSnapshot(rangeTime) !== scheduleSnapshotRef.current,
+    [rangeTime],
+  );
 
   const handleSaveSchedule = async () => {
     let result: any[] = [];
@@ -284,40 +402,67 @@ const ManageSchedule = () => {
       return;
     }
 
+    if (!hasScheduleChanges) {
+      toast.info("Lịch khám chưa có thay đổi.");
+      return;
+    }
+
     if (rangeTime && rangeTime.length > 0) {
       let selectedTime = rangeTime.filter((item) => item.isSelected === true);
-      if (selectedTime && selectedTime.length > 0) {
-        selectedTime.map((item) => {
-          let object: any = {};
-          object.doctorId = resolvedDoctorId;
-          object.date = formatDate;
-          object.timeType = item.keyMap;
-          result.push(object);
-          return item;
-        });
-      } else {
+      const schedulesToDelete = rangeTime.filter(
+        (item) => item.pendingDelete && item.id,
+      );
+
+      selectedTime.map((item) => {
+        let object: any = {};
+        object.doctorId = resolvedDoctorId;
+        object.date = formatDate;
+        object.timeType = item.keyMap;
+        object.maxNumber = item.maxNumber || DEFAULT_MAX_NUMBER;
+        result.push(object);
+        return item;
+      });
+
+      if (result.length === 0 && schedulesToDelete.length === 0) {
         toast.error("Chưa chọn khung giờ!");
         return;
       }
 
-      let res = await saveBulkScheduleDoctor({
-        arrSchedule: result,
-        doctorId: resolvedDoctorId,
-        formattedDate: formatDate,
-      });
+      try {
+        if (result.length > 0) {
+          await saveBulkScheduleDoctor({
+            arrSchedule: result,
+            doctorId: resolvedDoctorId,
+            formattedDate: formatDate,
+          });
+        }
 
-      console.log("[ManageSchedule] save schedule payload", {
-        doctorId: resolvedDoctorId,
-        formattedDate: formatDate,
-        arrSchedule: result,
-      });
+        if (schedulesToDelete.length > 0) {
+          await Promise.all(
+            schedulesToDelete.map((item) =>
+              deleteScheduleDoctor(resolvedDoctorId, item.id),
+            ),
+          );
+        }
 
-      if (res && res.errCode === 0) {
-        toast.success("Lưu lịch khám thành công!");
-        setRangeTime((prev) =>
-          prev.map((item) => ({ ...item, isSelected: false })),
+        console.log("[ManageSchedule] save schedule payload", {
+          doctorId: resolvedDoctorId,
+          formattedDate: formatDate,
+          arrSchedule: result,
+          deleteScheduleIds: schedulesToDelete.map((item) => item.id),
+        });
+
+        const refreshed = await getScheduleDoctorByDate(
+          resolvedDoctorId,
+          formatDate,
         );
-      } else {
+        const scheduled =
+          refreshed && refreshed.errCode === 0 ? refreshed.data || [] : [];
+        const nextSlots = buildTimeSlots(scheduled);
+        scheduleSnapshotRef.current = getScheduleSnapshot(nextSlots);
+        setRangeTime(nextSlots);
+        toast.success("Lưu lịch khám thành công!");
+      } catch {
         toast.error("Lưu lịch khám thất bại!");
       }
     }
@@ -329,6 +474,15 @@ const ManageSchedule = () => {
     [],
   );
   const canSelectDoctor = isClinicManager;
+  const selectedSlots = rangeTime.filter((item) => item.isSelected);
+  const totalCapacity = selectedSlots.reduce(
+    (sum, item) => sum + Number(item.maxNumber || 0),
+    0,
+  );
+  const totalBooked = selectedSlots.reduce(
+    (sum, item) => sum + Number(item.currentNumber || 0),
+    0,
+  );
   console.log("Check state manage schedule: ", {
     selectedDoctor,
     listDoctors,
@@ -395,6 +549,129 @@ const ManageSchedule = () => {
                   />
                 </div>
                 <div className="col-12 pick-hour-container">
+                  <div className="schedule-toolbar">
+                    <div>
+                      <label>Chọn khung giờ khám cố định</label>
+                      <div className="schedule-summary">
+                        <span>{selectedSlots.length} khung đã chọn</span>
+                        <span>{totalCapacity} lượt tối đa</span>
+                        <span>{totalBooked} lượt đã đặt</span>
+                      </div>
+                    </div>
+                    <div className="default-capacity">
+                      <label>Số bệnh nhân mặc định</label>
+                      <div className="capacity-control">
+                        <input
+                          type="number"
+                          min={MIN_MAX_NUMBER}
+                          max={MAX_MAX_NUMBER}
+                          value={defaultMaxNumber}
+                          onChange={(event) =>
+                            handleChangeDefaultMaxNumber(event.target.value)
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyDefaultMaxNumber}
+                        >
+                          Áp dụng
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="time-groups">
+                    {TIME_SLOT_GROUPS.map((group) => {
+                      const groupSlots = rangeTime.filter(
+                        (item) => item.group === group.key,
+                      );
+
+                      return (
+                        <section className="time-group" key={group.key}>
+                          <div className="time-group-header">
+                            <h4>{group.label}</h4>
+                            <div className="group-actions">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleGroup(group.key, true)}
+                              >
+                                Chọn buổi này
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleGroup(group.key, false)}
+                              >
+                                Bỏ chọn
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="time-content">
+                            {groupSlots.map((item) => {
+                              const label =
+                                language === LANGUAGES.VI
+                                  ? item.valueVi
+                                  : item.valueEn;
+                              const minValue = Math.max(
+                                MIN_MAX_NUMBER,
+                                item.currentNumber || 0,
+                              );
+
+                              return (
+                                <div
+                                  className={
+                                    item.pendingDelete
+                                      ? "time-slot-row pending-delete"
+                                      : item.isSelected
+                                      ? "time-slot-row active"
+                                      : "time-slot-row"
+                                  }
+                                  key={item.keyMap}
+                                >
+                                  <button
+                                    type="button"
+                                    className="slot-toggle"
+                                    onClick={() => handleClickTime(item)}
+                                  >
+                                    <span className="slot-check">
+                                      {item.isSelected && (
+                                        <i className="fas fa-check"></i>
+                                      )}
+                                    </span>
+                                    <span>{label}</span>
+                                  </button>
+
+                                  <div className="slot-capacity">
+                                    <span>
+                                      {item.pendingDelete
+                                        ? "Chờ xóa"
+                                        : `Đã đặt ${item.currentNumber || 0}`}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min={minValue}
+                                      max={MAX_MAX_NUMBER}
+                                      disabled={!item.isSelected}
+                                      value={item.maxNumber || defaultMaxNumber}
+                                      onChange={(event) =>
+                                        handleChangeSlotMaxNumber(
+                                          item,
+                                          event.target.value,
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="col-12 pick-hour-container legacy-time-picker">
                   <label className="mb-3">Chọn khung giờ khám:</label>
                   <div className="time-content">
                     {rangeTime &&
@@ -423,6 +700,7 @@ const ManageSchedule = () => {
                 <div className="col-12 btn-container">
                   <button
                     className="btn btn-primary btn-save-schedule"
+                    disabled={!hasScheduleChanges}
                     onClick={() => handleSaveSchedule()}
                   >
                     <i className="fas fa-save"></i>{" "}
