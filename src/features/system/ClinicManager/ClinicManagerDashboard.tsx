@@ -1,82 +1,85 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { getDoctorsByClinicId } from "../../../services/doctorService";
-import { getClinicManagerPackages } from "../../../services/packageService";
-import { getClinicBookings } from "../../../services/bookingService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerDashboard.scss";
+import {
+  useGetClinicBookingsQuery,
+  useGetClinicManagerPackagesQuery,
+  useGetDoctorsByClinicIdQuery,
+} from "../../../store/api/publicApi";
 
 const getStatusKey = (item: any) =>
   item.statusId || item.status_id || item.statusData?.keyMap || "";
 
+const readList = (response: any) =>
+  response?.errCode === 0 && Array.isArray(response.data) ? response.data : [];
+
 const ClinicManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isClinicManager, selectedClinicId, displayClinicName } =
-    useClinicContext();
-  const [doctors, setDoctors] = useState<any[]>([]);
-  const [packages, setPackages] = useState<any[]>([]);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState("");
+  const { isClinicManager, selectedClinicId } = useClinicContext();
+  const {
+    data: doctorsResponse,
+    isLoading: isDoctorsLoading,
+    isFetching: isDoctorsFetching,
+    isError: isDoctorsError,
+  } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
+    skip: !selectedClinicId,
+  });
+  const {
+    data: packagesResponse,
+    isLoading: isPackagesLoading,
+    isFetching: isPackagesFetching,
+    isError: isPackagesError,
+  } = useGetClinicManagerPackagesQuery(selectedClinicId, {
+    skip: !selectedClinicId,
+  });
+  const {
+    data: bookingsResponse,
+    isLoading: isBookingsLoading,
+    isFetching: isBookingsFetching,
+    isError: isBookingsError,
+  } = useGetClinicBookingsQuery(
+    { clinicId: selectedClinicId },
+    { skip: !selectedClinicId },
+  );
 
-  const fetchData = useCallback(async () => {
-    if (!selectedClinicId) return;
-    setIsLoading(true);
-    try {
-      const [dRes, pRes, bRes] = await Promise.all([
-        getDoctorsByClinicId(selectedClinicId),
-        getClinicManagerPackages(selectedClinicId),
-        getClinicBookings(selectedClinicId),
-      ]);
-      setDoctors(
-        dRes?.errCode === 0 && Array.isArray(dRes.data) ? dRes.data : [],
-      );
-      setPackages(
-        pRes?.errCode === 0 && Array.isArray(pRes.data) ? pRes.data : [],
-      );
-      setBookings(
-        bRes?.errCode === 0 && Array.isArray(bRes.data) ? bRes.data : [],
-      );
-      setLastUpdated(
-        new Intl.DateTimeFormat("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }).format(new Date()),
-      );
-    } catch {
-      toast.error("Không thể tải dữ liệu.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClinicId]);
+  const doctors = useMemo(() => readList(doctorsResponse), [doctorsResponse]);
+  const packages = useMemo(() => readList(packagesResponse), [packagesResponse]);
+  const bookings = useMemo(() => readList(bookingsResponse), [bookingsResponse]);
+  const isLoading =
+    isDoctorsLoading ||
+    isPackagesLoading ||
+    isBookingsLoading ||
+    isDoctorsFetching ||
+    isPackagesFetching ||
+    isBookingsFetching;
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isDoctorsError || isPackagesError || isBookingsError) {
+      toast.error("Không thể tải dữ liệu dashboard.");
+    }
+  }, [isBookingsError, isDoctorsError, isPackagesError]);
 
   const pendingDoctors = useMemo(
-    () => doctors.filter((d) => getStatusKey(d) === "SD1"),
+    () => doctors.filter((doctor) => getStatusKey(doctor) === "SD1"),
     [doctors],
   );
   const pendingPackages = useMemo(
     () =>
-      packages.filter((p) => {
-        const sk = getStatusKey(p);
-        return sk === "SD1" || !sk;
+      packages.filter((pkg) => {
+        const statusKey = getStatusKey(pkg);
+        return statusKey === "SD1" || !statusKey;
       }),
     [packages],
   );
   const activePackages = useMemo(
-    () => packages.filter((p) => getStatusKey(p) === "SD2").length,
+    () => packages.filter((pkg) => getStatusKey(pkg) === "SD2").length,
     [packages],
   );
   const totalPending = pendingDoctors.length + pendingPackages.length;
   const pendingBookings = useMemo(
-    () => bookings.filter((b) => b.statusId === "S2").length,
+    () => bookings.filter((booking) => booking.statusId === "S2").length,
     [bookings],
   );
 
@@ -104,7 +107,6 @@ const ClinicManagerDashboard: React.FC = () => {
 
   return (
     <div className="cm-dashboard">
-      {/* Metrics */}
       <div className="cm-metrics">
         <div
           className="cm-metric-card"
@@ -171,7 +173,6 @@ const ClinicManagerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick actions */}
       <div className="cm-quick-actions">
         <h2>Truy cập nhanh</h2>
         <div className="cm-quick-grid">

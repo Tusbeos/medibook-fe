@@ -9,16 +9,20 @@ import "./ClinicManagerShared.scss";
 import { useGetClinicBookingsQuery } from "../../../store/api/publicApi";
 
 const ClinicManagerBookings: React.FC = () => {
-  const { isClinicManager, selectedClinicId, displayClinicName } =
-    useClinicContext();
+  const { isClinicManager, selectedClinicId } = useClinicContext();
   const {
     data: bookingsResponse,
     isLoading,
+    isFetching,
+    isError,
     refetch: refetchBookings,
   } = useGetClinicBookingsQuery(
     { clinicId: selectedClinicId },
     { skip: !selectedClinicId },
   );
+  const [filter, setFilter] = useState<string>("");
+  const [search, setSearch] = useState("");
+
   const bookings = useMemo(
     () =>
       bookingsResponse?.errCode === 0 && Array.isArray(bookingsResponse.data)
@@ -26,35 +30,12 @@ const ClinicManagerBookings: React.FC = () => {
         : [],
     [bookingsResponse],
   );
-  const setBookings = useCallback((_data: any[]) => {}, []);
-  const setIsLoading = useCallback((_value: boolean) => {}, []);
-  const getClinicBookings = useCallback(
-    async (_clinicId: number | string) =>
-      bookingsResponse || { errCode: -1, data: [] },
-    [bookingsResponse],
-  );
-  const [filter, setFilter] = useState<string>("");
-  const [search, setSearch] = useState("");
-
-  const fetchBookings = useCallback(async () => {
-    if (!selectedClinicId) return;
-    setIsLoading(true);
-    try {
-      const res = await getClinicBookings(selectedClinicId);
-      setBookings(
-        res?.errCode === 0 && Array.isArray(res.data) ? res.data : [],
-      );
-    } catch {
-      setBookings([]);
-      toast.error("Không thể tải danh sách lịch hẹn.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClinicId]);
 
   useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
+    if (isError) {
+      toast.error("Không thể tải danh sách lịch hẹn.");
+    }
+  }, [isError]);
 
   const filteredBookings = useMemo(() => {
     let list = bookings;
@@ -74,25 +55,35 @@ const ClinicManagerBookings: React.FC = () => {
     return list;
   }, [bookings, filter, search]);
 
-  const handleConfirm = async (bookingId: number) => {
-    try {
-      await confirmClinicBooking(bookingId, selectedClinicId);
-      toast.success("Xác nhận lịch hẹn thành công!");
-      refetchBookings();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Xác nhận thất bại.");
-    }
-  };
+  const handleConfirm = useCallback(
+    async (bookingId: number) => {
+      if (!selectedClinicId) return;
 
-  const handleReject = async (bookingId: number) => {
-    try {
-      await rejectClinicBooking(bookingId, selectedClinicId);
-      toast.success("Từ chối lịch hẹn thành công!");
-      refetchBookings();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Từ chối thất bại.");
-    }
-  };
+      try {
+        await confirmClinicBooking(bookingId, selectedClinicId);
+        toast.success("Xác nhận lịch hẹn thành công!");
+        refetchBookings();
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || "Xác nhận thất bại.");
+      }
+    },
+    [refetchBookings, selectedClinicId],
+  );
+
+  const handleReject = useCallback(
+    async (bookingId: number) => {
+      if (!selectedClinicId) return;
+
+      try {
+        await rejectClinicBooking(bookingId, selectedClinicId);
+        toast.success("Từ chối lịch hẹn thành công!");
+        refetchBookings();
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || "Từ chối thất bại.");
+      }
+    },
+    [refetchBookings, selectedClinicId],
+  );
 
   const getStatusClass = (statusId: string) => {
     switch (statusId) {
@@ -169,7 +160,11 @@ const ClinicManagerBookings: React.FC = () => {
           </button>
         </div>
 
-        <button className="cm-refresh-btn" onClick={refetchBookings}>
+        <button
+          className="cm-refresh-btn"
+          onClick={() => refetchBookings()}
+          disabled={isFetching}
+        >
           <i className="fas fa-sync-alt" /> Refresh
         </button>
       </div>
@@ -188,7 +183,7 @@ const ClinicManagerBookings: React.FC = () => {
           <span>Hành động</span>
         </div>
 
-        {isLoading ? (
+        {isLoading || isFetching ? (
           <div className="cm-empty">Đang tải...</div>
         ) : filteredBookings.length === 0 ? (
           <div className="cm-empty">
@@ -229,7 +224,7 @@ const ClinicManagerBookings: React.FC = () => {
                   whiteSpace: "nowrap",
                 }}
               >
-                {booking.reason || "—"}
+                {booking.reason || "-"}
               </span>
               <div className="cm-actions-cell">
                 {booking.statusId === "S2" && (

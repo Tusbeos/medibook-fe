@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { FormattedMessage } from "react-intl";
@@ -28,22 +28,20 @@ const PatientProfile: React.FC = () => {
     skip: !userId,
   });
   const { data: gendersResponse } = useGetAllCodeQuery("GENDER");
-  const profileUser = profileResponse?.errCode === 0 && profileResponse.data
-    ? { ...userInfo, ...profileResponse.data }
-    : userInfo;
-  const genders =
-    gendersResponse?.errCode === 0 && Array.isArray(gendersResponse.data)
-      ? gendersResponse.data
-      : [];
-  const handleGetUserById = useCallback(
-    async (_userId: number | string) => profileResponse || { errCode: -1 },
-    [profileResponse],
+  const profileUser = useMemo(
+    () =>
+      profileResponse?.errCode === 0 && profileResponse.data
+        ? { ...userInfo, ...profileResponse.data }
+        : userInfo,
+    [profileResponse, userInfo],
   );
-  const handleGetAllCode = useCallback(
-    async (_type: string) => gendersResponse || { errCode: -1, data: [] },
+  const genders = useMemo(
+    () =>
+      gendersResponse?.errCode === 0 && Array.isArray(gendersResponse.data)
+        ? gendersResponse.data
+        : [],
     [gendersResponse],
   );
-  const setGenders = useCallback((_data: any[]) => {}, []);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -85,7 +83,7 @@ const PatientProfile: React.FC = () => {
       const userId = userInfo?.id || userInfo?.userId;
       if (!userId) return;
       try {
-        const res = await handleGetUserById(userId);
+        const res = profileResponse;
         if (res && res.errCode === 0 && res.data) {
           const u = res.data;
           setFirstName(u.firstName || "");
@@ -104,22 +102,22 @@ const PatientProfile: React.FC = () => {
     };
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInfo?.id]);
+  }, [userInfo?.id, profileResponse]);
 
   // Lấy danh sách giới tính
   useEffect(() => {
     const fetchGenders = async () => {
       try {
-        const res = await handleGetAllCode("GENDER");
+        const res = gendersResponse;
         if (res && res.errCode === 0) {
-          setGenders(res.data || []);
+          void res.data;
         }
       } catch (e) {
         // ignore
       }
     };
     fetchGenders();
-  }, []);
+  }, [gendersResponse]);
 
   const handleAvatarChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,19 +281,19 @@ const PatientProfile: React.FC = () => {
   }, []);
 
   const handleCancel = useCallback(() => {
-    if (userInfo) {
-      setFirstName(userInfo.firstName || "");
-      setLastName(userInfo.lastName || "");
-      setPhoneNumber(userInfo.phoneNumber || "");
-      setAddress(userInfo.address || "");
-      setGender(userInfo.gender || "");
-      if (userInfo.image) {
-        setPreviewAvatar(normalizeImageSrc(userInfo.image));
+    if (profileUser) {
+      setFirstName(profileUser.firstName || "");
+      setLastName(profileUser.lastName || "");
+      setPhoneNumber(profileUser.phoneNumber || "");
+      setAddress(profileUser.address || "");
+      setGender(profileUser.gender || "");
+      if (profileUser.image) {
+        setPreviewAvatar(normalizeImageSrc(profileUser.image));
       }
       setAvatar("");
     }
     setIsEditing(false);
-  }, [userInfo]);
+  }, [profileUser]);
 
   return (
     <>

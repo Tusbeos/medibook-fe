@@ -1,5 +1,4 @@
 import React from "react";
-import { useSelector } from 'react-redux';
 import { IntlProvider } from "react-intl";
 
 import '@formatjs/intl-pluralrules/polyfill';
@@ -11,21 +10,19 @@ import '@formatjs/intl-relativetimeformat/locale-data/en';
 import '@formatjs/intl-relativetimeformat/locale-data/vi';
 
 import { LanguageUtils } from '../utils'
-import { IRootState } from '../types';
 
 const messages = LanguageUtils.getFlattenedMessages();
+const DEFAULT_LANGUAGE = "vi";
 
 interface IIntlProviderWrapperProps {
   children: React.ReactNode;
 }
 
 const IntlProviderWrapper = ({ children }: IIntlProviderWrapperProps) => {
-  const language = useSelector((state: IRootState) => state.app.language);
-
   return (
     <IntlProvider
-      locale={language}
-      messages={messages[language]}
+      locale={DEFAULT_LANGUAGE}
+      messages={messages[DEFAULT_LANGUAGE]}
       defaultLocale="vi">
       {children}
     </IntlProvider>

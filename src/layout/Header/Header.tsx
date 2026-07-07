@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 
 import * as actions from "store/actions";
 import Navigator from 'components/Navigator';
 import { adminMenu, clinicManagerMenu, doctorMenu } from "./menuApp";
-import { LANGUAGES, USER_ROLE } from "utils";
-import { changeLanguageApp } from "store/actions/appActions";
+import { USER_ROLE } from "utils";
 import "./Header.scss";
 import { FormattedMessage } from "react-intl";
 import _ from "lodash";
@@ -21,24 +20,23 @@ const Header: React.FC = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
-  const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const token = useSelector((state: IRootState) => state.user.token);
   const userId = userInfo?.id || userInfo?.userId;
   const { data: profileResponse } = useGetUserByIdQuery(userId || "", {
     skip: !isLoggedIn || !userId,
   });
-  const handleGetUserById = useCallback(
-    async (_userId: number | string) => profileResponse || { errCode: -1 },
-    [profileResponse],
+  const profileUser = useMemo(
+    () =>
+      profileResponse?.errCode === 0 && profileResponse.data
+        ? { ...userInfo, ...profileResponse.data }
+        : userInfo,
+    [profileResponse, userInfo],
   );
 
   const [menuApp, setMenuApp] = useState<IMenuGroup[]>([]);
   const [pageTitle, setPageTitle] = useState("");
   const [avatarLoadError, setAvatarLoadError] = useState(false);
-  const [fetchedProfileUserId, setFetchedProfileUserId] = useState<
-    number | string | null
-  >(null);
 
   useEffect(() => {
     let menu: IMenuGroup[] = [];
@@ -77,17 +75,27 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const userId = userInfo?.id || userInfo?.userId;
-    if (!isLoggedIn || !userId || !profileResponse || fetchedProfileUserId === userId) return;
+    if (!isLoggedIn || !userId || !profileResponse) return;
 
     const fetchProfile = async () => {
       try {
-        const res = await handleGetUserById(userId);
+        const res = profileResponse;
         if (res?.data && res.errCode === 0) {
+          const hasProfileChange =
+            userInfo.firstName !== profileUser?.firstName ||
+            userInfo.lastName !== profileUser?.lastName ||
+            userInfo.email !== profileUser?.email ||
+            userInfo.phoneNumber !== profileUser?.phoneNumber ||
+            userInfo.address !== profileUser?.address ||
+            userInfo.gender !== profileUser?.gender ||
+            userInfo.image !== profileUser?.image;
+
+          if (!hasProfileChange) return;
+
           dispatch(
             userLoginSuccess(
               {
-                ...userInfo,
-                ...res.data,
+                ...profileUser,
                 token: (userInfo as any)?.token,
                 refreshToken: (userInfo as any)?.refreshToken,
               },
@@ -98,16 +106,12 @@ const Header: React.FC = () => {
       } catch (e) {
         // Header vẫn render fallback avatar nếu không lấy được profile.
       } finally {
-        setFetchedProfileUserId(userId);
+        void userId;
       }
     };
 
     fetchProfile();
-  }, [dispatch, fetchedProfileUserId, handleGetUserById, isLoggedIn, profileResponse, token, userInfo]);
-
-  const handleChangeLanguage = useCallback((lang: string) => {
-    dispatch(changeLanguageApp(lang));
-  }, [dispatch]);
+  }, [dispatch, isLoggedIn, profileResponse, profileUser, token, userInfo]);
 
   const processLogout = useCallback(async () => {
     const refreshToken = (userInfo as any)?.refreshToken;
@@ -185,18 +189,6 @@ const Header: React.FC = () => {
         </div>
 
         <div className="languages">
-          <span
-            className={language === LANGUAGES.VI ? "language-vi active" : "language-vi"}
-            onClick={() => handleChangeLanguage(LANGUAGES.VI)}
-          >
-            VN
-          </span>
-          <span
-            className={language === LANGUAGES.EN ? "language-en active" : "language-en"}
-            onClick={() => handleChangeLanguage(LANGUAGES.EN)}
-          >
-            EN
-          </span>
           <div
             className="btn btn-logout"
             onClick={processLogout}

@@ -1,44 +1,42 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import {
-  getClinicManagerPackages,
-  approveClinicManagerPackage,
-} from "../../../services/packageService";
+import { approveClinicManagerPackage } from "../../../services/packageService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
+import { useGetClinicManagerPackagesQuery } from "../../../store/api/publicApi";
 
 const getStatusKey = (pkg: any) =>
   pkg.statusId || pkg.status_id || pkg.statusData?.keyMap || "";
 
 const formatPrice = (price?: number) =>
-  price ? price.toLocaleString("vi-VN") + " VNĐ" : "—";
+  price ? `${price.toLocaleString("vi-VN")} VNĐ` : "—";
 
 const ClinicManagerPackages: React.FC = () => {
-  const { isClinicManager, selectedClinicId, displayClinicName } =
-    useClinicContext();
-  const [packages, setPackages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isClinicManager, selectedClinicId } = useClinicContext();
+  const {
+    data: packagesResponse,
+    isLoading,
+    isFetching,
+    isError,
+    refetch: refetchPackages,
+  } = useGetClinicManagerPackagesQuery(selectedClinicId, {
+    skip: !selectedClinicId,
+  });
   const [search, setSearch] = useState("");
 
-  const fetchPackages = useCallback(async () => {
-    if (!selectedClinicId) return;
-    setIsLoading(true);
-    try {
-      const res = await getClinicManagerPackages(selectedClinicId);
-      setPackages(
-        res?.errCode === 0 && Array.isArray(res.data) ? res.data : [],
-      );
-    } catch {
-      setPackages([]);
-      toast.error("Không thể tải danh sách gói khám.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClinicId]);
+  const packages = useMemo(
+    () =>
+      packagesResponse?.errCode === 0 && Array.isArray(packagesResponse.data)
+        ? packagesResponse.data
+        : [],
+    [packagesResponse],
+  );
 
   useEffect(() => {
-    fetchPackages();
-  }, [fetchPackages]);
+    if (isError) {
+      toast.error("Không thể tải danh sách gói khám.");
+    }
+  }, [isError]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return packages;
@@ -54,7 +52,7 @@ const ClinicManagerPackages: React.FC = () => {
     try {
       await approveClinicManagerPackage(pkgId);
       toast.success("Duyệt gói khám thành công!");
-      fetchPackages();
+      refetchPackages();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Duyệt thất bại.");
     }
@@ -82,7 +80,11 @@ const ClinicManagerPackages: React.FC = () => {
             placeholder="Tìm theo tên gói khám..."
           />
         </div>
-        <button className="cm-refresh-btn" onClick={fetchPackages}>
+        <button
+          className="cm-refresh-btn"
+          onClick={() => refetchPackages()}
+          disabled={isFetching}
+        >
           <i className="fas fa-sync-alt" /> Refresh
         </button>
       </div>
@@ -99,7 +101,7 @@ const ClinicManagerPackages: React.FC = () => {
           <span>Hành động</span>
         </div>
 
-        {isLoading ? (
+        {isLoading || isFetching ? (
           <div className="cm-empty">Đang tải...</div>
         ) : filtered.length === 0 ? (
           <div className="cm-empty">
@@ -108,8 +110,8 @@ const ClinicManagerPackages: React.FC = () => {
           </div>
         ) : (
           filtered.map((pkg) => {
-            const sk = getStatusKey(pkg);
-            const isPending = sk === "SD1" || !sk;
+            const statusKey = getStatusKey(pkg);
+            const isPending = statusKey === "SD1" || !statusKey;
 
             return (
               <div

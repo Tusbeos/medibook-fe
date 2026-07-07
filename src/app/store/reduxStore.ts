@@ -5,8 +5,8 @@ import { createStateSyncMiddleware } from 'redux-state-sync';
 import { persistStore } from 'redux-persist';
 
 import rootReducer from "store/reducers/rootReducer";
-import actionTypes from "store/actions/actionTypes";
 import { publicApi } from "store/api/publicApi";
+import { processLogout } from "store/slices/userSlice";
 
 const environment = import.meta.env.MODE || "development";
 let isDevelopment = environment === "development";
@@ -14,7 +14,7 @@ let isDevelopment = environment === "development";
 isDevelopment = false;
 
 const reduxStateSyncConfig = {
-  whitelist: [actionTypes.APP_START_UP_COMPLETE, actionTypes.CHANGE_LANGUAGE],
+  whitelist: [processLogout.type],
 };
 
 const middleware: any[] = [createStateSyncMiddleware(reduxStateSyncConfig)];

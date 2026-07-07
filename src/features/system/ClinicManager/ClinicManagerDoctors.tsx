@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getDoctorsByClinicId,
   approveClinicManagerDoctor,
   updateClinicManagerDoctorStatus,
 } from "../../../services/doctorService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
+import { useGetDoctorsByClinicIdQuery } from "../../../store/api/publicApi";
 
 interface IDoctorItem {
   id?: number;
@@ -26,19 +26,22 @@ const STATUS_OPTIONS = [
   { key: "SD3", label: "Ngưng hoạt động", className: "inactive" },
 ];
 
-const getStatusKey = (d: IDoctorItem) =>
-  d.statusId || d.status_id || d.statusData?.keyMap || "";
-const getName = (d: IDoctorItem) =>
-  `${d.firstName || ""} ${d.lastName || ""}`.trim() || "N/A";
-const getInitials = (d: IDoctorItem) => {
-  const f = (d.firstName || "").charAt(0);
-  const l = (d.lastName || "").charAt(0);
-  return (f + l).toUpperCase() || "?";
+const getStatusKey = (doctor: IDoctorItem) =>
+  doctor.statusId || doctor.status_id || doctor.statusData?.keyMap || "";
+
+const getName = (doctor: IDoctorItem) =>
+  `${doctor.firstName || ""} ${doctor.lastName || ""}`.trim() || "N/A";
+
+const getInitials = (doctor: IDoctorItem) => {
+  const first = (doctor.firstName || "").charAt(0);
+  const last = (doctor.lastName || "").charAt(0);
+  return (first + last).toUpperCase() || "?";
 };
 
-const getStatusLabel = (d: IDoctorItem) => {
-  const key = getStatusKey(d);
-  if (d.statusData?.valueVi) return d.statusData.valueVi;
+const getStatusLabel = (doctor: IDoctorItem) => {
+  const key = getStatusKey(doctor);
+  if (doctor.statusData?.valueVi) return doctor.statusData.valueVi;
+
   switch (key) {
     case "SD1":
       return "Chờ duyệt";
@@ -74,44 +77,46 @@ const getStatusClass = (key: string) => {
 
 const ClinicManagerDoctors: React.FC = () => {
   const navigate = useNavigate();
-  const { isClinicManager, selectedClinicId, displayClinicName } =
-    useClinicContext();
-  const [doctors, setDoctors] = useState<IDoctorItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isClinicManager, selectedClinicId } = useClinicContext();
+  const {
+    data: doctorsResponse,
+    isLoading,
+    isFetching,
+    isError,
+    refetch: refetchDoctors,
+  } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
+    skip: !selectedClinicId,
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [openDropdown, setOpenDropdown] = useState<number | string>("");
 
-  const fetchDoctors = useCallback(async () => {
-    if (!selectedClinicId) return;
-    setIsLoading(true);
-    try {
-      const res = await getDoctorsByClinicId(selectedClinicId);
-      setDoctors(res?.errCode === 0 && Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setDoctors([]);
-      toast.error("Không thể tải danh sách bác sĩ.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClinicId]);
+  const doctors = useMemo<IDoctorItem[]>(
+    () =>
+      doctorsResponse?.errCode === 0 && Array.isArray(doctorsResponse.data)
+        ? doctorsResponse.data
+        : [],
+    [doctorsResponse],
+  );
 
   useEffect(() => {
-    fetchDoctors();
-  }, [fetchDoctors]);
+    if (isError) {
+      toast.error("Không thể tải danh sách bác sĩ.");
+    }
+  }, [isError]);
 
   const filtered = useMemo(() => {
     let list = doctors;
     if (statusFilter) {
-      list = list.filter((d) => getStatusKey(d) === statusFilter);
+      list = list.filter((doctor) => getStatusKey(doctor) === statusFilter);
     }
     if (search.trim()) {
-      const kw = search.trim().toLowerCase();
+      const keyword = search.trim().toLowerCase();
       list = list.filter(
-        (d) =>
-          getName(d).toLowerCase().includes(kw) ||
-          (d.email || "").toLowerCase().includes(kw) ||
-          (d.specialtyName || "").toLowerCase().includes(kw),
+        (doctor) =>
+          getName(doctor).toLowerCase().includes(keyword) ||
+          (doctor.email || "").toLowerCase().includes(keyword) ||
+          (doctor.specialtyName || "").toLowerCase().includes(keyword),
       );
     }
     return list;
@@ -120,8 +125,8 @@ const ClinicManagerDoctors: React.FC = () => {
   const counts = useMemo(
     () => ({
       all: doctors.length,
-      SD1: doctors.filter((d) => getStatusKey(d) === "SD1").length,
-      SD2: doctors.filter((d) => getStatusKey(d) === "SD2").length,
+      SD1: doctors.filter((doctor) => getStatusKey(doctor) === "SD1").length,
+      SD2: doctors.filter((doctor) => getStatusKey(doctor) === "SD2").length,
     }),
     [doctors],
   );
@@ -130,7 +135,7 @@ const ClinicManagerDoctors: React.FC = () => {
     try {
       await approveClinicManagerDoctor(doctorId);
       toast.success("Duyệt bác sĩ thành công!");
-      fetchDoctors();
+      refetchDoctors();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Duyệt thất bại.");
     }
@@ -141,7 +146,7 @@ const ClinicManagerDoctors: React.FC = () => {
       await updateClinicManagerDoctorStatus(doctorId, statusId);
       toast.success("Cập nhật trạng thái thành công!");
       setOpenDropdown("");
-      fetchDoctors();
+      refetchDoctors();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Cập nhật thất bại.");
     }
@@ -191,7 +196,11 @@ const ClinicManagerDoctors: React.FC = () => {
           </button>
         </div>
 
-        <button className="cm-refresh-btn" onClick={fetchDoctors}>
+        <button
+          className="cm-refresh-btn"
+          onClick={() => refetchDoctors()}
+          disabled={isFetching}
+        >
           <i className="fas fa-sync-alt" /> Refresh
         </button>
       </div>
@@ -207,7 +216,7 @@ const ClinicManagerDoctors: React.FC = () => {
           <span>Hành động</span>
         </div>
 
-        {isLoading ? (
+        {isLoading || isFetching ? (
           <div className="cm-empty">Đang tải...</div>
         ) : filtered.length === 0 ? (
           <div className="cm-empty">
@@ -216,7 +225,7 @@ const ClinicManagerDoctors: React.FC = () => {
           </div>
         ) : (
           filtered.map((doctor) => {
-            const sk = getStatusKey(doctor);
+            const statusKey = getStatusKey(doctor);
             const doctorKey = doctor.id || doctor.email || getName(doctor);
 
             return (
@@ -233,12 +242,12 @@ const ClinicManagerDoctors: React.FC = () => {
                   </div>
                 </div>
                 <span>{doctor.specialtyName || "Chưa phân chuyên khoa"}</span>
-                <span className={`cm-status ${getStatusClass(sk)}`}>
+                <span className={`cm-status ${getStatusClass(statusKey)}`}>
                   <span className="status-dot" />
                   {getStatusLabel(doctor)}
                 </span>
                 <div className="cm-actions-cell">
-                  {sk === "SD1" ? (
+                  {statusKey === "SD1" ? (
                     <>
                       <button
                         className="cm-action-btn approve"
@@ -260,7 +269,7 @@ const ClinicManagerDoctors: React.FC = () => {
                   ) : (
                     <div style={{ position: "relative" }}>
                       <button
-                        className={`cm-action-btn review`}
+                        className="cm-action-btn review"
                         onClick={() =>
                           setOpenDropdown(
                             openDropdown === doctorKey ? "" : doctorKey,
@@ -288,10 +297,10 @@ const ClinicManagerDoctors: React.FC = () => {
                             minWidth: 140,
                           }}
                         >
-                          {STATUS_OPTIONS.map((opt) => (
+                          {STATUS_OPTIONS.map((option) => (
                             <button
-                              key={opt.key}
-                              className={`cm-action-btn ${opt.className}`}
+                              key={option.key}
+                              className={`cm-action-btn ${option.className}`}
                               style={{
                                 display: "block",
                                 width: "100%",
@@ -300,10 +309,10 @@ const ClinicManagerDoctors: React.FC = () => {
                               }}
                               onClick={() =>
                                 doctor.id &&
-                                handleChangeStatus(doctor.id, opt.key)
+                                handleChangeStatus(doctor.id, option.key)
                               }
                             >
-                              {opt.label}
+                              {option.label}
                             </button>
                           ))}
                         </div>
