@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./VerifyEmail.scss";
-import { handleVerifyEmail } from "../../services/bookingService";
+import { useVerifyBookingMutation } from "../../store/api/publicApi";
 
 const VerifyEmail = () => {
   const location = useLocation();
@@ -10,6 +10,7 @@ const VerifyEmail = () => {
   const [status, setStatus] = useState("LOADING");
   const [message, setMessage] = useState("");
   const [expiredDoctorId, setExpiredDoctorId] = useState<number>(0);
+  const [verifyBooking] = useVerifyBookingMutation();
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -20,10 +21,10 @@ const VerifyEmail = () => {
         let doctorIdRaw = urlParams.get("doctorId");
         let doctorId = doctorIdRaw ? Number(doctorIdRaw) : 0;
         try {
-          let res = await handleVerifyEmail({
+          let res = await verifyBooking({
             token: token,
             doctorId: doctorId,
-          });
+          }).unwrap();
           if (res && res.errCode === 0) {
             setStatusVerify(true);
             setTimeout(() => {
@@ -34,8 +35,9 @@ const VerifyEmail = () => {
             setMessage("Lỗi xác thực. Vui lòng thử lại sau.");
           }
         } catch (err: any) {
-          const serverMsg: string = err?.response?.data?.message || "";
-          if (err?.response?.status === 409 || serverMsg.includes("hết hạn")) {
+          const serverMsg: string =
+            err?.data?.message || err?.data?.errMessage || "";
+          if (err?.status === 409 || serverMsg.includes("hết hạn")) {
             setExpiredDoctorId(doctorId);
             setStatus("EXPIRED");
           } else {

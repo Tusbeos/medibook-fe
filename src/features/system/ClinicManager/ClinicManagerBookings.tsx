@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import {
-  confirmClinicBooking,
-  rejectClinicBooking,
-} from "../../../services/bookingService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
-import { useGetClinicBookingsQuery } from "../../../store/api/publicApi";
+import {
+  useGetClinicBookingsQuery,
+  useUpdateClinicBookingStatusMutation,
+} from "../../../store/api/publicApi";
 
 const ClinicManagerBookings: React.FC = () => {
   const { isClinicManager, selectedClinicId } = useClinicContext();
@@ -20,6 +19,7 @@ const ClinicManagerBookings: React.FC = () => {
     { clinicId: selectedClinicId },
     { skip: !selectedClinicId },
   );
+  const [updateBookingStatus] = useUpdateClinicBookingStatusMutation();
   const [filter, setFilter] = useState<string>("");
   const [search, setSearch] = useState("");
 
@@ -60,14 +60,17 @@ const ClinicManagerBookings: React.FC = () => {
       if (!selectedClinicId) return;
 
       try {
-        await confirmClinicBooking(bookingId, selectedClinicId);
+        await updateBookingStatus({
+          bookingId,
+          clinicId: selectedClinicId,
+          decision: "confirm",
+        }).unwrap();
         toast.success("Xác nhận lịch hẹn thành công!");
-        refetchBookings();
       } catch (err: any) {
         toast.error(err?.response?.data?.message || "Xác nhận thất bại.");
       }
     },
-    [refetchBookings, selectedClinicId],
+    [selectedClinicId, updateBookingStatus],
   );
 
   const handleReject = useCallback(
@@ -75,14 +78,17 @@ const ClinicManagerBookings: React.FC = () => {
       if (!selectedClinicId) return;
 
       try {
-        await rejectClinicBooking(bookingId, selectedClinicId);
+        await updateBookingStatus({
+          bookingId,
+          clinicId: selectedClinicId,
+          decision: "reject",
+        }).unwrap();
         toast.success("Từ chối lịch hẹn thành công!");
-        refetchBookings();
       } catch (err: any) {
         toast.error(err?.response?.data?.message || "Từ chối thất bại.");
       }
     },
-    [refetchBookings, selectedClinicId],
+    [selectedClinicId, updateBookingStatus],
   );
 
   const getStatusClass = (statusId: string) => {

@@ -8,14 +8,14 @@ import DatePicker from "components/Input/DatePicker";
 import { toast } from "react-toastify";
 import _ from "lodash";
 import moment from "moment";
-import {
-  saveBulkScheduleDoctor,
-  deleteScheduleDoctor,
-  getScheduleDoctorByDate,
-  getDoctorsByClinicId,
-} from "../../../services/doctorService";
-import { handleGetAllDoctors } from "../../../services/doctorService";
 import { IRootState } from "../../../types";
+import {
+  useGetAllDoctorsQuery,
+  useGetDoctorsByClinicIdQuery,
+  useGetDoctorScheduleQuery,
+  useDeleteDoctorScheduleMutation,
+  useSaveDoctorScheduleMutation,
+} from "../../../store/api/publicApi";
 
 const DEFAULT_MAX_NUMBER = 5;
 const MIN_MAX_NUMBER = 1;
@@ -68,11 +68,7 @@ const getScheduleSnapshot = (slots: any[] = []) => {
 const ManageSchedule = () => {
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
-  const allDoctors = useSelector(
-    (state: IRootState) => (state as any).admin.allDoctors,
-  );
   const [selectedDoctor, setSelectedDoctor] = useState<any>({});
-  const [listDoctors, setListDoctors] = useState<any[]>([]);
   // Khởi tạo startDate về nửa đêm để khớp timestamp khi query/lưu lịch
   const [startDate, setStartDate] = useState<Date>(
     new Date(new Date().setHours(0, 0, 0, 0)),
@@ -83,12 +79,50 @@ const ManageSchedule = () => {
   const roleId = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap;
   const isDoctor = roleId === USER_ROLE.DOCTOR;
   const isClinicManager = roleId === USER_ROLE.CLINIC_MANAGER;
+  const isAdmin = roleId === USER_ROLE.ADMIN;
   const userClinicId =
     (userInfo as any)?.clinicId ||
     (userInfo as any)?.clinic_id ||
     (userInfo as any)?.clinic?.id ||
     (userInfo as any)?.clinicData?.id ||
     "";
+  const userDoctorId = userInfo?.id || userInfo?.userId || "";
+  const shouldLoadAllDoctors =
+    isAdmin || (isDoctor && !userDoctorId && !!userInfo?.email);
+
+  const {
+    data: allDoctorsResponse,
+    isLoading: isLoadingAllDoctors,
+    isFetching: isFetchingAllDoctors,
+    isError: isAllDoctorsError,
+  } = useGetAllDoctorsQuery(undefined, {
+    skip: !shouldLoadAllDoctors,
+  });
+  const {
+    data: clinicDoctorsResponse,
+    isLoading: isLoadingClinicDoctors,
+    isFetching: isFetchingClinicDoctors,
+    isError: isClinicDoctorsError,
+  } = useGetDoctorsByClinicIdQuery(userClinicId, {
+    skip: !isClinicManager || !userClinicId,
+  });
+
+  const allDoctors = useMemo(
+    () =>
+      allDoctorsResponse?.errCode === 0 &&
+      Array.isArray(allDoctorsResponse.data)
+        ? allDoctorsResponse.data
+        : [],
+    [allDoctorsResponse],
+  );
+  const clinicDoctors = useMemo(
+    () =>
+      clinicDoctorsResponse?.errCode === 0 &&
+      Array.isArray(clinicDoctorsResponse.data)
+        ? clinicDoctorsResponse.data
+        : [],
+    [clinicDoctorsResponse],
+  );
 
   const buildDataInputSelect = useCallback(
     (inputData: any[] = []) => {
@@ -122,132 +156,84 @@ const ManageSchedule = () => {
     });
   }, []);
 
-  const initDoctorForRole = useCallback(async () => {
-    if (!userInfo) return;
+  const listDoctors = useMemo(() => {
+    if (isClinicManager) return buildDataInputSelect(clinicDoctors);
+    if (isAdmin) return buildDataInputSelect(allDoctors);
+    return [];
+  }, [
+    allDoctors,
+    buildDataInputSelect,
+    clinicDoctors,
+    isAdmin,
+    isClinicManager,
+  ]);
 
-    if (isDoctor) {
-      let doctorId = userInfo.id || userInfo.userId;
-      if (!doctorId && userInfo.email) {
-        try {
-          const res = await handleGetAllDoctors();
-          if (res && res.errCode === 0 && Array.isArray(res.data)) {
-            const matched = res.data.find(
-              (item: any) => item && item.email === userInfo.email,
-            );
-            doctorId = matched?.id || "";
-          }
-        } catch (e) {}
-      }
+  const matchedDoctorId = useMemo(() => {
+    if (!isDoctor || userDoctorId || !userInfo?.email) return "";
+    return (
+      allDoctors.find((item: any) => item?.email === userInfo.email)?.id || ""
+    );
+  }, [allDoctors, isDoctor, userDoctorId, userInfo?.email]);
+
+  useEffect(() => {
+    if (isDoctor && userInfo) {
       const labelVi =
         `${userInfo.lastName ?? ""} ${userInfo.firstName ?? ""}`.trim();
       const labelEn =
         `${userInfo.firstName ?? ""} ${userInfo.lastName ?? ""}`.trim();
       setSelectedDoctor({
-        value: doctorId,
+        value: userDoctorId || matchedDoctorId,
         label: language === LANGUAGES.VI ? labelVi : labelEn,
       });
-      setListDoctors([]);
     }
-  }, [userInfo, language, isDoctor]);
+  }, [isDoctor, language, matchedDoctorId, userDoctorId, userInfo]);
 
-  const fetchClinicDoctors = useCallback(async () => {
-    if (!isClinicManager || !userClinicId) return;
-
-    try {
-      const res = await getDoctorsByClinicId(userClinicId);
-      const doctors =
-        res?.errCode === 0 && Array.isArray(res.data) ? res.data : [];
-      const dataSelect = buildDataInputSelect(doctors);
-      setListDoctors(dataSelect);
+  useEffect(() => {
+    if (isClinicManager) {
       setSelectedDoctor((current: any) =>
-        current?.value ? current : dataSelect[0] || {},
+        current?.value ? current : listDoctors[0] || {},
       );
-    } catch {
-      setListDoctors([]);
-      setSelectedDoctor({});
-      toast.error("Không thể tải danh sách bác sĩ của phòng khám.");
     }
-  }, [isClinicManager, userClinicId, buildDataInputSelect]);
+  }, [isClinicManager, listDoctors]);
+
+  const activeDoctorId =
+    selectedDoctor?.value || (isDoctor ? userDoctorId || matchedDoctorId : "");
+  const selectedDateValue = useMemo(
+    () =>
+      startDate
+        ? new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime()
+        : 0,
+    [startDate],
+  );
+  const shouldFetchSchedule = !!activeDoctorId && !!selectedDateValue;
+  const {
+    currentData: scheduleResponse,
+    isLoading: isLoadingSchedule,
+    isFetching: isFetchingSchedule,
+    isError: isScheduleError,
+    refetch: refetchSchedule,
+  } = useGetDoctorScheduleQuery(
+    { doctorId: activeDoctorId || "", date: selectedDateValue },
+    { skip: !shouldFetchSchedule },
+  );
+  const [saveDoctorSchedule] = useSaveDoctorScheduleMutation();
+  const [deleteDoctorSchedule] = useDeleteDoctorScheduleMutation();
 
   useEffect(() => {
-    const doctorId = selectedDoctor?.value
-      ? selectedDoctor.value
-      : isDoctor
-        ? userInfo?.id || userInfo?.userId
-        : "";
-
-    if (!doctorId || !startDate) {
-      const emptySlots = buildTimeSlots();
-      scheduleSnapshotRef.current = getScheduleSnapshot(emptySlots);
-      setRangeTime(emptySlots);
-      return;
-    }
-
-    // Chuẩn hóa về nửa đêm để khớp với timestamp phía patient (DoctorSchedules)
-    const dateValue = new Date(
-      new Date(startDate).setHours(0, 0, 0, 0),
-    ).getTime();
-
-    getScheduleDoctorByDate(doctorId, dateValue)
-      .then((res) => {
-        const scheduled = res && res.errCode === 0 ? res.data || [] : [];
-        const nextSlots = buildTimeSlots(scheduled);
-        scheduleSnapshotRef.current = getScheduleSnapshot(nextSlots);
-        setRangeTime(nextSlots);
-      })
-      .catch(() => {
-        const emptySlots = buildTimeSlots();
-        scheduleSnapshotRef.current = getScheduleSnapshot(emptySlots);
-        setRangeTime(emptySlots);
-      });
-  }, [selectedDoctor, startDate, userInfo, isDoctor, buildTimeSlots]);
-
-  // Mount: initialize doctor selection by role.
-  useEffect(() => {
-    if (isClinicManager) {
-      fetchClinicDoctors();
-    } else if (isDoctor) {
-      initDoctorForRole();
-    }
-  }, [isClinicManager, isDoctor, fetchClinicDoctors, initDoctorForRole]);
-
-  // Khi allDoctors thay đổi → build lại select options
-  useEffect(() => {
-    if (roleId === USER_ROLE.ADMIN && allDoctors) {
-      let dataSelect = buildDataInputSelect(allDoctors);
-      setListDoctors(dataSelect);
-    }
-  }, [allDoctors, buildDataInputSelect, roleId]);
-
-  // Khi userInfo thay đổi → init lại doctor cho role
-  useEffect(() => {
-    if (isDoctor) {
-      initDoctorForRole();
-    }
-  }, [isDoctor, initDoctorForRole]);
-
-  // Khi language thay đổi → rebuild select options & re-init
-  useEffect(() => {
-    if (isClinicManager) {
-      fetchClinicDoctors();
-      return;
-    }
-    if (roleId === USER_ROLE.ADMIN && allDoctors) {
-      let dataSelect = buildDataInputSelect(allDoctors);
-      setListDoctors(dataSelect);
-    }
-    if (isDoctor) {
-      initDoctorForRole();
-    }
+    const scheduled =
+      scheduleResponse?.errCode === 0 && Array.isArray(scheduleResponse.data)
+        ? scheduleResponse.data
+        : [];
+    const nextSlots = buildTimeSlots(scheduled);
+    scheduleSnapshotRef.current = getScheduleSnapshot(nextSlots);
+    setRangeTime(nextSlots);
   }, [
-    language,
-    allDoctors,
-    buildDataInputSelect,
-    roleId,
-    isClinicManager,
-    isDoctor,
-    fetchClinicDoctors,
-    initDoctorForRole,
+    activeDoctorId,
+    buildTimeSlots,
+    isScheduleError,
+    scheduleResponse,
+    selectedDateValue,
+    shouldFetchSchedule,
   ]);
 
   // selectedDoctor, startDate được xử lý trong effect tổng hợp bên trên
@@ -430,17 +416,21 @@ const ManageSchedule = () => {
 
       try {
         if (result.length > 0) {
-          await saveBulkScheduleDoctor({
+          await saveDoctorSchedule({
             arrSchedule: result,
             doctorId: resolvedDoctorId,
             formattedDate: formatDate,
-          });
+          }).unwrap();
         }
 
         if (schedulesToDelete.length > 0) {
           await Promise.all(
             schedulesToDelete.map((item) =>
-              deleteScheduleDoctor(resolvedDoctorId, item.id),
+              deleteDoctorSchedule({
+                doctorId: resolvedDoctorId,
+                scheduleId: item.id,
+                date: formatDate,
+              }).unwrap(),
             ),
           );
         }
@@ -452,10 +442,7 @@ const ManageSchedule = () => {
           deleteScheduleIds: schedulesToDelete.map((item) => item.id),
         });
 
-        const refreshed = await getScheduleDoctorByDate(
-          resolvedDoctorId,
-          formatDate,
-        );
+        const refreshed = await refetchSchedule().unwrap();
         const scheduled =
           refreshed && refreshed.errCode === 0 ? refreshed.data || [] : [];
         const nextSlots = buildTimeSlots(scheduled);
@@ -473,6 +460,13 @@ const ManageSchedule = () => {
     () => new Date(new Date().setHours(0, 0, 0, 0)),
     [],
   );
+  const isLoadingDoctorList = isClinicManager
+    ? isLoadingClinicDoctors || isFetchingClinicDoctors
+    : shouldLoadAllDoctors && (isLoadingAllDoctors || isFetchingAllDoctors);
+  const isDoctorListError = isClinicManager
+    ? isClinicDoctorsError
+    : shouldLoadAllDoctors && isAllDoctorsError;
+  const isSchedulePending = isLoadingSchedule || isFetchingSchedule;
   const canSelectDoctor = isClinicManager;
   const selectedSlots = rangeTime.filter((item) => item.isSelected);
   const totalCapacity = selectedSlots.reduce(
@@ -516,6 +510,7 @@ const ManageSchedule = () => {
                       value={selectedDoctor}
                       onChange={handleChangeSelectDoctor}
                       options={listDoctors}
+                      isLoading={isLoadingDoctorList}
                       menuPortalTarget={document.body}
                       styles={{
                         menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -533,6 +528,12 @@ const ManageSchedule = () => {
                       disabled
                       readOnly
                     />
+                  </div>
+                )}
+
+                {isDoctorListError && (
+                  <div className="col-12 alert alert-danger">
+                    Không thể tải danh sách bác sĩ.
                   </div>
                 )}
 
@@ -579,6 +580,15 @@ const ManageSchedule = () => {
                       </div>
                     </div>
                   </div>
+
+                  {isSchedulePending && (
+                    <div className="alert alert-info">Đang tải lịch khám...</div>
+                  )}
+                  {isScheduleError && (
+                    <div className="alert alert-danger">
+                      Không thể tải lịch khám.
+                    </div>
+                  )}
 
                   <div className="time-groups">
                     {TIME_SLOT_GROUPS.map((group) => {

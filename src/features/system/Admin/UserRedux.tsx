@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { CRUD_ACTIONS, USER_ROLE } from "../../../utils";
 import { generateMedibookEmail } from "../../../utils/CommonUtils";
-import { handleGenerateEmail } from "../../../services/userService";
-import * as actions from "../../../store/actions";
-import { handleGetAllClinics } from "../../../services/clinicService";
+import { toast } from "react-toastify";
+import {
+  useCreateUserMutation,
+  useDeleteUserMutation,
+  useGetClinicsQuery,
+  useGetUsersQuery,
+  useLazyGenerateUserEmailQuery,
+  useUpdateUserMutation,
+} from "../../../store/api/publicApi";
 import {
   Panel,
   PanelHeading,
@@ -15,19 +20,43 @@ import {
   FormField,
 } from "components/System/SystemShared";
 import "./UserRedux.scss";
-import { IRootState } from "../../../types";
 
 const UserRedux: React.FC = () => {
-  const dispatch = useDispatch();
-  const listUsers = useSelector(
-    (state: IRootState) => (state.admin as any).users,
+  const {
+    data: usersResponse,
+    isLoading: isLoadingUsers,
+    isFetching: isFetchingUsers,
+    isError: isUsersError,
+  } = useGetUsersQuery();
+  const {
+    data: clinicsResponse,
+    isLoading: isLoadingClinics,
+    isError: isClinicsError,
+  } = useGetClinicsQuery();
+  const [generateUserEmail] = useLazyGenerateUserEmailQuery();
+  const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
+  const [updateUser, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
+  const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
+
+  const listUsers = useMemo(
+    () =>
+      usersResponse?.errCode === 0 && Array.isArray(usersResponse.data)
+        ? usersResponse.data
+        : [],
+    [usersResponse],
+  );
+  const clinicArr = useMemo(
+    () =>
+      clinicsResponse?.errCode === 0 && Array.isArray(clinicsResponse.data)
+        ? clinicsResponse.data
+        : [],
+    [clinicsResponse],
   );
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [clinicId, setClinicId] = useState<number | string>("");
-  const [clinicArr, setClinicArr] = useState<any[]>([]);
   const [currentAction, setCurrentAction] = useState(CRUD_ACTIONS.CREATE);
   const [userEditId, setUserEditId] = useState<number | string>("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +70,10 @@ const UserRedux: React.FC = () => {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await handleGenerateEmail(firstName, undefined, "R4");
+        const res = await generateUserEmail({
+          firstName,
+          role: "R4",
+        }).unwrap();
         if (res?.errCode === 0 && res.data) {
           setEmail(res.data);
         } else {
@@ -52,36 +84,7 @@ const UserRedux: React.FC = () => {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [firstName, currentAction]);
-
-  useEffect(() => {
-    const fetchClinics = async () => {
-      try {
-        const res = await handleGetAllClinics();
-        setClinicArr(
-          res?.errCode === 0 && Array.isArray(res.data) ? res.data : [],
-        );
-      } catch (error) {
-        setClinicArr([]);
-      }
-    };
-    fetchClinics();
-  }, []);
-
-  useEffect(() => {
-    dispatch(actions.fetchAllUsersStart() as any);
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (listUsers) {
-      setEmail("");
-      setPassword("");
-      setFirstName("");
-      setClinicId("");
-      setCurrentAction(CRUD_ACTIONS.CREATE);
-      setUserEditId("");
-    }
-  }, [listUsers]);
+  }, [currentAction, firstName, generateUserEmail]);
 
   const checkValidateInput = useCallback(() => {
     const fields: Record<string, string> = {
@@ -100,7 +103,16 @@ const UserRedux: React.FC = () => {
     return true;
   }, [email, password, firstName, clinicId]);
 
-  const handleSaveUser = useCallback(() => {
+  const resetForm = useCallback(() => {
+    setEmail("");
+    setPassword("");
+    setFirstName("");
+    setClinicId("");
+    setCurrentAction(CRUD_ACTIONS.CREATE);
+    setUserEditId("");
+  }, []);
+
+  const handleSaveUser = useCallback(async () => {
     if (!checkValidateInput()) return;
     const payload = {
       email,
@@ -110,21 +122,37 @@ const UserRedux: React.FC = () => {
       roleId: USER_ROLE.CLINIC_MANAGER,
       clinicId: Number(clinicId),
     };
-    if (currentAction === CRUD_ACTIONS.CREATE) {
-      dispatch(actions.createNewUser(payload) as any);
-    } else {
-      dispatch(
-        actions.editUserStart({ id: userEditId as number, ...payload }) as any,
-      );
+    try {
+      const res =
+        currentAction === CRUD_ACTIONS.CREATE
+          ? await createUser(payload).unwrap()
+          : await updateUser({
+              id: userEditId as number,
+              ...payload,
+            }).unwrap();
+      if (res?.errCode === 0) {
+        toast.success(
+          currentAction === CRUD_ACTIONS.CREATE
+            ? "Tạo Clinic Manager thành công."
+            : "Cập nhật Clinic Manager thành công.",
+        );
+        resetForm();
+        return;
+      }
+      toast.error(res?.errMessage || "Lưu Clinic Manager thất bại.");
+    } catch {
+      toast.error("Lưu Clinic Manager thất bại.");
     }
   }, [
     checkValidateInput,
     clinicId,
+    createUser,
     currentAction,
-    dispatch,
     email,
     firstName,
     password,
+    resetForm,
+    updateUser,
     userEditId,
   ]);
 
@@ -137,14 +165,24 @@ const UserRedux: React.FC = () => {
     setUserEditId(user.id);
   }, []);
 
-  const handleCancelEdit = useCallback(() => {
-    setEmail("");
-    setPassword("");
-    setFirstName("");
-    setClinicId("");
-    setCurrentAction(CRUD_ACTIONS.CREATE);
-    setUserEditId("");
-  }, []);
+  const handleCancelEdit = resetForm;
+
+  const handleDeleteUser = useCallback(
+    async (userId: number | string) => {
+      try {
+        const res = await deleteUser(userId).unwrap();
+        if (res?.errCode === 0) {
+          toast.success("Xóa Clinic Manager thành công.");
+          if (String(userEditId) === String(userId)) resetForm();
+          return;
+        }
+        toast.error(res?.errMessage || "Xóa Clinic Manager thất bại.");
+      } catch {
+        toast.error("Xóa Clinic Manager thất bại.");
+      }
+    },
+    [deleteUser, resetForm, userEditId],
+  );
 
   const filteredUsers = useMemo(() => {
     const r4Users = (listUsers || []).filter((u: any) => u.roleId === "R4");
@@ -183,6 +221,10 @@ const UserRedux: React.FC = () => {
     ],
     [],
   );
+  const isLoadingData =
+    isLoadingUsers || isFetchingUsers || isLoadingClinics;
+  const isSavingUser = isCreatingUser || isUpdatingUser || isDeletingUser;
+  const hasDataError = isUsersError || isClinicsError;
 
   return (
     <div className="manage-user-container">
@@ -195,6 +237,18 @@ const UserRedux: React.FC = () => {
           }
           icon="fas fa-user-plus"
         />
+
+        {isLoadingData && (
+          <div className="alert alert-info">Đang tải dữ liệu người dùng...</div>
+        )}
+        {hasDataError && (
+          <div className="alert alert-danger">
+            Không thể tải đầy đủ dữ liệu người dùng.
+          </div>
+        )}
+        {isSavingUser && (
+          <div className="alert alert-info">Đang xử lý yêu cầu...</div>
+        )}
 
         <div className="user-form-grid">
           <FormField label="Email">
@@ -269,9 +323,7 @@ const UserRedux: React.FC = () => {
           rowKey={(item: any) => item.id}
           emptyText="Không tìm thấy người dùng nào"
           onEdit={handleEditUser}
-          onDelete={(item: any) =>
-            dispatch(actions.deleteUserStart(item.id) as any)
-          }
+          onDelete={(item: any) => void handleDeleteUser(item.id)}
         />
       </Panel>
     </div>

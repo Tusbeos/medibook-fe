@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { approveClinicManagerPackage } from "../../../services/packageService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
-import { useGetClinicManagerPackagesQuery } from "../../../store/api/publicApi";
+import {
+  useApproveClinicManagerPackageMutation,
+  useGetClinicManagerPackagesQuery,
+} from "../../../store/api/publicApi";
 
 const getStatusKey = (pkg: any) =>
   pkg.statusId || pkg.status_id || pkg.statusData?.keyMap || "";
@@ -22,6 +24,7 @@ const ClinicManagerPackages: React.FC = () => {
   } = useGetClinicManagerPackagesQuery(selectedClinicId, {
     skip: !selectedClinicId,
   });
+  const [approvePackage] = useApproveClinicManagerPackageMutation();
   const [search, setSearch] = useState("");
 
   const packages = useMemo(
@@ -50,9 +53,8 @@ const ClinicManagerPackages: React.FC = () => {
 
   const handleApprove = async (pkgId: number) => {
     try {
-      await approveClinicManagerPackage(pkgId);
+      await approvePackage(pkgId).unwrap();
       toast.success("Duyệt gói khám thành công!");
-      refetchPackages();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Duyệt thất bại.");
     }

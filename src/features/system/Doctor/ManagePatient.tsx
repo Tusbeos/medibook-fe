@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import "./ManagePatient.scss";
 import { FormattedMessage } from "react-intl";
 import DatePicker from "components/Input/DatePicker";
-import {
-  getPatientsByDoctor,
-  confirmPatientBooking,
-} from "../../../services/patientService";
 import { LANGUAGES, USER_ROLE } from "../../../utils";
-import { handleGetAllDoctors } from "../../../services/doctorService";
 import { toast } from "react-toastify";
 import { IRootState } from "../../../types";
+import {
+  useGetAllDoctorsQuery,
+  useGetPatientsByDoctorQuery,
+  useConfirmPatientBookingMutation,
+} from "../../../store/api/publicApi";
 
 const ManagePatient = () => {
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
@@ -19,138 +19,114 @@ const ManagePatient = () => {
 
   const navigate = useNavigate();
 
-  const [patients, setPatients] = useState<any[]>([]);
-  const [doctors, setDoctors] = useState<any[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
 
-  // Dùng ref để tránh stale closure trong fetchPatients
-  const selectedDoctorIdRef = useRef(selectedDoctorId);
-  selectedDoctorIdRef.current = selectedDoctorId;
-  const selectedDateRef = useRef(selectedDate);
-  selectedDateRef.current = selectedDate;
+  const roleKey = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap || "";
+  const isDoctorRole = roleKey === USER_ROLE.DOCTOR;
+  const isAdmin = roleKey === USER_ROLE.ADMIN;
+  const userDoctorId = userInfo?.id || userInfo?.userId || "";
+  const shouldLoadDoctors =
+    isAdmin || (isDoctorRole && !userDoctorId && !!userInfo?.email);
 
-  const fetchDoctors = useCallback(async () => {
-    try {
-      // roleId có thể đến từ AuthResponse trực tiếp hoặc từ roleData.keyMap
-      const roleKey =
-        userInfo?.roleId || (userInfo as any)?.roleData?.keyMap || "";
-      const isDoctorRole = roleKey === USER_ROLE.DOCTOR;
-      if (isDoctorRole) {
-        let doctorId = userInfo.id || userInfo.userId || "";
-        if (!doctorId && userInfo.email) {
-          try {
-            const res = await handleGetAllDoctors();
-            if (res && res.errCode === 0 && Array.isArray(res.data)) {
-              const matched = res.data.find(
-                (item: any) => item && item.email === userInfo.email,
-              );
-              doctorId = matched?.id || "";
-            }
-          } catch (e) {}
-        }
-        setDoctors([]);
-        setSelectedDoctorId(doctorId);
-        return;
-      }
+  const { data: doctorsResponse, isError: isDoctorsError } =
+    useGetAllDoctorsQuery(undefined, {
+      skip: !shouldLoadDoctors,
+    });
 
-      const res = await handleGetAllDoctors();
-      if (res && res.errCode === 0 && Array.isArray(res.data)) {
-        const doctorsList = res.data.map((item: any) => ({
-          id: item.id,
-          firstName: item.firstName,
-          lastName: item.lastName,
-        }));
+  const allDoctors = useMemo(
+    () =>
+      doctorsResponse?.errCode === 0 && Array.isArray(doctorsResponse.data)
+        ? doctorsResponse.data
+        : [],
+    [doctorsResponse],
+  );
 
-        let initDoctorId = selectedDoctorIdRef.current;
-        if (!initDoctorId && userInfo?.id) {
-          initDoctorId = userInfo.id;
-        }
+  const matchedDoctorId = useMemo(() => {
+    if (!isDoctorRole || userDoctorId || !userInfo?.email) return "";
+    const matched = allDoctors.find(
+      (item: any) => item && item.email === userInfo.email,
+    );
+    return matched?.id || "";
+  }, [allDoctors, isDoctorRole, userDoctorId, userInfo?.email]);
 
-        setDoctors(doctorsList);
-        setSelectedDoctorId(initDoctorId);
-      }
-    } catch (e) {}
-  }, [userInfo]);
+  const doctors = useMemo(
+    () =>
+      isAdmin
+        ? allDoctors.map((item: any) => ({
+            id: item.id,
+            firstName: item.firstName,
+            lastName: item.lastName,
+          }))
+        : [],
+    [allDoctors, isAdmin],
+  );
 
-  const fetchPatients = useCallback(async () => {
-    const roleKey =
-      userInfo?.roleId || (userInfo as any)?.roleData?.keyMap || "";
-    const isDoctorRole = roleKey === USER_ROLE.DOCTOR;
-    const isAdmin = roleKey === USER_ROLE.ADMIN;
-    const currentSelectedDoctorId = selectedDoctorIdRef.current;
-    const currentSelectedDate = selectedDateRef.current;
-
-    let doctorId = isDoctorRole
-      ? userInfo?.id || userInfo?.userId || ""
-      : isAdmin
-        ? currentSelectedDoctorId
-        : userInfo?.id || userInfo?.userId || currentSelectedDoctorId || "";
-
-    if (isAdmin && !doctorId) {
-      setPatients([]);
-      setIsLoading(false);
-      setErrorMessage("");
+  useEffect(() => {
+    if (isDoctorRole) {
+      const doctorId = userDoctorId || matchedDoctorId || "";
+      setSelectedDoctorId((current) =>
+        current === doctorId ? current : doctorId,
+      );
       return;
     }
 
-    if (isDoctorRole && !doctorId && userInfo?.email) {
-      try {
-        const res = await handleGetAllDoctors();
-        if (res && res.errCode === 0 && Array.isArray(res.data)) {
-          const matched = res.data.find(
-            (item: any) => item && item.email === userInfo.email,
-          );
-          doctorId = matched?.id || "";
-        }
-      } catch (e) {}
+    if (isAdmin) {
+      setSelectedDoctorId((current) => current || userInfo?.id || "");
     }
+  }, [isAdmin, isDoctorRole, matchedDoctorId, userDoctorId, userInfo?.id]);
 
-    if (!doctorId || !currentSelectedDate) {
-      setPatients([]);
-      setIsLoading(false);
-      return;
+  const selectedDateValue = useMemo(
+    () => new Date(selectedDate).setHours(0, 0, 0, 0),
+    [selectedDate],
+  );
+
+  const activeDoctorId = useMemo(() => {
+    if (isDoctorRole) return userDoctorId || matchedDoctorId || "";
+    if (isAdmin) return selectedDoctorId || "";
+    return userDoctorId || selectedDoctorId || "";
+  }, [isAdmin, isDoctorRole, matchedDoctorId, selectedDoctorId, userDoctorId]);
+
+  const shouldFetchPatients = !!activeDoctorId && !!selectedDateValue;
+
+  const {
+    data: patientsResponse,
+    isLoading: isLoadingPatients,
+    isFetching: isFetchingPatients,
+    isError: isPatientsError,
+  } = useGetPatientsByDoctorQuery(
+    { doctorId: activeDoctorId, date: selectedDateValue },
+    { skip: !shouldFetchPatients },
+  );
+  const [confirmPatientBooking] = useConfirmPatientBookingMutation();
+
+  const patients = useMemo(
+    () =>
+      patientsResponse?.errCode === 0 && Array.isArray(patientsResponse.data)
+        ? patientsResponse.data
+        : [],
+    [patientsResponse],
+  );
+
+  const isLoading = isLoadingPatients || isFetchingPatients;
+  const errorMessage = useMemo(() => {
+    if (isPatientsError) {
+      return "Không thể tải danh sách bệnh nhân. Vui lòng thử lại.";
     }
-
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      let dateValue = new Date(currentSelectedDate).setHours(0, 0, 0, 0);
-      const res = await getPatientsByDoctor(doctorId, dateValue);
-
-      if (res && res.errCode === 0 && Array.isArray(res.data)) {
-        setPatients(res.data);
-        setIsLoading(false);
-      } else {
-        setPatients([]);
-        setIsLoading(false);
-        setErrorMessage(res?.message || "Không có dữ liệu");
-      }
-    } catch (e) {
-      setPatients([]);
-      setIsLoading(false);
-      setErrorMessage("Không thể tải danh sách bệnh nhân. Vui lòng thử lại.");
+    if (patientsResponse && patientsResponse.errCode !== 0) {
+      return (
+        (patientsResponse as any)?.message ||
+        patientsResponse.errMessage ||
+        "Không có dữ liệu"
+      );
     }
-  }, [userInfo]);
-
-  // Lấy danh sách bác sĩ và bệnh nhân khi mount
-  useEffect(() => {
-    const init = async () => {
-      await fetchDoctors();
-      await fetchPatients();
-    };
-    init();
-  }, [fetchDoctors, fetchPatients]);
-
-  // Khi selectedDate, userInfo, hoặc selectedDoctorId thay đổi → fetch lại patients
-  useEffect(() => {
-    fetchPatients();
-  }, [selectedDate, selectedDoctorId, userInfo, fetchPatients]);
+    if (isDoctorsError && shouldLoadDoctors) {
+      return "Không thể tải danh sách bác sĩ.";
+    }
+    return "";
+  }, [isDoctorsError, isPatientsError, patientsResponse, shouldLoadDoctors]);
 
   const handleChangeDate = useCallback((date: any) => {
     if (!date || !date[0]) return;
@@ -171,16 +147,21 @@ const ManagePatient = () => {
 
     const doctorId =
       item?.doctorId ||
+      activeDoctorId ||
       userInfo?.id ||
       userInfo?.userId ||
       selectedDoctorId ||
       "";
 
     try {
-      const res = await confirmPatientBooking(bookingId, doctorId, "S3");
+      const res = await confirmPatientBooking({
+        bookingId,
+        doctorId,
+        statusId: "S3",
+        date: selectedDateValue,
+      }).unwrap();
       if (res && res.errCode === 0) {
         toast.success("Xác nhận thành công!");
-        fetchPatients();
       } else {
         toast.error(res?.errMessage || "Xác nhận thất bại!");
       }
@@ -189,8 +170,6 @@ const ManagePatient = () => {
     }
   };
 
-  const roleKey = userInfo?.roleId || (userInfo as any)?.roleData?.keyMap || "";
-  const isAdmin = roleKey === USER_ROLE.ADMIN;
   const doctorDisplayName = userInfo
     ? `${userInfo.lastName || ""} ${userInfo.firstName || ""}`.trim()
     : "";

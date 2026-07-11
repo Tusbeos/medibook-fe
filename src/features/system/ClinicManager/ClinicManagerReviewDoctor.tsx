@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getDoctorsByClinicId,
-  approveClinicManagerDoctorReview,
-  rejectClinicManagerDoctorReview,
-} from "../../../services/doctorService";
+  useGetDoctorsByClinicIdQuery,
+  useReviewClinicManagerDoctorMutation,
+} from "../../../store/api/publicApi";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
 
@@ -14,36 +13,38 @@ const ClinicManagerReviewDoctor: React.FC = () => {
   const { doctorId } = useParams<{ doctorId: string }>();
   const { isClinicManager, selectedClinicId, displayClinicName } =
     useClinicContext();
-  const [doctor, setDoctor] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [reviewNote, setReviewNote] = useState("");
 
-  const fetchDoctor = useCallback(async () => {
-    if (!selectedClinicId || !doctorId) return;
-    setIsLoading(true);
-    try {
-      const res = await getDoctorsByClinicId(selectedClinicId);
-      const list =
-        res?.errCode === 0 && Array.isArray(res.data) ? res.data : [];
-      const found = list.find((d: any) => String(d.id) === String(doctorId));
-      setDoctor(found || null);
-    } catch {
-      setDoctor(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClinicId, doctorId]);
+  const {
+    data: doctorsResponse,
+    isLoading,
+    isFetching,
+    isError,
+  } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
+    skip: !selectedClinicId || !doctorId,
+  });
+  const [reviewDoctor] = useReviewClinicManagerDoctorMutation();
 
-  useEffect(() => {
-    fetchDoctor();
-  }, [fetchDoctor]);
+  const doctors = useMemo(
+    () =>
+      doctorsResponse?.errCode === 0 && Array.isArray(doctorsResponse.data)
+        ? doctorsResponse.data
+        : [],
+    [doctorsResponse],
+  );
+
+  const doctor = useMemo(
+    () => doctors.find((d: any) => String(d.id) === String(doctorId)) || null,
+    [doctorId, doctors],
+  );
 
   const handleApprove = async () => {
     try {
-      await approveClinicManagerDoctorReview(
-        doctorId!,
-        reviewNote || undefined,
-      );
+      await reviewDoctor({
+        doctorId: doctorId!,
+        decision: "approve",
+        reviewNote: reviewNote || undefined,
+      }).unwrap();
       toast.success("Phê duyệt bác sĩ thành công!");
       navigate("/system/clinic-manager/doctors");
     } catch (err: any) {
@@ -57,7 +58,11 @@ const ClinicManagerReviewDoctor: React.FC = () => {
       return;
     }
     try {
-      await rejectClinicManagerDoctorReview(doctorId!, reviewNote);
+      await reviewDoctor({
+        doctorId: doctorId!,
+        decision: "reject",
+        reviewNote,
+      }).unwrap();
       toast.success("Từ chối bác sĩ thành công!");
       navigate("/system/clinic-manager/doctors");
     } catch (err: any) {
@@ -76,10 +81,27 @@ const ClinicManagerReviewDoctor: React.FC = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return (
       <div className="cm-page">
         <div className="cm-empty">Đang tải thông tin bác sĩ...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="cm-page">
+        <div className="cm-empty">
+          <i className="fas fa-exclamation-circle" />
+          Không thể tải thông tin bác sĩ.
+        </div>
+        <button
+          className="cm-action-btn review"
+          onClick={() => navigate("/system/clinic-manager/doctors")}
+        >
+          ← Quay lại
+        </button>
       </div>
     );
   }

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  createHistory,
-  getHistoryByBooking,
-} from "../../../services/historyService";
+  useCreateHistoryMutation,
+  useGetHistoryByBookingQuery,
+} from "../../../store/api/publicApi";
 import "./Prescription.scss";
 
 const Prescription: React.FC = () => {
@@ -17,32 +17,27 @@ const Prescription: React.FC = () => {
   const [examinationDate, setExaminationDate] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const {
+    data: historyResponse,
+    isLoading: isHistoryLoading,
+    isFetching: isHistoryFetching,
+  } = useGetHistoryByBookingQuery(bookingId || "", {
+    skip: !bookingId,
+  });
+  const [createHistory, { isLoading }] = useCreateHistoryMutation();
 
   // Load hồ sơ khám đã lưu trước đó (nếu có) để pre-fill form
   useEffect(() => {
-    if (!bookingId) {
-      setIsFetching(false);
-      return;
-    }
-    const fetchExisting = async () => {
-      try {
-        const res = await getHistoryByBooking(bookingId);
-        if (res && res.errCode === 0 && res.data) {
-          const d = res.data;
-          setDiagnosis(d.diagnosis || "");
-          setPrescription(d.prescription || "");
-          setNotes(d.notes || "");
-          if (d.examinationDate) setExaminationDate(d.examinationDate);
-        }
-      } catch (e) {
-        // Chưa có hồ sơ → dùng giá trị mặc định
-      }
-      setIsFetching(false);
-    };
-    fetchExisting();
-  }, [bookingId]);
+    if (historyResponse?.errCode !== 0 || !historyResponse.data) return;
+
+    const d = historyResponse.data;
+    setDiagnosis(d.diagnosis || "");
+    setPrescription(d.prescription || "");
+    setNotes(d.notes || "");
+    if (d.examinationDate) setExaminationDate(d.examinationDate);
+  }, [historyResponse]);
+
+  const isFetching = isHistoryLoading || isHistoryFetching;
 
   const handleSubmit = async () => {
     const parsedBookingId = Number(bookingId);
@@ -54,7 +49,6 @@ const Prescription: React.FC = () => {
       toast.warn("Vui lòng nhập chẩn đoán!");
       return;
     }
-    setIsLoading(true);
     try {
       const res = await createHistory({
         bookingId: parsedBookingId,
@@ -62,17 +56,16 @@ const Prescription: React.FC = () => {
         prescription,
         notes,
         examinationDate,
-      });
+      }).unwrap();
       if (res && res.errCode === 0) {
         toast.success("Lưu hồ sơ khám thành công!");
         navigate("/doctor/manage-patient");
       } else {
-        toast.error(res?.message || "Lưu thất bại!");
+        toast.error(res?.errMessage || "Lưu thất bại!");
       }
     } catch (e) {
       toast.error("Đã có lỗi xảy ra, vui lòng thử lại!");
     }
-    setIsLoading(false);
   };
 
   return (

@@ -14,6 +14,32 @@ type HomeStats = {
   bookingCount: number;
 };
 
+export type DoctorsPaginatedArgs = {
+  page: number;
+  limit: number;
+  search?: string;
+  specialty?: string;
+  clinic?: string;
+};
+
+type DoctorsPaginatedData = {
+  doctors: any[];
+  totalPages: number;
+  totalElements: number;
+  currentPage: number;
+};
+
+type PublicTagType =
+  | "Specialty"
+  | "Clinic"
+  | "Doctor"
+  | "Package"
+  | "Schedule"
+  | "User"
+  | "AllCode"
+  | "History"
+  | "Booking";
+
 export type SearchResult = {
   type: "doctor" | "clinic" | "specialty" | "package";
   id: number;
@@ -57,6 +83,23 @@ const axiosBaseQuery = async ({
   }
 };
 
+const buildListTags = <T extends PublicTagType>(
+  type: T,
+  result: ApiResponse<any[]> | undefined,
+  listId: string | number = "LIST",
+) => [
+  ...(Array.isArray(result?.data)
+    ? result.data
+        .map((item) => item?.id ?? item?.keyMap)
+        .filter(
+          (id): id is string | number =>
+            id !== undefined && id !== null && id !== "",
+        )
+        .map((id) => ({ type, id }))
+    : []),
+  { type, id: listId },
+];
+
 export const publicApi = createApi({
   reducerPath: "publicApi",
   baseQuery: axiosBaseQuery,
@@ -94,7 +137,7 @@ export const publicApi = createApi({
         url: "/api/specialties",
         params: { limit },
       }),
-      providesTags: ["Specialty"],
+      providesTags: (result) => buildListTags("Specialty", result),
       keepUnusedDataFor: 300,
     }),
     getSpecialtiesByIds: builder.query<
@@ -116,7 +159,7 @@ export const publicApi = createApi({
         url: "/api/clinics",
         params: { limit },
       }),
-      providesTags: ["Clinic"],
+      providesTags: (result) => buildListTags("Clinic", result),
       keepUnusedDataFor: 300,
     }),
     getClinicById: builder.query<ApiResponse<any>, number | string>({
@@ -131,16 +174,50 @@ export const publicApi = createApi({
         url: "/api/doctors/top",
         params: { limit },
       }),
-      providesTags: ["Doctor"],
+      providesTags: (result) => buildListTags("Doctor", result, "TOP"),
       keepUnusedDataFor: 300,
     }),
     getAllDoctors: builder.query<ApiResponse<any[]>, void>({
       query: () => ({ url: "/api/doctors" }),
-      providesTags: ["Doctor"],
+      providesTags: (result) => buildListTags("Doctor", result),
       keepUnusedDataFor: 300,
+    }),
+    getDoctorsPaginated: builder.query<
+      ApiResponse<DoctorsPaginatedData>,
+      DoctorsPaginatedArgs
+    >({
+      query: ({ page, limit, search, specialty, clinic }) => ({
+        url: "/api/doctors/paginated",
+        params: { page, limit, search, specialty, clinic },
+      }),
+      providesTags: (result) => [
+        ...(Array.isArray(result?.data?.doctors)
+          ? result.data.doctors
+              .map((doctor) => doctor?.id)
+              .filter(
+                (id): id is string | number =>
+                  id !== undefined && id !== null && id !== "",
+              )
+              .map((id) => ({ type: "Doctor" as const, id }))
+          : []),
+        { type: "Doctor", id: "LIST" },
+      ],
+      keepUnusedDataFor: 30,
     }),
     getDoctorById: builder.query<ApiResponse<any>, number | string>({
       query: (doctorId) => ({ url: `/api/doctors/${doctorId}` }),
+      providesTags: (_result, _error, doctorId) => [
+        { type: "Doctor", id: doctorId },
+      ],
+      keepUnusedDataFor: 300,
+    }),
+    getDoctorSpecialties: builder.query<
+      ApiResponse<Array<number | string>>,
+      number | string
+    >({
+      query: (doctorId) => ({
+        url: `/api/doctors/${doctorId}/specialties`,
+      }),
       providesTags: (_result, _error, doctorId) => [
         { type: "Doctor", id: doctorId },
       ],
@@ -151,18 +228,18 @@ export const publicApi = createApi({
         query: (specialtyId) => ({
           url: `/api/specialties/${specialtyId}/doctors`,
         }),
-        providesTags: (_result, _error, specialtyId) => [
+        providesTags: (result, _error, specialtyId) => [
           { type: "Specialty", id: specialtyId },
-          "Doctor",
+          ...buildListTags("Doctor", result, `specialty-${specialtyId}`),
         ],
         keepUnusedDataFor: 300,
       },
     ),
     getDoctorsByClinicId: builder.query<ApiResponse<any[]>, number | string>({
       query: (clinicId) => ({ url: `/api/clinics/${clinicId}/doctors` }),
-      providesTags: (_result, _error, clinicId) => [
+      providesTags: (result, _error, clinicId) => [
         { type: "Clinic", id: clinicId },
-        "Doctor",
+        ...buildListTags("Doctor", result, `clinic-${clinicId}`),
       ],
       keepUnusedDataFor: 300,
     }),
@@ -198,7 +275,7 @@ export const publicApi = createApi({
         url: "/api/packages",
         params: { limit },
       }),
-      providesTags: ["Package"],
+      providesTags: (result) => buildListTags("Package", result),
       keepUnusedDataFor: 300,
     }),
     getPackageById: builder.query<ApiResponse<any>, number | string>({
@@ -212,12 +289,27 @@ export const publicApi = createApi({
       query: (userId) => ({ url: `/api/users/${userId}` }),
       providesTags: (_result, _error, userId) => [{ type: "User", id: userId }],
     }),
+    getUsers: builder.query<ApiResponse<any[]>, void>({
+      query: () => ({ url: "/api/users" }),
+      providesTags: (result) => buildListTags("User", result),
+      keepUnusedDataFor: 30,
+    }),
+    generateUserEmail: builder.query<
+      ApiResponse<string>,
+      { firstName: string; lastName?: string; role?: string }
+    >({
+      query: ({ firstName, lastName = "", role = "R2" }) => ({
+        url: "/api/users/generate-email",
+        params: { firstName, lastName, role },
+      }),
+    }),
     getAllCode: builder.query<ApiResponse<any[]>, string>({
       query: (type) => ({
         url: "/api/all-codes",
         params: { type },
       }),
-      providesTags: (_result, _error, type) => [{ type: "AllCode", id: type }],
+      providesTags: (result, _error, type) =>
+        buildListTags("AllCode", result, type),
       keepUnusedDataFor: 300,
     }),
     getPatientHistory: builder.query<ApiResponse<any[]>, number | string>({
@@ -262,14 +354,298 @@ export const publicApi = createApi({
       query: (clinicId) => ({
         url: `/api/clinic-manager/clinics/${clinicId}/packages`,
       }),
-      providesTags: (_result, _error, clinicId) => [
-        { type: "Package", id: `clinic-${clinicId}` },
-      ],
+      providesTags: (result, _error, clinicId) =>
+        buildListTags("Package", result, `clinic-${clinicId}`),
     }),
     getHistoryByBooking: builder.query<ApiResponse<any>, number | string>({
       query: (bookingId) => ({ url: `/api/histories/booking/${bookingId}` }),
       providesTags: (_result, _error, bookingId) => [
         { type: "History", id: `booking-${bookingId}` },
+      ],
+    }),
+    createUser: builder.mutation<ApiResponse<any>, any>({
+      query: (data) => ({ url: "/api/users", method: "POST", data }),
+      invalidatesTags: [
+        { type: "User", id: "LIST" },
+        { type: "Doctor", id: "LIST" },
+      ],
+    }),
+    updateUser: builder.mutation<ApiResponse<any>, any>({
+      query: ({ id, ...data }) => ({
+        url: `/api/users/${id}`,
+        method: "PUT",
+        data: { id, ...data },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "User", id: arg.id },
+        { type: "User", id: "LIST" },
+        { type: "Doctor", id: arg.id },
+        { type: "Doctor", id: "LIST" },
+      ],
+    }),
+    deleteUser: builder.mutation<ApiResponse<any>, number | string>({
+      query: (userId) => ({
+        url: `/api/users/${userId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, userId) => [
+        { type: "User", id: userId },
+        { type: "User", id: "LIST" },
+        { type: "Doctor", id: userId },
+        { type: "Doctor", id: "LIST" },
+      ],
+    }),
+    createClinic: builder.mutation<ApiResponse<any>, any>({
+      query: (data) => ({ url: "/api/clinics", method: "POST", data }),
+      invalidatesTags: [{ type: "Clinic", id: "LIST" }],
+    }),
+    updateClinic: builder.mutation<ApiResponse<any>, any>({
+      query: ({ id, ...data }) => ({
+        url: `/api/clinics/${id}`,
+        method: "PUT",
+        data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Clinic", id: arg.id },
+        { type: "Clinic", id: "LIST" },
+      ],
+    }),
+    deleteClinic: builder.mutation<ApiResponse<any>, number | string>({
+      query: (clinicId) => ({
+        url: `/api/clinics/${clinicId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, clinicId) => [
+        { type: "Clinic", id: clinicId },
+        { type: "Clinic", id: "LIST" },
+      ],
+    }),
+    createSpecialty: builder.mutation<ApiResponse<any>, any>({
+      query: (data) => ({ url: "/api/specialties", method: "POST", data }),
+      invalidatesTags: [{ type: "Specialty", id: "LIST" }],
+    }),
+    updateSpecialty: builder.mutation<ApiResponse<any>, any>({
+      query: ({ id, ...data }) => ({
+        url: `/api/specialties/${id}`,
+        method: "PUT",
+        data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Specialty", id: arg.id },
+        { type: "Specialty", id: "LIST" },
+      ],
+    }),
+    deleteSpecialty: builder.mutation<ApiResponse<any>, number | string>({
+      query: (specialtyId) => ({
+        url: `/api/specialties/${specialtyId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, specialtyId) => [
+        { type: "Specialty", id: specialtyId },
+        { type: "Specialty", id: "LIST" },
+      ],
+    }),
+    createPackage: builder.mutation<ApiResponse<any>, any>({
+      query: (data) => ({ url: "/api/packages", method: "POST", data }),
+      invalidatesTags: [{ type: "Package", id: "LIST" }],
+    }),
+    updatePackage: builder.mutation<ApiResponse<any>, any>({
+      query: ({ id, ...data }) => ({
+        url: `/api/packages/${id}`,
+        method: "PUT",
+        data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Package", id: arg.id },
+        { type: "Package", id: "LIST" },
+      ],
+    }),
+    deletePackage: builder.mutation<ApiResponse<any>, number | string>({
+      query: (packageId) => ({
+        url: `/api/packages/${packageId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, packageId) => [
+        { type: "Package", id: packageId },
+        { type: "Package", id: "LIST" },
+      ],
+    }),
+    approveClinicManagerPackage: builder.mutation<
+      ApiResponse<any>,
+      number | string
+    >({
+      query: (packageId) => ({
+        url: `/api/clinic-manager/packages/${packageId}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, packageId) => [
+        { type: "Package", id: packageId },
+      ],
+    }),
+    saveDoctorInfo: builder.mutation<ApiResponse<any>, any>({
+      query: ({ doctorId, ...data }) => ({
+        url: `/api/doctors/${doctorId}/info`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Doctor", id: arg.doctorId },
+        { type: "Doctor", id: "LIST" },
+      ],
+    }),
+    saveDoctorServices: builder.mutation<ApiResponse<any>, any>({
+      query: ({ doctorId, ...data }) => ({
+        url: `/api/doctors/${doctorId}/services`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Doctor", id: arg.doctorId },
+      ],
+    }),
+    saveDoctorSchedule: builder.mutation<ApiResponse<any>, any>({
+      query: ({ doctorId, ...data }) => ({
+        url: `/api/doctors/${doctorId}/schedules`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        {
+          type: "Schedule",
+          id: `${arg.doctorId}-${arg.formattedDate}`,
+        },
+      ],
+    }),
+    deleteDoctorSchedule: builder.mutation<
+      ApiResponse<any>,
+      {
+        doctorId: number | string;
+        scheduleId: number | string;
+        date: number | string;
+      }
+    >({
+      query: ({ doctorId, scheduleId }) => ({
+        url: `/api/doctors/${doctorId}/schedules/${scheduleId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Schedule", id: `${arg.doctorId}-${arg.date}` },
+      ],
+    }),
+    approveClinicManagerDoctor: builder.mutation<
+      ApiResponse<any>,
+      number | string
+    >({
+      query: (doctorId) => ({
+        url: `/api/clinic-manager/doctors/${doctorId}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, doctorId) => [
+        { type: "Doctor", id: doctorId },
+      ],
+    }),
+    reviewClinicManagerDoctor: builder.mutation<
+      ApiResponse<any>,
+      {
+        doctorId: number | string;
+        decision: "approve" | "reject";
+        reviewNote?: string;
+      }
+    >({
+      query: ({ doctorId, decision, reviewNote }) => ({
+        url: `/api/clinic-manager/doctors/${doctorId}/review/${decision}`,
+        method: "POST",
+        params: { reviewNote },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Doctor", id: arg.doctorId },
+      ],
+    }),
+    updateClinicManagerDoctorStatus: builder.mutation<
+      ApiResponse<any>,
+      { doctorId: number | string; statusId: string }
+    >({
+      query: ({ doctorId, statusId }) => ({
+        url: `/api/clinic-manager/doctors/${doctorId}/status`,
+        method: "PATCH",
+        params: { statusId },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Doctor", id: arg.doctorId },
+      ],
+    }),
+    updateClinicBookingStatus: builder.mutation<
+      ApiResponse<any>,
+      {
+        bookingId: number | string;
+        clinicId: number | string;
+        decision: "confirm" | "reject";
+      }
+    >({
+      query: ({ bookingId, clinicId, decision }) => ({
+        url: `/api/clinic-manager/bookings/${bookingId}/${decision}`,
+        method: "POST",
+        params: { clinicId },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Booking", id: `clinic-${arg.clinicId}-all` },
+      ],
+    }),
+    confirmPatientBooking: builder.mutation<
+      ApiResponse<any>,
+      {
+        bookingId: number | string;
+        doctorId: number | string;
+        statusId?: string;
+        date: number | string;
+      }
+    >({
+      query: ({ bookingId, doctorId, statusId = "S3" }) => ({
+        url: `/api/bookings/${bookingId}/confirm`,
+        method: "POST",
+        data: { doctorId, statusId },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        {
+          type: "Booking",
+          id: `doctor-${arg.doctorId}-${arg.date}`,
+        },
+      ],
+    }),
+    bookAppointment: builder.mutation<ApiResponse<any>, any>({
+      query: (data) => ({ url: "/api/bookings", method: "POST", data }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Schedule", id: `${arg.doctorId}-${arg.date}` },
+      ],
+    }),
+    verifyBooking: builder.mutation<
+      ApiResponse<any>,
+      { token: string; doctorId: number }
+    >({
+      query: (data) => ({ url: "/api/bookings/verify", method: "POST", data }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Doctor", id: arg.doctorId },
+      ],
+    }),
+    changePassword: builder.mutation<
+      ApiResponse<any>,
+      {
+        userId: number | string;
+        oldPassword: string;
+        newPassword: string;
+        confirmPassword: string;
+      }
+    >({
+      query: ({ userId, ...data }) => ({
+        url: `/api/users/${userId}/change-password`,
+        method: "PUT",
+        data,
+      }),
+    }),
+    createHistory: builder.mutation<ApiResponse<any>, any>({
+      query: (data) => ({ url: "/api/histories", method: "POST", data }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "History", id: `booking-${arg.bookingId}` },
       ],
     }),
   }),
@@ -283,9 +659,12 @@ export const {
   useGetSpecialtiesByIdsQuery,
   useGetClinicsQuery,
   useGetClinicByIdQuery,
+  useLazyGetClinicByIdQuery,
   useGetTopDoctorsQuery,
   useGetAllDoctorsQuery,
+  useGetDoctorsPaginatedQuery,
   useGetDoctorByIdQuery,
+  useGetDoctorSpecialtiesQuery,
   useGetDoctorsBySpecialtyIdQuery,
   useGetDoctorsByClinicIdQuery,
   useGetDoctorScheduleQuery,
@@ -293,11 +672,40 @@ export const {
   useGetDoctorServicesQuery,
   useGetPackagesQuery,
   useGetPackageByIdQuery,
+  useLazyGetPackageByIdQuery,
   useGetUserByIdQuery,
+  useGetUsersQuery,
+  useLazyGenerateUserEmailQuery,
   useGetAllCodeQuery,
   useGetPatientHistoryQuery,
   useGetPatientsByDoctorQuery,
   useGetClinicBookingsQuery,
   useGetClinicManagerPackagesQuery,
   useGetHistoryByBookingQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  useCreateClinicMutation,
+  useUpdateClinicMutation,
+  useDeleteClinicMutation,
+  useCreateSpecialtyMutation,
+  useUpdateSpecialtyMutation,
+  useDeleteSpecialtyMutation,
+  useCreatePackageMutation,
+  useUpdatePackageMutation,
+  useDeletePackageMutation,
+  useApproveClinicManagerPackageMutation,
+  useSaveDoctorInfoMutation,
+  useSaveDoctorServicesMutation,
+  useSaveDoctorScheduleMutation,
+  useDeleteDoctorScheduleMutation,
+  useApproveClinicManagerDoctorMutation,
+  useReviewClinicManagerDoctorMutation,
+  useUpdateClinicManagerDoctorStatusMutation,
+  useUpdateClinicBookingStatusMutation,
+  useConfirmPatientBookingMutation,
+  useBookAppointmentMutation,
+  useVerifyBookingMutation,
+  useChangePasswordMutation,
+  useCreateHistoryMutation,
 } = publicApi;

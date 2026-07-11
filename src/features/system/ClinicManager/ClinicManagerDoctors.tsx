@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import {
-  approveClinicManagerDoctor,
-  updateClinicManagerDoctorStatus,
-} from "../../../services/doctorService";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
-import { useGetDoctorsByClinicIdQuery } from "../../../store/api/publicApi";
+import {
+  useApproveClinicManagerDoctorMutation,
+  useGetDoctorsByClinicIdQuery,
+  useUpdateClinicManagerDoctorStatusMutation,
+} from "../../../store/api/publicApi";
 
 interface IDoctorItem {
   id?: number;
@@ -87,6 +87,8 @@ const ClinicManagerDoctors: React.FC = () => {
   } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
     skip: !selectedClinicId,
   });
+  const [approveDoctor] = useApproveClinicManagerDoctorMutation();
+  const [updateDoctorStatus] = useUpdateClinicManagerDoctorStatusMutation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [openDropdown, setOpenDropdown] = useState<number | string>("");
@@ -133,9 +135,8 @@ const ClinicManagerDoctors: React.FC = () => {
 
   const handleApprove = async (doctorId: number) => {
     try {
-      await approveClinicManagerDoctor(doctorId);
+      await approveDoctor(doctorId).unwrap();
       toast.success("Duyệt bác sĩ thành công!");
-      refetchDoctors();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Duyệt thất bại.");
     }
@@ -143,10 +144,9 @@ const ClinicManagerDoctors: React.FC = () => {
 
   const handleChangeStatus = async (doctorId: number, statusId: string) => {
     try {
-      await updateClinicManagerDoctorStatus(doctorId, statusId);
+      await updateDoctorStatus({ doctorId, statusId }).unwrap();
       toast.success("Cập nhật trạng thái thành công!");
       setOpenDropdown("");
-      refetchDoctors();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Cập nhật thất bại.");
     }

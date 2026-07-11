@@ -1,21 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import "./ManageDoctor.scss";
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import * as actions from "../../../store/actions";
 import MarkdownIt from "markdown-it";
 import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
 import Select from "react-select";
 import { CRUD_ACTIONS, LANGUAGES } from "utils";
-import {
-  getDetailInfoDoctor,
-  getSpecialtiesByDoctorId,
-  handleGetDoctorsPaginated,
-} from "../../../services/doctorService";
-import { handleGetAllSpecialties } from "../../../services/specialtyService";
-import { handleGetAllClinics } from "../../../services/clinicService";
 import { FormattedMessage, useIntl } from "react-intl";
 import DoctorServices from "./DoctorServices";
 import { IRootState } from "../../../types";
@@ -25,13 +23,26 @@ import CommonUtils, {
   generateMedibookEmail,
 } from "../../../utils/CommonUtils";
 import {
-  handleCreateNewUser,
-  handleDeleteUser,
-  handleEditUser,
-  handleGenerateEmail,
-} from "../../../services/userService";
+  type DoctorsPaginatedArgs,
+  useCreateUserMutation,
+  useDeleteUserMutation,
+  useGetAllCodeQuery,
+  useGetAllDoctorsQuery,
+  useGetClinicsQuery,
+  useGetDoctorByIdQuery,
+  useGetDoctorsPaginatedQuery,
+  useGetDoctorSpecialtiesQuery,
+  useGetSpecialtiesQuery,
+  useLazyGenerateUserEmailQuery,
+  useSaveDoctorInfoMutation,
+  useSaveDoctorServicesMutation,
+  useUpdateUserMutation,
+} from "../../../store/api/publicApi";
 
 const mdParser = new MarkdownIt();
+
+const getResponseList = (response: any) =>
+  response?.errCode === 0 && Array.isArray(response.data) ? response.data : [];
 
 interface ManageDoctorProps {
   initialMode?: "list" | "create" | "edit";
@@ -40,23 +51,56 @@ interface ManageDoctorProps {
 const ManageDoctor: React.FC<ManageDoctorProps> = ({
   initialMode = "list",
 }) => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { doctorId } = useParams<{ doctorId: string }>();
   const intl = useIntl();
   const language = useSelector((state: IRootState) => state.app.language);
-  const allDoctors = useSelector(
-    (state: IRootState) => (state.admin as any).allDoctors,
-  );
-  const allRequiredDoctorInfo = useSelector(
-    (state: IRootState) => (state.admin as any).allRequiredDoctorInfo,
-  );
-  const genderRedux = useSelector(
-    (state: IRootState) => (state.admin as any).genders,
-  );
-  const positionRedux = useSelector(
-    (state: IRootState) => (state.admin as any).position,
-  );
+  const {
+    data: doctorsResponse,
+    isLoading: isLoadingDoctors,
+    isError: isDoctorsError,
+  } = useGetAllDoctorsQuery();
+  const {
+    data: specialtiesResponse,
+    isLoading: isLoadingSpecialties,
+    isError: isSpecialtiesError,
+  } = useGetSpecialtiesQuery();
+  const {
+    data: clinicsResponse,
+    isLoading: isLoadingClinics,
+    isError: isClinicsError,
+  } = useGetClinicsQuery();
+  const {
+    data: pricesResponse,
+    isLoading: isLoadingPrices,
+    isError: isPricesError,
+  } = useGetAllCodeQuery("PRICE");
+  const {
+    data: paymentsResponse,
+    isLoading: isLoadingPayments,
+    isError: isPaymentsError,
+  } = useGetAllCodeQuery("PAYMENT");
+  const {
+    data: provincesResponse,
+    isLoading: isLoadingProvinces,
+    isError: isProvincesError,
+  } = useGetAllCodeQuery("PROVINCE");
+  const {
+    data: gendersResponse,
+    isLoading: isLoadingGenders,
+    isError: isGendersError,
+  } = useGetAllCodeQuery("GENDER");
+  const {
+    data: positionsResponse,
+    isLoading: isLoadingPositions,
+    isError: isPositionsError,
+  } = useGetAllCodeQuery("POSITION");
+  const [generateUserEmail] = useLazyGenerateUserEmailQuery();
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
+  const [saveDoctorInfo] = useSaveDoctorInfoMutation();
+  const [saveDoctorServices] = useSaveDoctorServicesMutation();
 
   // View mode from URL
   const [viewMode, setViewMode] = useState<"list" | "edit" | "create">(
@@ -75,11 +119,28 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
   const [contentMarkdown, setContentMarkdown] = useState("");
   const [description, setDescription] = useState("");
   const [selectedOption, setSelectedOption] = useState<any>(null);
-  const [listDoctors, setListDoctors] = useState<any[]>([]);
   const [hasOldData, setHasOldData] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState("");
   const [filterClinic, setFilterClinic] = useState("");
+  const selectedDoctorId =
+    selectedOption?.value || (viewMode === "edit" ? doctorId || "" : "");
+  const {
+    currentData: doctorDetailResponse,
+    isLoading: isLoadingDoctorDetail,
+    isFetching: isFetchingDoctorDetail,
+    isError: isDoctorDetailError,
+  } = useGetDoctorByIdQuery(selectedDoctorId, {
+    skip: !selectedDoctorId,
+  });
+  const {
+    currentData: doctorSpecialtiesResponse,
+    isLoading: isLoadingDoctorSpecialties,
+    isFetching: isFetchingDoctorSpecialties,
+    isError: isDoctorSpecialtiesError,
+  } = useGetDoctorSpecialtiesQuery(selectedDoctorId, {
+    skip: !selectedDoctorId,
+  });
 
   // Create User States
   const [newEmail, setNewEmail] = useState("");
@@ -101,7 +162,11 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await handleGenerateEmail(newFirstName, newLastName);
+        const res = await generateUserEmail({
+          firstName: newFirstName,
+          lastName: newLastName,
+          role: "R2",
+        }).unwrap();
         if (res?.errCode === 0 && res.data) {
           setNewEmail(res.data);
         }
@@ -110,7 +175,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [newFirstName, newLastName]);
+  }, [generateUserEmail, newFirstName, newLastName]);
 
   // Edit Profile States
   const [activeEditMenu, setActiveEditMenu] = useState<string | null>(null);
@@ -118,26 +183,32 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
   const [editProfileData, setEditProfileData] = useState<any>(null);
 
   // Pagination & Filter States
-  const [paginatedDoctors, setPaginatedDoctors] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
-  const [refreshData, setRefreshData] = useState(0);
+  const [paginatedArgs, setPaginatedArgs] = useState<DoctorsPaginatedArgs>({
+    page: 1,
+    limit: 10,
+    search: "",
+    specialty: "",
+    clinic: "",
+  });
+  const {
+    currentData: paginatedDoctorsResponse,
+    isLoading: isLoadingPaginatedDoctors,
+    isFetching: isFetchingPaginatedDoctors,
+    isError: isPaginatedDoctorsError,
+  } = useGetDoctorsPaginatedQuery(paginatedArgs, {
+    skip: viewMode !== "list",
+  });
 
   // select options
-  const [listPrice, setListPrice] = useState<any[]>([]);
-  const [listPayment, setListPayment] = useState<any[]>([]);
-  const [listProvince, setListProvince] = useState<any[]>([]);
   const [selectedPrice, setSelectedPrice] = useState<any>(null);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [selectedProvince, setSelectedProvince] = useState<any>(null);
   const [nameClinic, setNameClinic] = useState("");
   const [addressClinic, setAddressClinic] = useState("");
   const [note, setNote] = useState("");
-  const [listSpecialty, setListSpecialty] = useState<any[]>([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState<any[]>([]);
   const [selectedClinic, setSelectedClinic] = useState<any>(null);
-  const [listClinic, setListClinic] = useState<any[]>([]);
 
   const buildDataClinicSelect = useCallback((inputData: any[] = []) => {
     return inputData
@@ -183,68 +254,73 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     [language],
   );
 
-  useEffect(() => {
-    dispatch(actions.fetchRequiredDoctorInfo() as any);
-    dispatch(actions.fetchAllDoctorsStart() as any);
-    dispatch(actions.fetchGenderStart() as any);
-    dispatch(actions.fetchPositionStart() as any);
+  const listDoctors = useMemo(
+    () => buildDataInputSelect(getResponseList(doctorsResponse), "USERS"),
+    [buildDataInputSelect, doctorsResponse],
+  );
+  const listSpecialty = useMemo(
+    () => buildDataSpecialtySelect(getResponseList(specialtiesResponse)),
+    [buildDataSpecialtySelect, specialtiesResponse],
+  );
+  const listClinic = useMemo(
+    () => buildDataClinicSelect(getResponseList(clinicsResponse)),
+    [buildDataClinicSelect, clinicsResponse],
+  );
+  const listPrice = useMemo(
+    () => buildDataInputSelect(getResponseList(pricesResponse), "PRICE"),
+    [buildDataInputSelect, pricesResponse],
+  );
+  const listPayment = useMemo(
+    () => buildDataInputSelect(getResponseList(paymentsResponse), "PAYMENT"),
+    [buildDataInputSelect, paymentsResponse],
+  );
+  const listProvince = useMemo(
+    () => buildDataInputSelect(getResponseList(provincesResponse), "PROVINCE"),
+    [buildDataInputSelect, provincesResponse],
+  );
+  const genderRedux = useMemo(
+    () => getResponseList(gendersResponse),
+    [gendersResponse],
+  );
+  const positionRedux = useMemo(
+    () => getResponseList(positionsResponse),
+    [positionsResponse],
+  );
+  const isReferenceDataLoading =
+    isLoadingDoctors ||
+    isLoadingSpecialties ||
+    isLoadingClinics ||
+    isLoadingPrices ||
+    isLoadingPayments ||
+    isLoadingProvinces ||
+    isLoadingGenders ||
+    isLoadingPositions ||
+    isLoadingDoctorDetail ||
+    isFetchingDoctorDetail ||
+    isLoadingDoctorSpecialties ||
+    isFetchingDoctorSpecialties;
+  const isReferenceDataError =
+    isDoctorsError ||
+    isSpecialtiesError ||
+    isClinicsError ||
+    isPricesError ||
+    isPaymentsError ||
+    isProvincesError ||
+    isGendersError ||
+    isPositionsError ||
+    isDoctorDetailError ||
+    isDoctorSpecialtiesError;
 
-    const fetchData = async () => {
-      try {
-        const res = await handleGetAllSpecialties();
-        if (res && res.errCode === 0 && Array.isArray(res.data)) {
-          setListSpecialty(buildDataSpecialtySelect(res.data));
-        } else {
-          setListSpecialty([]);
-        }
-        const resClinic = await handleGetAllClinics();
-        if (
-          resClinic &&
-          resClinic.errCode === 0 &&
-          Array.isArray(resClinic.data)
-        ) {
-          setListClinic(buildDataClinicSelect(resClinic.data));
-        } else {
-          setListClinic([]);
-        }
-      } catch (e) {
-        setListSpecialty([]);
-        setListClinic([]);
-      }
-    };
-    fetchData();
-  }, [dispatch, buildDataSpecialtySelect, buildDataClinicSelect]);
-
+  // Keep the existing 300 ms debounce while RTK Query owns the server request.
   useEffect(() => {
-    if (allDoctors) {
-      setListDoctors(buildDataInputSelect(allDoctors, "USERS"));
-    }
-  }, [allDoctors, buildDataInputSelect]);
-
-  // Paginated Doctors fetch
-  useEffect(() => {
-    const fetchPaginated = async () => {
-      try {
-        const res = await handleGetDoctorsPaginated(
-          currentPage,
-          10,
-          searchQuery,
-          filterSpecialty,
-          filterClinic,
-        );
-        if (res && res.errCode === 0 && res.data) {
-          const dataDocs = buildDataInputSelect(res.data.doctors, "USERS");
-          setPaginatedDoctors(dataDocs);
-          setTotalPages(res.data.totalPages);
-          setTotalElements(res.data.totalElements);
-        }
-      } catch (e) {
-        console.error("Error fetching paginated doctors", e);
-      }
-    };
-    // Debounce search
     const delay = setTimeout(() => {
-      fetchPaginated();
+      setPaginatedArgs({
+        page: currentPage,
+        limit: 10,
+        search: searchQuery,
+        specialty: filterSpecialty,
+        clinic: filterClinic,
+      });
     }, 300);
     return () => clearTimeout(delay);
   }, [
@@ -252,23 +328,33 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     searchQuery,
     filterSpecialty,
     filterClinic,
-    buildDataInputSelect,
-    refreshData,
   ]);
+
+  const paginatedDoctors = useMemo(
+    () =>
+      buildDataInputSelect(
+        paginatedDoctorsResponse?.errCode === 0
+          ? paginatedDoctorsResponse.data?.doctors || []
+          : [],
+        "USERS",
+      ),
+    [buildDataInputSelect, paginatedDoctorsResponse],
+  );
+  const totalPages =
+    paginatedDoctorsResponse?.errCode === 0
+      ? paginatedDoctorsResponse.data?.totalPages || 0
+      : 0;
+  const totalElements =
+    paginatedDoctorsResponse?.errCode === 0
+      ? paginatedDoctorsResponse.data?.totalElements || 0
+      : 0;
+  const isPaginatedDoctorsPending =
+    isLoadingPaginatedDoctors || isFetchingPaginatedDoctors;
 
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterSpecialty, filterClinic]);
-
-  useEffect(() => {
-    if (allRequiredDoctorInfo) {
-      const { resPrice, resPayment, resProvince } = allRequiredDoctorInfo;
-      setListPrice(buildDataInputSelect(resPrice, "PRICE"));
-      setListPayment(buildDataInputSelect(resPayment, "PAYMENT"));
-      setListProvince(buildDataInputSelect(resProvince, "PROVINCE"));
-    }
-  }, [allRequiredDoctorInfo, buildDataInputSelect]);
 
   // Sync default gender/position from Redux when they load
   useEffect(() => {
@@ -302,13 +388,24 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     [],
   );
 
-  const fetchDoctorDetails = async (option: any) => {
-    setSelectedOption(option);
-    let res = await getDetailInfoDoctor(option.value);
-    let specialtyRes = await getSpecialtiesByDoctorId(option.value);
+  useEffect(() => {
+    if (viewMode !== "edit" || !doctorId || listDoctors.length === 0) return;
+    const routeDoctor = listDoctors.find(
+      (item) => String(item.value) === String(doctorId),
+    );
+    if (
+      routeDoctor &&
+      String(selectedOption?.value || "") !== String(routeDoctor.value)
+    ) {
+      setSelectedOption(routeDoctor);
+    }
+  }, [doctorId, listDoctors, selectedOption?.value, viewMode]);
 
+  useEffect(() => {
+    const res = doctorDetailResponse;
+    const specialtyRes = doctorSpecialtiesResponse;
     if (res && res.errCode === 0 && res.data) {
-      let data = res.data;
+      const data = res.data;
       let markdown = data.Markdown;
       let doctorInfo = data.DoctorInfo;
       let addrClinic = "",
@@ -377,7 +474,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
       setSelectedProvince(selProvince);
       setSelectedSpecialty(selSpecialty);
       setSelectedClinic(selClinic);
-    } else {
+    } else if (isDoctorDetailError) {
       setContentHTML("");
       setContentMarkdown("");
       setDescription("");
@@ -391,13 +488,22 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
       setSelectedSpecialty([]);
       setSelectedClinic(null);
     }
-  };
+  }, [
+    doctorDetailResponse,
+    doctorSpecialtiesResponse,
+    isDoctorDetailError,
+    listClinic,
+    listPayment,
+    listPrice,
+    listProvince,
+    listSpecialty,
+  ]);
 
   const handleChange = useCallback(
-    async (option: any) => {
-      fetchDoctorDetails(option);
+    (option: any) => {
+      setSelectedOption(option);
     },
-    [listPayment, listPrice, listProvince, listSpecialty, listClinic],
+    [],
   );
 
   const handleChangeSelectDoctorInfo = useCallback((value: any, name: any) => {
@@ -415,7 +521,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     }
   }, []);
 
-  const handleSaveContentMarkDown = useCallback(() => {
+  const handleSaveContentMarkDown = useCallback(async () => {
     if (!selectedOption)
       return alert(
         intl.formatMessage({ id: "menu.manage-doctor.error-selected-doctor" }),
@@ -442,8 +548,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
       arrDoctorService = childData.data;
     }
 
-    dispatch(
-      actions.saveDetailDoctorsStart({
+    try {
+      const res = await saveDoctorInfo({
         contentHTML,
         contentMarkdown,
         description,
@@ -460,21 +566,32 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
             : [],
         clinicId: selectedClinic ? selectedClinic.value : null,
         action: hasOldData === true ? CRUD_ACTIONS.EDIT : CRUD_ACTIONS.CREATE,
-      }) as any,
-    );
+      }).unwrap();
 
-    if (arrDoctorService && arrDoctorService.length > 0) {
-      dispatch(
-        actions.saveDoctorServices({
+      if (!res || res.errCode !== 0) {
+        toast.error(res?.errMessage || "Lưu thông tin bác sĩ thất bại!");
+        return;
+      }
+
+      if (arrDoctorService && arrDoctorService.length > 0) {
+        const serviceRes = await saveDoctorServices({
           arrDoctorService,
           doctorId: selectedOption.value,
-        }) as any,
-      );
-    }
+        }).unwrap();
+        if (!serviceRes || serviceRes.errCode !== 0) {
+          toast.error(
+            serviceRes?.errMessage || "Lưu dịch vụ bác sĩ thất bại!",
+          );
+          return;
+        }
+      }
 
-    navigate("/system/manage-doctor");
+      toast.success("Lưu thông tin bác sĩ thành công!");
+      navigate("/system/manage-doctor");
+    } catch {
+      toast.error("Lưu thông tin bác sĩ thất bại!");
+    }
   }, [
-    dispatch,
     intl,
     navigate,
     selectedOption,
@@ -490,6 +607,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     selectedSpecialty,
     selectedClinic,
     hasOldData,
+    saveDoctorInfo,
+    saveDoctorServices,
   ]);
 
   const handleOnChangeText = useCallback(
@@ -547,24 +666,27 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return;
     }
-    let res = await handleCreateNewUser({
-      email: newEmail,
-      password: newPassword,
-      firstName: newFirstName,
-      lastName: newLastName,
-      address: newAddress,
-      phoneNumber: newPhoneNumber,
-      gender: newGender,
-      roleId: "R2",
-      positionId: newPosition,
-      avatar: newAvatar,
-    });
-    if (res && res.errCode === 0) {
-      toast.success("Tạo bác sĩ mới thành công!");
-      dispatch(actions.fetchAllDoctorsStart() as any);
-      navigate("/system/manage-doctor");
-    } else {
-      toast.error(res?.errMessage || "Lỗi khi tạo bác sĩ");
+    try {
+      const res = await createUser({
+        email: newEmail,
+        password: newPassword,
+        firstName: newFirstName,
+        lastName: newLastName,
+        address: newAddress,
+        phoneNumber: newPhoneNumber,
+        gender: newGender,
+        roleId: "R2",
+        positionId: newPosition,
+        avatar: newAvatar,
+      }).unwrap();
+      if (res && res.errCode === 0) {
+        toast.success("Tạo bác sĩ mới thành công!");
+        navigate("/system/manage-doctor");
+      } else {
+        toast.error(res?.errMessage || "Lỗi khi tạo bác sĩ");
+      }
+    } catch {
+      toast.error("Lỗi khi tạo bác sĩ");
     }
   };
 
@@ -584,7 +706,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
 
   const handleEditDoctor = (doctorOpt: any) => {
     setActiveEditMenu(null);
-    fetchDoctorDetails(doctorOpt);
+    setSelectedOption(doctorOpt);
     navigate(`/system/manage-doctor/edit/${doctorOpt.value}`);
   };
 
@@ -598,10 +720,9 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     if (!doctorId) return;
     if (!window.confirm("Bạn có chắc chắn muốn xóa bác sĩ này?")) return;
     try {
-      const res = await handleDeleteUser(doctorId);
+      const res = await deleteUser(doctorId).unwrap();
       if (res?.errCode === 0) {
         toast.success("Xóa bác sĩ thành công!");
-        setRefreshData((prev) => prev + 1);
       } else {
         toast.error(res?.errMessage || "Xóa bác sĩ thất bại.");
       }
@@ -653,13 +774,11 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     }
 
     try {
-      const res = await handleEditUser(payload);
+      const res = await updateUser(payload).unwrap();
       if (res && res.errCode === 0) {
         toast.success("Cập nhật thông tin bác sĩ thành công!");
         setShowEditProfileModal(false);
         setEditProfileData(null);
-        dispatch(actions.fetchAllDoctorsStart() as any);
-        setRefreshData((prev) => prev + 1);
       } else {
         toast.error(res?.errMessage || "Cập nhật thất bại, vui lòng thử lại!");
       }
@@ -705,6 +824,14 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     return pages;
   };
 
+  const referenceDataStatus = isReferenceDataLoading ? (
+    <div className="alert alert-info">Đang tải dữ liệu bác sĩ...</div>
+  ) : isReferenceDataError ? (
+    <div className="alert alert-danger">
+      Không thể tải đầy đủ dữ liệu bác sĩ.
+    </div>
+  ) : null;
+
   if (viewMode === "create") {
     return (
       <div className="create-doctor-wrapper">
@@ -722,6 +849,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
             Hủy
           </button>
         </div>
+
+        {referenceDataStatus}
 
         <div className="create-form-card">
           <h2 className="card-title">Thông tin cá nhân</h2>
@@ -898,6 +1027,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
           </button>
         </div>
 
+        {referenceDataStatus}
+
         <div className="stats-cards-container">
           <div className="stat-card">
             <div className="card-top">
@@ -1014,7 +1145,19 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
               </tr>
             </thead>
             <tbody>
-              {paginatedDoctors && paginatedDoctors.length > 0 ? (
+              {isPaginatedDoctorsPending ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">
+                    Đang tải danh sách bác sĩ...
+                  </td>
+                </tr>
+              ) : isPaginatedDoctorsError ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4 text-danger">
+                    Không thể tải danh sách bác sĩ.
+                  </td>
+                </tr>
+              ) : paginatedDoctors.length > 0 ? (
                 paginatedDoctors.map((doc, idx) => (
                   <tr key={idx}>
                     <td>
@@ -1123,7 +1266,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
           <span className="info">
             Hiển thị{" "}
             <b>
-              {(currentPage - 1) * 10 + 1}-
+              {totalElements === 0 ? 0 : (currentPage - 1) * 10 + 1}-
               {Math.min(currentPage * 10, totalElements)}
             </b>{" "}
             trên <b>{totalElements}</b> bác sĩ
@@ -1131,7 +1274,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
           <div className="page-numbers">
             <button
               className="btn-page"
-              disabled={currentPage === 1}
+              disabled={isPaginatedDoctorsPending || currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             >
               <i className="fas fa-chevron-left"></i>
@@ -1147,7 +1290,11 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
             ))}
             <button
               className="btn-page"
-              disabled={currentPage === totalPages || totalPages === 0}
+              disabled={
+                isPaginatedDoctorsPending ||
+                currentPage === totalPages ||
+                totalPages === 0
+              }
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             >
               <i className="fas fa-chevron-right"></i>
@@ -1323,6 +1470,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
         </div>
         <button className="btn-preview">Xem trước hồ sơ</button>
       </div>
+
+      {referenceDataStatus}
 
       <div className="form-content">
         {/* Block 1: General Info */}

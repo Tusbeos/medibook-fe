@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { useSelector } from "react-redux";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import "./DoctorServices.scss";
-import { LANGUAGES } from "../../../utils";
 import { toast } from "react-toastify";
-import { getAllDoctorService } from "../../../services/doctorService";
-import { IRootState } from "../../../types";
+import { useGetDoctorServicesQuery } from "../../../store/api/publicApi";
 
 interface IDoctorServiceItem {
   nameVi: string;
@@ -28,32 +31,38 @@ const emptyRow: IDoctorServiceItem = {
 
 const DoctorServices = forwardRef<any, IDoctorServicesProps>(
   ({ doctorIdFromParent }, ref) => {
-    const language = useSelector((state: IRootState) => state.app.language);
     const [arrServices, setArrServices] = useState<IDoctorServiceItem[]>([
       { ...emptyRow },
     ]);
 
-    const fetchDataServices = useCallback(async (doctorId: number | string) => {
-      try {
-        let res = await getAllDoctorService(doctorId);
-        if (res && res.errCode === 0 && res.data && res.data.length > 0) {
-          setArrServices(res.data);
-        } else {
-          setArrServices([{ ...emptyRow }]);
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    }, []);
+    const {
+      data: servicesResponse,
+      isLoading,
+      isFetching,
+      isError,
+    } = useGetDoctorServicesQuery(doctorIdFromParent, {
+      skip: !doctorIdFromParent,
+    });
 
     // Lấy dữ liệu dịch vụ khi mount hoặc khi doctorId thay đổi
     useEffect(() => {
-      if (doctorIdFromParent) {
-        fetchDataServices(doctorIdFromParent);
+      if (!doctorIdFromParent) {
+        setArrServices([{ ...emptyRow }]);
+        return;
+      }
+
+      if (!servicesResponse) return;
+
+      if (
+        servicesResponse.errCode === 0 &&
+        Array.isArray(servicesResponse.data) &&
+        servicesResponse.data.length > 0
+      ) {
+        setArrServices(servicesResponse.data);
       } else {
         setArrServices([{ ...emptyRow }]);
       }
-    }, [doctorIdFromParent, fetchDataServices]);
+    }, [doctorIdFromParent, servicesResponse]);
 
     const handleOnChangeInput = useCallback(
       (
@@ -136,7 +145,18 @@ const DoctorServices = forwardRef<any, IDoctorServicesProps>(
               <div className="col-1 header-item text-center">Hành động</div>
             </div>
             <div className="service-body">
-              {arrServices &&
+              {isLoading || isFetching ? (
+                <div className="text-center p-3">
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  Đang tải dữ liệu dịch vụ...
+                </div>
+              ) : isError ? (
+                <div className="text-center text-danger p-3">
+                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  Không thể tải danh sách dịch vụ.
+                </div>
+              ) : (
+                arrServices &&
                 arrServices.length > 0 &&
                 arrServices.map((item, index) => {
                   return (
@@ -206,7 +226,8 @@ const DoctorServices = forwardRef<any, IDoctorServicesProps>(
                       </div>
                     </div>
                   );
-                })}
+                })
+              )}
             </div>
             <div className="action-row">
               <button

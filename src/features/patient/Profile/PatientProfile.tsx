@@ -4,10 +4,6 @@ import { toast } from "react-toastify";
 import { FormattedMessage } from "react-intl";
 import HomeHeader from "layout/HomeHeader";
 import { IRootState, IUser } from "../../../types";
-import {
-  handleEditUser,
-  handleChangePassword,
-} from "../../../services/userService";
 import { userLoginSuccess } from "../../../store/actions/userActions";
 import { LANGUAGES, normalizeImageSrc } from "../../../utils";
 import "./PatientProfile.scss";
@@ -15,10 +11,14 @@ import {
   publicApi,
   useGetAllCodeQuery,
   useGetUserByIdQuery,
+  useUpdateUserMutation,
+  useChangePasswordMutation,
 } from "../../../store/api/publicApi";
 import { AppDispatch } from "app/store/reduxStore";
 
 const PatientProfile: React.FC = () => {
+  const [updateUser] = useUpdateUserMutation();
+  const [changePassword] = useChangePasswordMutation();
   const dispatch = useDispatch<AppDispatch>();
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
@@ -150,7 +150,7 @@ const PatientProfile: React.FC = () => {
     };
 
     try {
-      const res = await handleEditUser(data);
+      const res = await updateUser(data).unwrap();
       if (res && res.errCode === 0) {
         toast.success(
           language === LANGUAGES.VI
@@ -209,6 +209,7 @@ const PatientProfile: React.FC = () => {
     language,
     dispatch,
     token,
+    updateUser,
   ]);
 
   // Xử lý đổi mật khẩu
@@ -244,11 +245,12 @@ const PatientProfile: React.FC = () => {
     }
 
     try {
-      const res = await handleChangePassword(userId, {
+      const res = await changePassword({
+        userId,
         oldPassword,
         newPassword,
         confirmPassword,
-      });
+      }).unwrap();
       if (res && res.errCode === 0) {
         toast.success(
           language === LANGUAGES.VI
@@ -264,14 +266,21 @@ const PatientProfile: React.FC = () => {
       }
     } catch (err: any) {
       const msg =
-        err?.response?.data?.errMessage ||
+        err?.data?.errMessage ||
         err?.errMessage ||
         (language === LANGUAGES.VI
           ? "Có lỗi xảy ra khi đổi mật khẩu"
           : "Error changing password");
       toast.error(msg);
     }
-  }, [userInfo, oldPassword, newPassword, confirmPassword, language]);
+  }, [
+    userInfo,
+    oldPassword,
+    newPassword,
+    confirmPassword,
+    language,
+    changePassword,
+  ]);
 
   const handleCancelPassword = useCallback(() => {
     setOldPassword("");

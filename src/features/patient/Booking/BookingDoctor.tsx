@@ -7,13 +7,17 @@ import { LANGUAGES, toImageCssUrl } from "utils";
 import moment from "moment";
 import { NumericFormat } from "react-number-format";
 import HomeHeader from "layout/HomeHeader";
-import { postPatientBookAppointment } from "../../../services/bookingService";
 import DatePicker from "components/Input/DatePicker";
 import { toast } from "react-toastify";
 import { IRootState } from "../../../types";
-import { useGetDoctorByIdQuery } from "../../../store/api/publicApi";
+import {
+  useBookAppointmentMutation,
+  useGetDoctorByIdQuery,
+} from "../../../store/api/publicApi";
 
 const BookingDoctor = () => {
+  const [bookAppointment, { isLoading: isBooking }] =
+    useBookAppointmentMutation();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -188,13 +192,15 @@ const BookingDoctor = () => {
       };
     }
 
-    let res = await postPatientBookAppointment(payload);
-    console.log("check data", res);
-
-    if (res && res.errCode === 0) {
+    try {
+      const res = await bookAppointment(payload).unwrap();
+      if (res?.errCode !== 0) {
+        toast.error(res?.errMessage || "Booking a new appointment error!");
+        return;
+      }
       toast.success("Booking a new appointment succeed!");
       navigate(`/detail-doctor/${doctorId}`);
-    } else {
+    } catch (_) {
       toast.error("Booking a new appointment error!");
     }
   }, [
@@ -223,6 +229,7 @@ const BookingDoctor = () => {
     relationship,
     medicalHistory,
     navigate,
+    bookAppointment,
   ]);
 
   console.log("check props booking modal", {
@@ -732,6 +739,7 @@ const BookingDoctor = () => {
               <button
                 className="btn-booking-confirm col-12"
                 onClick={handleConfirmBooking}
+                disabled={isBooking}
               >
                 <FormattedMessage id="booking.booking-doctor.confirm-booking" />
               </button>

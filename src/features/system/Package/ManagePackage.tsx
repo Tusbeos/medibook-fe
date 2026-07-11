@@ -1,6 +1,5 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -10,16 +9,16 @@ import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
 import "./ManagePackage.scss";
 import { CommonUtils, getBase64FromBuffer } from "../../../utils";
-import {
-  createNewPackageService,
-  deletePackageService,
-  getPackageById,
-  handleGetAllPackages,
-  updatePackageService,
-} from "../../../services/packageService";
-import { handleGetAllCode } from "../../../services/userService";
-import { handleGetAllClinics } from "../../../services/clinicService";
 import { toast } from "react-toastify";
+import {
+  useCreatePackageMutation,
+  useDeletePackageMutation,
+  useGetAllCodeQuery,
+  useGetClinicsQuery,
+  useGetPackagesQuery,
+  useLazyGetPackageByIdQuery,
+  useUpdatePackageMutation,
+} from "../../../store/api/publicApi";
 import {
   Panel,
   PanelHeading,
@@ -59,50 +58,58 @@ const ManagePackage = () => {
   const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([
     createEmptyGroup(),
   ]);
-  const [packages, setPackages] = useState<any[]>([]);
-  const [packageTypes, setPackageTypes] = useState<any[]>([]);
-  const [clinics, setClinics] = useState<any[]>([]);
-  const [groupServices, setGroupServices] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editPackageId, setEditPackageId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const fetchAllPackages = useCallback(async () => {
-    const res = await handleGetAllPackages();
-    if (res && res.errCode === 0) {
-      setPackages(res.data ? res.data : []);
-    }
-  }, []);
+  const {
+    data: packagesResponse,
+    isLoading: isLoadingPackages,
+    isError: isPackagesError,
+  } = useGetPackagesQuery();
+  const { data: packageTypesResponse } = useGetAllCodeQuery("PACKAGE");
+  const { data: clinicsResponse } = useGetClinicsQuery();
+  const { data: groupServicesResponse } = useGetAllCodeQuery("GROUP_SERVICE");
+  const [getPackageById] = useLazyGetPackageByIdQuery();
+  const [createPackage] = useCreatePackageMutation();
+  const [updatePackage] = useUpdatePackageMutation();
+  const [deletePackage] = useDeletePackageMutation();
 
-  const fetchPackageTypes = useCallback(async () => {
-    const res = await handleGetAllCode("PACKAGE");
-    if (res && res.errCode === 0) {
-      setPackageTypes(res.data ? res.data : []);
-    }
-  }, []);
+  const packages = useMemo(
+    () =>
+      packagesResponse?.errCode === 0 && Array.isArray(packagesResponse.data)
+        ? packagesResponse.data
+        : [],
+    [packagesResponse],
+  );
 
-  const fetchClinics = useCallback(async () => {
-    const res = await handleGetAllClinics();
-    if (res && res.errCode === 0) {
-      setClinics(res.data ? res.data : []);
-    }
-  }, []);
+  const packageTypes = useMemo(
+    () =>
+      packageTypesResponse?.errCode === 0 &&
+      Array.isArray(packageTypesResponse.data)
+        ? packageTypesResponse.data
+        : [],
+    [packageTypesResponse],
+  );
 
-  const fetchGroupServices = useCallback(async () => {
-    const res = await handleGetAllCode("GROUP_SERVICE");
-    if (res && res.errCode === 0) {
-      setGroupServices(res.data ? res.data : []);
-    }
-  }, []);
+  const clinics = useMemo(
+    () =>
+      clinicsResponse?.errCode === 0 && Array.isArray(clinicsResponse.data)
+        ? clinicsResponse.data
+        : [],
+    [clinicsResponse],
+  );
 
-  useEffect(() => {
-    fetchAllPackages();
-    fetchPackageTypes();
-    fetchClinics();
-    fetchGroupServices();
-  }, [fetchAllPackages, fetchPackageTypes, fetchClinics, fetchGroupServices]);
+  const groupServices = useMemo(
+    () =>
+      groupServicesResponse?.errCode === 0 &&
+      Array.isArray(groupServicesResponse.data)
+        ? groupServicesResponse.data
+        : [],
+    [groupServicesResponse],
+  );
 
   const resetForm = useCallback(() => {
     setName("");
@@ -265,8 +272,8 @@ const ManagePackage = () => {
 
       const res =
         isEditing && editPackageId
-          ? await updatePackageService({ ...payload, id: editPackageId })
-          : await createNewPackageService(payload);
+          ? await updatePackage({ ...payload, id: editPackageId }).unwrap()
+          : await createPackage(payload).unwrap();
 
       if (res && res.errCode === 0) {
         toast.success(
@@ -275,7 +282,6 @@ const ManagePackage = () => {
             : "Lưu gói khám thành công.",
         );
         resetForm();
-        fetchAllPackages();
         return;
       }
 
@@ -293,7 +299,7 @@ const ManagePackage = () => {
     let packageDetail = item;
     if (item?.id) {
       try {
-        const res = await getPackageById(item.id);
+        const res = await getPackageById(item.id).unwrap();
         packageDetail = res?.errCode === 0 && res?.data ? res.data : item;
       } catch {
         toast.error("Không tải được chi tiết gói khám.");
@@ -342,10 +348,9 @@ const ManagePackage = () => {
       return;
     }
 
-    const res = await deletePackageService(item.id);
+    const res = await deletePackage(item.id).unwrap();
     if (res && res.errCode === 0) {
       toast.success("Xóa gói khám thành công.");
-      fetchAllPackages();
       return;
     }
 
@@ -371,6 +376,12 @@ const ManagePackage = () => {
         (getTypeName(item) || "").toLowerCase().includes(term),
     );
   }, [packages, searchTerm]);
+
+  const packageEmptyText = isLoadingPackages
+    ? "Đang tải danh sách gói khám..."
+    : isPackagesError
+      ? "Không tải được danh sách gói khám."
+      : "Chưa có gói khám nào.";
 
   const packageColumns = useMemo(
     () => [
@@ -657,7 +668,7 @@ const ManagePackage = () => {
           columns={packageColumns}
           data={filteredPackages}
           rowKey={(item: any) => item.id || item.name}
-          emptyText="Chưa có gói khám nào."
+          emptyText={packageEmptyText}
           onEdit={handleEditPackage}
           onDelete={handleDeletePackage}
         />

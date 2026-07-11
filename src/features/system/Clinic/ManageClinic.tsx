@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import "./ManageClinic.scss";
 import MarkdownIt from "markdown-it";
 import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
 import { CommonUtils, getBase64FromBuffer } from "../../../utils";
-import {
-  createNewClinicService,
-  updateClinicService,
-  deleteClinicService,
-  getDetailClinicById,
-  handleGetAllClinics,
-} from "../../../services/clinicService";
 import { toast } from "react-toastify";
+import {
+  useCreateClinicMutation,
+  useDeleteClinicMutation,
+  useGetClinicsQuery,
+  useLazyGetClinicByIdQuery,
+  useUpdateClinicMutation,
+} from "../../../store/api/publicApi";
 import {
   Panel,
   PanelHeading,
@@ -33,7 +33,6 @@ const ManageClinic = () => {
   const [previewImageCover, setPreviewImageCover] = useState("");
   const [descriptionHTML, setDescriptionHTML] = useState("");
   const [descriptionMarkdown, setDescriptionMarkdown] = useState("");
-  const [clinics, setClinics] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editClinicId, setEditClinicId] = useState<number | string | null>(
@@ -43,20 +42,23 @@ const ManageClinic = () => {
   const fileInputLogo = useRef<HTMLInputElement>(null);
   const fileInputCover = useRef<HTMLInputElement>(null);
 
-  const fetchAllClinics = useCallback(async () => {
-    try {
-      const res = await handleGetAllClinics();
-      if (res && res.errCode === 0) {
-        setClinics(res.data ? res.data : []);
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  }, []);
+  const {
+    data: clinicsResponse,
+    isLoading: isLoadingClinics,
+    isError: isClinicsError,
+  } = useGetClinicsQuery();
+  const [getClinicById] = useLazyGetClinicByIdQuery();
+  const [createClinic] = useCreateClinicMutation();
+  const [updateClinic] = useUpdateClinicMutation();
+  const [deleteClinic] = useDeleteClinicMutation();
 
-  useEffect(() => {
-    fetchAllClinics();
-  }, [fetchAllClinics]);
+  const clinics = useMemo(
+    () =>
+      clinicsResponse?.errCode === 0 && Array.isArray(clinicsResponse.data)
+        ? clinicsResponse.data
+        : [],
+    [clinicsResponse],
+  );
 
   const handleEditorChange = useCallback(
     ({ html, text }: { html: string; text: string }) => {
@@ -114,8 +116,8 @@ const ManageClinic = () => {
       };
 
       const res = isEditing
-        ? await updateClinicService(payload)
-        : await createNewClinicService(payload);
+        ? await updateClinic(payload).unwrap()
+        : await createClinic(payload).unwrap();
 
       if (res && res.errCode === 0) {
         toast.success(
@@ -124,7 +126,6 @@ const ManageClinic = () => {
             : "Tạo phòng khám thành công!",
         );
         resetForm();
-        await fetchAllClinics();
       } else {
         toast.error(
           res?.errMessage ||
@@ -146,7 +147,7 @@ const ManageClinic = () => {
   const handleEditClinic = async (clinic: any) => {
     if (!clinic?.id) return;
     try {
-      const res = await getDetailClinicById(clinic.id);
+      const res = await getClinicById(clinic.id).unwrap();
       if (res && res.errCode === 0 && res.data) {
         const imgBase64 = res.data.image
           ? getBase64FromBuffer(res.data.image) || ""
@@ -174,10 +175,9 @@ const ManageClinic = () => {
   const handleDeleteClinic = async (clinic: any) => {
     if (!clinic?.id) return;
     try {
-      const res = await deleteClinicService(clinic.id);
+      const res = await deleteClinic(clinic.id).unwrap();
       if (res && res.errCode === 0) {
         toast.success("Xóa phòng khám thành công!");
-        await fetchAllClinics();
       } else {
         toast.error(res?.errMessage || "Xóa phòng khám thất bại!");
       }
@@ -190,14 +190,21 @@ const ManageClinic = () => {
   const logoPreviewUrl = previewImage ? `url(${previewImage})` : "";
   const coverPreviewUrl = previewImageCover ? `url(${previewImageCover})` : "";
 
-  const filteredClinics = clinics.filter((item) => {
+  const filteredClinics = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return true;
-    return (
-      (item.name || "").toLowerCase().includes(query) ||
-      (item.address || "").toLowerCase().includes(query)
+    if (!query) return clinics;
+    return clinics.filter(
+      (item) =>
+        (item.name || "").toLowerCase().includes(query) ||
+        (item.address || "").toLowerCase().includes(query),
     );
-  });
+  }, [clinics, searchTerm]);
+
+  const clinicEmptyText = isLoadingClinics
+    ? "Đang tải danh sách phòng khám..."
+    : isClinicsError
+      ? "Không tải được danh sách phòng khám."
+      : "Chưa có dữ liệu phòng khám";
 
   const columns = [
     {
@@ -339,7 +346,7 @@ const ManageClinic = () => {
           columns={columns}
           data={filteredClinics}
           rowKey={(item: any) => item.id}
-          emptyText="Chưa có dữ liệu phòng khám"
+          emptyText={clinicEmptyText}
           onEdit={handleEditClinic}
           onDelete={handleDeleteClinic}
         />

@@ -2,13 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getDoctorsByClinicId,
-  approveClinicManagerDoctor,
-} from "../../../services/doctorService";
-import {
-  getClinicManagerPackages,
-  approveClinicManagerPackage,
-} from "../../../services/packageService";
+  useApproveClinicManagerDoctorMutation,
+  useApproveClinicManagerPackageMutation,
+  useGetClinicManagerPackagesQuery,
+  useGetDoctorsByClinicIdQuery,
+} from "../../../store/api/publicApi";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
 
@@ -32,37 +30,65 @@ const ClinicManagerApprovals: React.FC = () => {
   const navigate = useNavigate();
   const { isClinicManager, selectedClinicId, displayClinicName } =
     useClinicContext();
-  const [doctors, setDoctors] = useState<any[]>([]);
-  const [packages, setPackages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<QueueFilter>("all");
 
-  const fetchData = useCallback(async () => {
-    if (!selectedClinicId) return;
-    setIsLoading(true);
-    try {
-      const [dRes, pRes] = await Promise.all([
-        getDoctorsByClinicId(selectedClinicId),
-        getClinicManagerPackages(selectedClinicId),
-      ]);
-      setDoctors(
-        dRes?.errCode === 0 && Array.isArray(dRes.data) ? dRes.data : [],
-      );
-      setPackages(
-        pRes?.errCode === 0 && Array.isArray(pRes.data) ? pRes.data : [],
-      );
-    } catch {
-      setDoctors([]);
-      setPackages([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClinicId]);
+  const {
+    data: doctorsResponse,
+    isLoading: isLoadingDoctors,
+    isFetching: isFetchingDoctors,
+    isError: isDoctorsError,
+    refetch: refetchDoctors,
+  } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
+    skip: !selectedClinicId,
+  });
+
+  const {
+    data: packagesResponse,
+    isLoading: isLoadingPackages,
+    isFetching: isFetchingPackages,
+    isError: isPackagesError,
+    refetch: refetchPackages,
+  } = useGetClinicManagerPackagesQuery(selectedClinicId, {
+    skip: !selectedClinicId,
+  });
+  const [approveDoctor] = useApproveClinicManagerDoctorMutation();
+  const [approvePackage] = useApproveClinicManagerPackageMutation();
+
+  const doctors = useMemo(
+    () =>
+      doctorsResponse?.errCode === 0 && Array.isArray(doctorsResponse.data)
+        ? doctorsResponse.data
+        : [],
+    [doctorsResponse],
+  );
+
+  const packages = useMemo(
+    () =>
+      packagesResponse?.errCode === 0 && Array.isArray(packagesResponse.data)
+        ? packagesResponse.data
+        : [],
+    [packagesResponse],
+  );
+
+  const isLoading =
+    isLoadingDoctors ||
+    isFetchingDoctors ||
+    isLoadingPackages ||
+    isFetchingPackages;
+  const isError = isDoctorsError || isPackagesError;
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isError) {
+      toast.error("Không thể tải danh sách yêu cầu chờ duyệt.");
+    }
+  }, [isError]);
+
+  const refetchQueue = useCallback(() => {
+    if (!selectedClinicId) return;
+    refetchDoctors();
+    refetchPackages();
+  }, [refetchDoctors, refetchPackages, selectedClinicId]);
 
   const queueItems = useMemo<IQueueItem[]>(() => {
     const pendingDoctors = doctors.filter((d) => getStatusKey(d) === "SD1");
@@ -118,12 +144,11 @@ const ClinicManagerApprovals: React.FC = () => {
   const handleApprove = async (item: IQueueItem) => {
     try {
       if (item.category === "doctor") {
-        await approveClinicManagerDoctor(item.id);
+        await approveDoctor(item.id).unwrap();
       } else {
-        await approveClinicManagerPackage(item.id);
+        await approvePackage(item.id).unwrap();
       }
       toast.success("Phê duyệt thành công!");
-      fetchData();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Phê duyệt thất bại.");
     }
@@ -180,7 +205,11 @@ const ClinicManagerApprovals: React.FC = () => {
           </button>
         </div>
 
-        <button className="cm-refresh-btn" onClick={fetchData}>
+        <button
+          className="cm-refresh-btn"
+          onClick={refetchQueue}
+          disabled={isLoading}
+        >
           <i className="fas fa-sync-alt" /> Refresh
         </button>
       </div>
@@ -198,6 +227,11 @@ const ClinicManagerApprovals: React.FC = () => {
 
         {isLoading ? (
           <div className="cm-empty">Đang tải...</div>
+        ) : isError ? (
+          <div className="cm-empty">
+            <i className="fas fa-exclamation-circle" />
+            Không thể tải danh sách yêu cầu.
+          </div>
         ) : filtered.length === 0 ? (
           <div className="cm-empty">
             <i className="fas fa-check-circle" />

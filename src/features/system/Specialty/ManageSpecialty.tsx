@@ -1,17 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import "./ManageSpecialty.scss";
 import MarkdownIt from "markdown-it";
 import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
 import { CommonUtils, getBase64FromBuffer } from "../../../utils";
-import {
-  createNewSpecialtyService,
-  deleteSpecialtyService,
-  handleGetAllSpecialties,
-  updateSpecialtyService,
-} from "../../../services/specialtyService";
 import { toast } from "react-toastify";
 import { ISpecialty } from "../../../types";
+import {
+  useCreateSpecialtyMutation,
+  useDeleteSpecialtyMutation,
+  useGetSpecialtiesQuery,
+  useUpdateSpecialtyMutation,
+} from "../../../store/api/publicApi";
 import {
   Panel,
   PanelHeading,
@@ -28,23 +28,29 @@ const ManageSpecialty = () => {
   const [descriptionHTML, setDescriptionHTML] = useState("");
   const [descriptionMarkdown, setDescriptionMarkdown] = useState("");
   const [previewImgURL, setPreviewImgURL] = useState("");
-  const [specialties, setSpecialties] = useState<ISpecialty[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editSpecialtyId, setEditSpecialtyId] = useState<number | null>(null);
 
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const fetchAllSpecialties = useCallback(async () => {
-    const res = await handleGetAllSpecialties();
-    if (res && res.errCode === 0) {
-      setSpecialties(Array.isArray(res.data) ? res.data : []);
-    }
-  }, []);
+  const {
+    data: specialtiesResponse,
+    isLoading: isLoadingSpecialties,
+    isError: isSpecialtiesError,
+  } = useGetSpecialtiesQuery();
+  const [createSpecialty] = useCreateSpecialtyMutation();
+  const [updateSpecialty] = useUpdateSpecialtyMutation();
+  const [deleteSpecialty] = useDeleteSpecialtyMutation();
 
-  useEffect(() => {
-    fetchAllSpecialties();
-  }, [fetchAllSpecialties]);
+  const specialties = useMemo<ISpecialty[]>(
+    () =>
+      specialtiesResponse?.errCode === 0 &&
+      Array.isArray(specialtiesResponse.data)
+        ? specialtiesResponse.data
+        : [],
+    [specialtiesResponse],
+  );
 
   const handleEditorChange = useCallback(
     ({ html, text }: { html: string; text: string }) => {
@@ -91,11 +97,11 @@ const ManageSpecialty = () => {
       };
 
       const res = isEditing
-        ? await updateSpecialtyService({
+        ? await updateSpecialty({
             ...payload,
             id: editSpecialtyId || undefined,
-          })
-        : await createNewSpecialtyService(payload);
+          }).unwrap()
+        : await createSpecialty(payload).unwrap();
 
       if (res && res.errCode === 0) {
         toast.success(
@@ -104,7 +110,6 @@ const ManageSpecialty = () => {
             : "Tạo chuyên khoa thành công.",
         );
         resetForm();
-        fetchAllSpecialties();
         return;
       }
 
@@ -130,24 +135,31 @@ const ManageSpecialty = () => {
   };
 
   const handleDeleteSpecialty = async (item: ISpecialty) => {
-    const res = await deleteSpecialtyService(item.id || "");
+    const res = await deleteSpecialty(item.id || "").unwrap();
     if (res && res.errCode === 0) {
       toast.success("Xóa chuyên khoa thành công.");
-      fetchAllSpecialties();
       return;
     }
     toast.error(res?.errMessage || "Xóa chuyên khoa thất bại.");
   };
 
-  const filteredSpecialties = specialties.filter((item) => {
+  const filteredSpecialties = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return true;
-    const description = item.descriptionMarkdown || "";
-    return (
-      (item.name || "").toLowerCase().includes(query) ||
-      description.toLowerCase().includes(query)
-    );
-  });
+    if (!query) return specialties;
+    return specialties.filter((item) => {
+      const description = item.descriptionMarkdown || "";
+      return (
+        (item.name || "").toLowerCase().includes(query) ||
+        description.toLowerCase().includes(query)
+      );
+    });
+  }, [searchTerm, specialties]);
+
+  const specialtyEmptyText = isLoadingSpecialties
+    ? "Đang tải danh sách chuyên khoa..."
+    : isSpecialtiesError
+      ? "Không tải được danh sách chuyên khoa."
+      : "Chưa có chuyên khoa phù hợp.";
 
   const columns = [
     {
@@ -290,7 +302,7 @@ const ManageSpecialty = () => {
           columns={columns}
           data={filteredSpecialties}
           rowKey={(item: ISpecialty) => item.id || 0}
-          emptyText="Chưa có chuyên khoa phù hợp."
+          emptyText={specialtyEmptyText}
           onEdit={handleEditSpecialty}
           onDelete={handleDeleteSpecialty}
         />
