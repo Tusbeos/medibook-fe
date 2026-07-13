@@ -5,6 +5,7 @@ import {
   useGetDoctorsByClinicIdQuery,
   useReviewClinicManagerDoctorMutation,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
 
@@ -20,6 +21,7 @@ const ClinicManagerReviewDoctor: React.FC = () => {
     isLoading,
     isFetching,
     isError,
+    refetch: refetchDoctors,
   } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
     skip: !selectedClinicId || !doctorId,
   });
@@ -84,7 +86,7 @@ const ClinicManagerReviewDoctor: React.FC = () => {
   if (isLoading || isFetching) {
     return (
       <div className="cm-page">
-        <div className="cm-empty">Đang tải thông tin bác sĩ...</div>
+        <DataState variant="loading" text="Đang tải thông tin bác sĩ..." />
       </div>
     );
   }
@@ -92,10 +94,11 @@ const ClinicManagerReviewDoctor: React.FC = () => {
   if (isError) {
     return (
       <div className="cm-page">
-        <div className="cm-empty">
-          <i className="fas fa-exclamation-circle" />
-          Không thể tải thông tin bác sĩ.
-        </div>
+        <DataState
+          variant="error"
+          text="Không thể tải thông tin bác sĩ."
+          onRetry={() => void refetchDoctors()}
+        />
         <button
           className="cm-action-btn review"
           onClick={() => navigate("/system/clinic-manager/doctors")}
@@ -109,10 +112,10 @@ const ClinicManagerReviewDoctor: React.FC = () => {
   if (!doctor) {
     return (
       <div className="cm-page">
-        <div className="cm-empty">
-          <i className="fas fa-user-slash" />
-          Không tìm thấy bác sĩ trong cơ sở y tế này.
-        </div>
+        <DataState
+          variant="empty"
+          text="Không tìm thấy bác sĩ trong cơ sở y tế này."
+        />
         <button
           className="cm-action-btn review"
           onClick={() => navigate("/system/clinic-manager/doctors")}

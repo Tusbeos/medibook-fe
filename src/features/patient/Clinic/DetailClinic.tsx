@@ -12,6 +12,7 @@ import {
   useGetClinicByIdQuery,
   useGetDoctorsByClinicIdQuery,
 } from "../../../store/api/publicApi";
+import { sanitizeHtml } from "utils";
 const HEADER_SELECTOR = "h2";
 
 const normalizeString = (str: string) => {
@@ -49,6 +50,10 @@ const DetailClinic = () => {
       .map((doctor: any) => (typeof doctor === "object" ? doctor.id : doctor))
       .filter(Boolean);
   }, [doctorsResponse]);
+  const clinicDescriptionHtml = useMemo(
+    () => sanitizeHtml(clinic?.descriptionHTML),
+    [clinic?.descriptionHTML],
+  );
 
   const buildTableOfContents = useCallback(() => {
     const container = contentRef.current;
@@ -77,10 +82,14 @@ const DetailClinic = () => {
   }, []);
 
   useEffect(() => {
-    if (clinic && clinic.descriptionHTML) {
-      setTimeout(() => buildTableOfContents(), 100);
+    if (!clinicDescriptionHtml) {
+      setTableOfContents([]);
+      return;
     }
-  }, [clinic, buildTableOfContents]);
+
+    const timer = window.setTimeout(buildTableOfContents, 100);
+    return () => window.clearTimeout(timer);
+  }, [buildTableOfContents, clinicDescriptionHtml]);
 
   const handleScrollTo = useCallback(
     (key: string, originalIndex: number | null = null) => {
@@ -237,9 +246,9 @@ const DetailClinic = () => {
             />
           </div>
           <div className="clinic-html-content" ref={contentRef}>
-            {clinic.descriptionHTML && (
+            {clinicDescriptionHtml && (
               <div
-                dangerouslySetInnerHTML={{ __html: clinic.descriptionHTML }}
+                dangerouslySetInnerHTML={{ __html: clinicDescriptionHtml }}
               ></div>
             )}
           </div>

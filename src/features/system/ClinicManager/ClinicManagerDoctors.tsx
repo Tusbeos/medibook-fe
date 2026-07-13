@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useClinicContext } from "./useClinicContext";
@@ -8,6 +8,7 @@ import {
   useGetDoctorsByClinicIdQuery,
   useUpdateClinicManagerDoctorStatusMutation,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 interface IDoctorItem {
   id?: number;
@@ -100,12 +101,6 @@ const ClinicManagerDoctors: React.FC = () => {
         : [],
     [doctorsResponse],
   );
-
-  useEffect(() => {
-    if (isError) {
-      toast.error("Không thể tải danh sách bác sĩ.");
-    }
-  }, [isError]);
 
   const filtered = useMemo(() => {
     let list = doctors;
@@ -217,12 +212,22 @@ const ClinicManagerDoctors: React.FC = () => {
         </div>
 
         {isLoading || isFetching ? (
-          <div className="cm-empty">Đang tải...</div>
+          <DataState variant="loading" text="Đang tải danh sách bác sĩ..." />
+        ) : isError ? (
+          <DataState
+            variant="error"
+            text="Không thể tải danh sách bác sĩ."
+            onRetry={() => void refetchDoctors()}
+          />
         ) : filtered.length === 0 ? (
-          <div className="cm-empty">
-            <i className="fas fa-user-slash" />
-            Chưa có bác sĩ nào.
-          </div>
+          <DataState
+            variant="empty"
+            text={
+              doctors.length > 0
+                ? "Không có bác sĩ phù hợp với bộ lọc."
+                : "Chưa có bác sĩ nào."
+            }
+          />
         ) : (
           filtered.map((doctor) => {
             const statusKey = getStatusKey(doctor);

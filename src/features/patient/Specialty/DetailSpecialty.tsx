@@ -8,7 +8,7 @@ import Breadcrumb from "components/Breadcrumb";
 import { getBase64FromBuffer } from "../../../utils/CommonUtils";
 import "./DetailSpecialty.scss";
 import DoctorCard from "components/Patient/DoctorCard";
-import { LANGUAGES } from "utils";
+import { LANGUAGES, sanitizeHtml } from "utils";
 import { IRootState } from "../../../types";
 import {
   useGetDoctorsBySpecialtyIdQuery,
@@ -44,6 +44,13 @@ const DetailSpecialty = () => {
       .map((item: any) => item && (item.id || item.doctorId))
       .filter((value: any) => value);
   }, [doctorsResponse]);
+  const specialtyDescriptionHtml = useMemo(
+    () =>
+      sanitizeHtml(
+        specialty?.descriptionHTML || "<i>Chưa có mô tả</i>",
+      ),
+    [specialty?.descriptionHTML],
+  );
 
   const handleShowHideDetail = useCallback(() => {
     setIsShowDetail((prev) => !prev);
@@ -96,8 +103,7 @@ const DetailSpecialty = () => {
                         : { maxHeight: "150px", overflow: "hidden" }
                     }
                     dangerouslySetInnerHTML={{
-                      __html:
-                        specialty.descriptionHTML || "<i>Chưa có mô tả</i>",
+                      __html: specialtyDescriptionHtml,
                     }}
                   />
 

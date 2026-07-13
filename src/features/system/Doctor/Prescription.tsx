@@ -5,6 +5,7 @@ import {
   useCreateHistoryMutation,
   useGetHistoryByBookingQuery,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 import "./Prescription.scss";
 
 const Prescription: React.FC = () => {
@@ -21,6 +22,8 @@ const Prescription: React.FC = () => {
     data: historyResponse,
     isLoading: isHistoryLoading,
     isFetching: isHistoryFetching,
+    isError: isHistoryError,
+    refetch: refetchHistory,
   } = useGetHistoryByBookingQuery(bookingId || "", {
     skip: !bookingId,
   });
@@ -86,12 +89,18 @@ const Prescription: React.FC = () => {
       </div>
 
       {isFetching ? (
-        <div className="text-center p-5">
-          <i className="fas fa-spinner fa-spin fa-2x"></i>
-          <p className="mt-2">Đang tải dữ liệu...</p>
-        </div>
+        <DataState variant="loading" text="Đang tải hồ sơ khám..." />
       ) : (
-        <div className="prescription-card">
+        <>
+          {isHistoryError && (
+            <DataState
+              variant="error"
+              text="Không thể kiểm tra hồ sơ khám đã lưu. Bạn vẫn có thể nhập hồ sơ mới."
+              onRetry={() => void refetchHistory()}
+              compact
+            />
+          )}
+          <div className="prescription-card">
           {/* Ngày khám */}
           <div className="form-group">
             <label className="prescription-label">
@@ -176,7 +185,8 @@ const Prescription: React.FC = () => {
               )}
             </button>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

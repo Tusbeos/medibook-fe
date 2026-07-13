@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -7,6 +7,7 @@ import {
   useGetClinicManagerPackagesQuery,
   useGetDoctorsByClinicIdQuery,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
 
@@ -77,12 +78,6 @@ const ClinicManagerApprovals: React.FC = () => {
     isLoadingPackages ||
     isFetchingPackages;
   const isError = isDoctorsError || isPackagesError;
-
-  useEffect(() => {
-    if (isError) {
-      toast.error("Không thể tải danh sách yêu cầu chờ duyệt.");
-    }
-  }, [isError]);
 
   const refetchQueue = useCallback(() => {
     if (!selectedClinicId) return;
@@ -226,17 +221,22 @@ const ClinicManagerApprovals: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className="cm-empty">Đang tải...</div>
+          <DataState variant="loading" text="Đang tải danh sách yêu cầu..." />
         ) : isError ? (
-          <div className="cm-empty">
-            <i className="fas fa-exclamation-circle" />
-            Không thể tải danh sách yêu cầu.
-          </div>
+          <DataState
+            variant="error"
+            text="Không thể tải danh sách yêu cầu."
+            onRetry={refetchQueue}
+          />
         ) : filtered.length === 0 ? (
-          <div className="cm-empty">
-            <i className="fas fa-check-circle" />
-            Không có yêu cầu chờ duyệt.
-          </div>
+          <DataState
+            variant="empty"
+            text={
+              queueItems.length > 0
+                ? "Không có yêu cầu phù hợp với bộ lọc."
+                : "Không có yêu cầu chờ duyệt."
+            }
+          />
         ) : (
           filtered.map((item) => (
             <div

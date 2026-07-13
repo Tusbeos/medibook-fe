@@ -67,7 +67,9 @@ const ManagePackage = () => {
   const {
     data: packagesResponse,
     isLoading: isLoadingPackages,
+    isFetching: isFetchingPackages,
     isError: isPackagesError,
+    refetch: refetchPackages,
   } = useGetPackagesQuery();
   const { data: packageTypesResponse } = useGetAllCodeQuery("PACKAGE");
   const { data: clinicsResponse } = useGetClinicsQuery();
@@ -377,12 +379,6 @@ const ManagePackage = () => {
     );
   }, [packages, searchTerm]);
 
-  const packageEmptyText = isLoadingPackages
-    ? "Đang tải danh sách gói khám..."
-    : isPackagesError
-      ? "Không tải được danh sách gói khám."
-      : "Chưa có gói khám nào.";
-
   const packageColumns = useMemo(
     () => [
       { key: "name", title: "Tên gói khám" },
@@ -668,7 +664,16 @@ const ManagePackage = () => {
           columns={packageColumns}
           data={filteredPackages}
           rowKey={(item: any) => item.id || item.name}
-          emptyText={packageEmptyText}
+          isLoading={isLoadingPackages || isFetchingPackages}
+          isError={isPackagesError}
+          loadingText="Đang tải danh sách gói khám..."
+          errorText="Không tải được danh sách gói khám."
+          emptyText={
+            searchTerm.trim()
+              ? "Không có gói khám phù hợp với từ khóa."
+              : "Chưa có gói khám nào."
+          }
+          onRetry={() => void refetchPackages()}
           onEdit={handleEditPackage}
           onDelete={handleDeletePackage}
         />

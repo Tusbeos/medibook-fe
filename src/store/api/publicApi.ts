@@ -6,6 +6,14 @@ type ApiResponse<T = any> = {
   errCode?: number;
   errMessage?: string;
   data?: T;
+  pagination?: {
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  };
 };
 
 type HomeStats = {
@@ -289,8 +297,14 @@ export const publicApi = createApi({
       query: (userId) => ({ url: `/api/users/${userId}` }),
       providesTags: (_result, _error, userId) => [{ type: "User", id: userId }],
     }),
-    getUsers: builder.query<ApiResponse<any[]>, void>({
-      query: () => ({ url: "/api/users" }),
+    getUsers: builder.query<
+      ApiResponse<any[]>,
+      { page: number; size: number; roleId?: string }
+    >({
+      query: ({ page, size, roleId }) => ({
+        url: "/api/users",
+        params: { page, size, ...(roleId ? { roleId } : {}) },
+      }),
       providesTags: (result) => buildListTags("User", result),
       keepUnusedDataFor: 30,
     }),
@@ -312,10 +326,16 @@ export const publicApi = createApi({
         buildListTags("AllCode", result, type),
       keepUnusedDataFor: 300,
     }),
-    getPatientHistory: builder.query<ApiResponse<any[]>, number | string>({
-      query: (patientId) => ({ url: `/api/histories/patient/${patientId}` }),
-      providesTags: (_result, _error, patientId) => [
-        { type: "History", id: `patient-${patientId}` },
+    getPatientHistory: builder.query<
+      ApiResponse<any[]>,
+      { patientId: number | string; page: number; size: number }
+    >({
+      query: ({ patientId, page, size }) => ({
+        url: `/api/histories/patient/${patientId}`,
+        params: { page, size },
+      }),
+      providesTags: (_result, _error, arg) => [
+        { type: "History", id: `patient-${arg.patientId}` },
       ],
     }),
     getPatientsByDoctor: builder.query<
@@ -333,11 +353,16 @@ export const publicApi = createApi({
     }),
     getClinicBookings: builder.query<
       ApiResponse<any[]>,
-      { clinicId: number | string; status?: string }
+      {
+        clinicId: number | string;
+        status?: string;
+        page?: number;
+        size?: number;
+      }
     >({
-      query: ({ clinicId, status }) => ({
+      query: ({ clinicId, status, page = 0, size = 20 }) => ({
         url: `/api/clinic-manager/clinics/${clinicId}/bookings`,
-        params: status ? { status } : undefined,
+        params: { page, size, ...(status ? { status } : {}) },
       }),
       providesTags: (_result, _error, arg) => [
         {

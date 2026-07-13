@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerDashboard.scss";
 import {
@@ -8,6 +7,7 @@ import {
   useGetClinicManagerPackagesQuery,
   useGetDoctorsByClinicIdQuery,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 const getStatusKey = (item: any) =>
   item.statusId || item.status_id || item.statusData?.keyMap || "";
@@ -23,6 +23,7 @@ const ClinicManagerDashboard: React.FC = () => {
     isLoading: isDoctorsLoading,
     isFetching: isDoctorsFetching,
     isError: isDoctorsError,
+    refetch: refetchDoctors,
   } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
     skip: !selectedClinicId,
   });
@@ -31,6 +32,7 @@ const ClinicManagerDashboard: React.FC = () => {
     isLoading: isPackagesLoading,
     isFetching: isPackagesFetching,
     isError: isPackagesError,
+    refetch: refetchPackages,
   } = useGetClinicManagerPackagesQuery(selectedClinicId, {
     skip: !selectedClinicId,
   });
@@ -39,27 +41,39 @@ const ClinicManagerDashboard: React.FC = () => {
     isLoading: isBookingsLoading,
     isFetching: isBookingsFetching,
     isError: isBookingsError,
+    refetch: refetchBookings,
   } = useGetClinicBookingsQuery(
-    { clinicId: selectedClinicId },
+    { clinicId: selectedClinicId, page: 0, size: 5 },
+    { skip: !selectedClinicId },
+  );
+  const {
+    data: pendingBookingsResponse,
+    isLoading: isPendingBookingsLoading,
+    isFetching: isPendingBookingsFetching,
+    isError: isPendingBookingsError,
+    refetch: refetchPendingBookings,
+  } = useGetClinicBookingsQuery(
+    { clinicId: selectedClinicId, status: "S2", page: 0, size: 1 },
     { skip: !selectedClinicId },
   );
 
   const doctors = useMemo(() => readList(doctorsResponse), [doctorsResponse]);
   const packages = useMemo(() => readList(packagesResponse), [packagesResponse]);
-  const bookings = useMemo(() => readList(bookingsResponse), [bookingsResponse]);
   const isLoading =
     isDoctorsLoading ||
     isPackagesLoading ||
     isBookingsLoading ||
+    isPendingBookingsLoading ||
     isDoctorsFetching ||
     isPackagesFetching ||
-    isBookingsFetching;
+    isBookingsFetching ||
+    isPendingBookingsFetching;
 
-  useEffect(() => {
-    if (isDoctorsError || isPackagesError || isBookingsError) {
-      toast.error("Không thể tải dữ liệu dashboard.");
-    }
-  }, [isBookingsError, isDoctorsError, isPackagesError]);
+  const hasError =
+    isDoctorsError ||
+    isPackagesError ||
+    isBookingsError ||
+    isPendingBookingsError;
 
   const pendingDoctors = useMemo(
     () => doctors.filter((doctor) => getStatusKey(doctor) === "SD1"),
@@ -78,10 +92,8 @@ const ClinicManagerDashboard: React.FC = () => {
     [packages],
   );
   const totalPending = pendingDoctors.length + pendingPackages.length;
-  const pendingBookings = useMemo(
-    () => bookings.filter((booking) => booking.statusId === "S2").length,
-    [bookings],
-  );
+  const totalBookings = bookingsResponse?.pagination?.totalElements || 0;
+  const pendingBookings = pendingBookingsResponse?.pagination?.totalElements || 0;
 
   if (!isClinicManager) {
     return (
@@ -101,6 +113,31 @@ const ClinicManagerDashboard: React.FC = () => {
           <h2>Clinic Manager Dashboard</h2>
           <p>Tài khoản chưa được gán cơ sở y tế.</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="cm-dashboard">
+        <DataState variant="loading" text="Đang tải dữ liệu dashboard..." />
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="cm-dashboard">
+        <DataState
+          variant="error"
+          text="Không thể tải đầy đủ dữ liệu dashboard."
+          onRetry={() => {
+            void refetchDoctors();
+            void refetchPackages();
+            void refetchBookings();
+            void refetchPendingBookings();
+          }}
+        />
       </div>
     );
   }
@@ -165,7 +202,7 @@ const ClinicManagerDashboard: React.FC = () => {
             <i className="fas fa-calendar-check" />
           </div>
           <div className="cm-metric-value">
-            <strong>{isLoading ? "..." : bookings.length}</strong>
+            <strong>{isLoading ? "..." : totalBookings}</strong>
             {pendingBookings > 0 && (
               <span className="cm-chip warning">{pendingBookings} chờ XN</span>
             )}

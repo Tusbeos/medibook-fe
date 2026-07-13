@@ -65,6 +65,45 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
   </div>
 );
 
+// ==================== DataState ====================
+interface DataStateProps {
+  variant: "loading" | "error" | "empty";
+  text: string;
+  onRetry?: () => void;
+  compact?: boolean;
+}
+
+export const DataState: React.FC<DataStateProps> = ({
+  variant,
+  text,
+  onRetry,
+  compact = false,
+}) => (
+  <div
+    className={`sys-data-state sys-data-state-${variant}${
+      compact ? " sys-data-state-compact" : ""
+    }`}
+    role="status"
+    aria-live="polite"
+  >
+    <i
+      className={
+        variant === "loading"
+          ? "fas fa-circle-notch fa-spin"
+          : variant === "error"
+            ? "fas fa-exclamation-circle"
+            : "fas fa-inbox"
+      }
+    />
+    <span>{text}</span>
+    {variant === "error" && onRetry && (
+      <button type="button" onClick={onRetry}>
+        Thử lại
+      </button>
+    )}
+  </div>
+);
+
 // ==================== DataTable ====================
 interface Column<T> {
   key: string;
@@ -78,6 +117,11 @@ interface DataTableProps<T> {
   data: T[];
   rowKey: (item: T, index: number) => string | number;
   emptyText?: string;
+  isLoading?: boolean;
+  isError?: boolean;
+  loadingText?: string;
+  errorText?: string;
+  onRetry?: () => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   renderActions?: (item: T) => React.ReactNode;
@@ -88,6 +132,11 @@ export function DataTable<T>({
   data,
   rowKey,
   emptyText = "Không có dữ liệu",
+  isLoading = false,
+  isError = false,
+  loadingText = "Đang tải dữ liệu...",
+  errorText = "Không thể tải dữ liệu.",
+  onRetry,
   onEdit,
   onDelete,
   renderActions,
@@ -96,6 +145,12 @@ export function DataTable<T>({
   const allColumns = showActions
     ? [...columns, { key: "__actions", title: "Hành động" }]
     : columns;
+  const state = isLoading ? "loading" : isError ? "error" : "empty";
+  const stateText = isLoading
+    ? loadingText
+    : isError
+      ? errorText
+      : emptyText;
 
   return (
     <div className="sys-table-wrap">
@@ -110,7 +165,7 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {data.length > 0 ? (
+          {!isLoading && !isError && data.length > 0 ? (
             data.map((item, index) => (
               <tr key={rowKey(item, index)}>
                 {columns.map((col) => (
@@ -154,8 +209,15 @@ export function DataTable<T>({
             ))
           ) : (
             <tr>
-              <td colSpan={allColumns.length} className="sys-empty-state">
-                {emptyText}
+              <td
+                colSpan={allColumns.length}
+                className="sys-empty-state"
+              >
+                <DataState
+                  variant={state}
+                  text={stateText}
+                  onRetry={onRetry}
+                />
               </td>
             </tr>
           )}

@@ -16,6 +16,7 @@ import Select from "react-select";
 import { CRUD_ACTIONS, LANGUAGES } from "utils";
 import { FormattedMessage, useIntl } from "react-intl";
 import DoctorServices from "./DoctorServices";
+import { DataState } from "components/System/SystemShared";
 import { IRootState } from "../../../types";
 import { toast } from "react-toastify";
 import CommonUtils, {
@@ -59,41 +60,49 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     data: doctorsResponse,
     isLoading: isLoadingDoctors,
     isError: isDoctorsError,
+    refetch: refetchDoctors,
   } = useGetAllDoctorsQuery();
   const {
     data: specialtiesResponse,
     isLoading: isLoadingSpecialties,
     isError: isSpecialtiesError,
+    refetch: refetchSpecialties,
   } = useGetSpecialtiesQuery();
   const {
     data: clinicsResponse,
     isLoading: isLoadingClinics,
     isError: isClinicsError,
+    refetch: refetchClinics,
   } = useGetClinicsQuery();
   const {
     data: pricesResponse,
     isLoading: isLoadingPrices,
     isError: isPricesError,
+    refetch: refetchPrices,
   } = useGetAllCodeQuery("PRICE");
   const {
     data: paymentsResponse,
     isLoading: isLoadingPayments,
     isError: isPaymentsError,
+    refetch: refetchPayments,
   } = useGetAllCodeQuery("PAYMENT");
   const {
     data: provincesResponse,
     isLoading: isLoadingProvinces,
     isError: isProvincesError,
+    refetch: refetchProvinces,
   } = useGetAllCodeQuery("PROVINCE");
   const {
     data: gendersResponse,
     isLoading: isLoadingGenders,
     isError: isGendersError,
+    refetch: refetchGenders,
   } = useGetAllCodeQuery("GENDER");
   const {
     data: positionsResponse,
     isLoading: isLoadingPositions,
     isError: isPositionsError,
+    refetch: refetchPositions,
   } = useGetAllCodeQuery("POSITION");
   const [generateUserEmail] = useLazyGenerateUserEmailQuery();
   const [createUser] = useCreateUserMutation();
@@ -130,6 +139,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     isLoading: isLoadingDoctorDetail,
     isFetching: isFetchingDoctorDetail,
     isError: isDoctorDetailError,
+    refetch: refetchDoctorDetail,
   } = useGetDoctorByIdQuery(selectedDoctorId, {
     skip: !selectedDoctorId,
   });
@@ -138,6 +148,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     isLoading: isLoadingDoctorSpecialties,
     isFetching: isFetchingDoctorSpecialties,
     isError: isDoctorSpecialtiesError,
+    refetch: refetchDoctorSpecialties,
   } = useGetDoctorSpecialtiesQuery(selectedDoctorId, {
     skip: !selectedDoctorId,
   });
@@ -196,6 +207,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
     isLoading: isLoadingPaginatedDoctors,
     isFetching: isFetchingPaginatedDoctors,
     isError: isPaginatedDoctorsError,
+    refetch: refetchPaginatedDoctors,
   } = useGetDoctorsPaginatedQuery(paginatedArgs, {
     skip: viewMode !== "list",
   });
@@ -825,11 +837,31 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
   };
 
   const referenceDataStatus = isReferenceDataLoading ? (
-    <div className="alert alert-info">Đang tải dữ liệu bác sĩ...</div>
+    <DataState
+      variant="loading"
+      text="Đang tải dữ liệu bác sĩ..."
+      compact
+    />
   ) : isReferenceDataError ? (
-    <div className="alert alert-danger">
-      Không thể tải đầy đủ dữ liệu bác sĩ.
-    </div>
+    <DataState
+      variant="error"
+      text="Không thể tải đầy đủ dữ liệu bác sĩ."
+      onRetry={() => {
+        void refetchDoctors();
+        void refetchSpecialties();
+        void refetchClinics();
+        void refetchPrices();
+        void refetchPayments();
+        void refetchProvinces();
+        void refetchGenders();
+        void refetchPositions();
+        if (selectedDoctorId) {
+          void refetchDoctorDetail();
+          void refetchDoctorSpecialties();
+        }
+      }}
+      compact
+    />
   ) : null;
 
   if (viewMode === "create") {
@@ -1147,14 +1179,21 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
             <tbody>
               {isPaginatedDoctorsPending ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4">
-                    Đang tải danh sách bác sĩ...
+                  <td colSpan={5}>
+                    <DataState
+                      variant="loading"
+                      text="Đang tải danh sách bác sĩ..."
+                    />
                   </td>
                 </tr>
               ) : isPaginatedDoctorsError ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-danger">
-                    Không thể tải danh sách bác sĩ.
+                  <td colSpan={5}>
+                    <DataState
+                      variant="error"
+                      text="Không thể tải danh sách bác sĩ."
+                      onRetry={() => void refetchPaginatedDoctors()}
+                    />
                   </td>
                 </tr>
               ) : paginatedDoctors.length > 0 ? (
@@ -1254,8 +1293,15 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-4">
-                    Không tìm thấy bác sĩ
+                  <td colSpan={5}>
+                    <DataState
+                      variant="empty"
+                      text={
+                        searchQuery || filterSpecialty || filterClinic
+                          ? "Không có bác sĩ phù hợp với bộ lọc."
+                          : "Chưa có bác sĩ nào."
+                      }
+                    />
                   </td>
                 </tr>
               )}

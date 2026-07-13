@@ -41,11 +41,13 @@ const PatientHistory: React.FC = () => {
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [page, setPage] = useState(0);
   const userId = userInfo?.id || (userInfo as any)?.userId;
-  const { data: historyResponse, isLoading: loading } = useGetPatientHistoryQuery(
-    userId || "",
-    { skip: !userId },
-  );
+  const { data: historyResponse, isLoading: loading, isFetching } =
+    useGetPatientHistoryQuery(
+      { patientId: userId || "", page, size: 10 },
+      { skip: !userId },
+    );
   const histories = useMemo<IHistoryRecord[]>(
     () =>
       historyResponse?.errCode === 0 && Array.isArray(historyResponse.data)
@@ -293,6 +295,28 @@ const PatientHistory: React.FC = () => {
                     </div>
                   );
                 })}
+                {(historyResponse?.pagination?.totalPages || 0) > 1 && (
+                  <div className="history-pagination">
+                    <button
+                      type="button"
+                      disabled={historyResponse?.pagination?.first || isFetching}
+                      onClick={() => setPage((current) => Math.max(0, current - 1))}
+                    >
+                      Trang trước
+                    </button>
+                    <span>
+                      Trang {page + 1}/
+                      {historyResponse?.pagination?.totalPages || 1}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={historyResponse?.pagination?.last || isFetching}
+                      onClick={() => setPage((current) => current + 1)}
+                    >
+                      Trang sau
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

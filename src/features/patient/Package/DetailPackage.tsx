@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import HomeHeader from "layout/HomeHeader";
 import HomeFooter from "layout/HomeFooter";
 import Breadcrumb from "components/Breadcrumb";
-import { normalizeImageSrc } from "../../../utils";
+import { normalizeImageSrc, sanitizeHtml } from "../../../utils";
 import "./DetailPackage.scss";
 import { useGetPackageByIdQuery } from "../../../store/api/publicApi";
 
@@ -52,6 +52,10 @@ const DetailPackage = () => {
   const serviceGroups = useMemo(
     () => groupPackageServices(packageInfo?.packageServices || []),
     [packageInfo],
+  );
+  const packageDescriptionHtml = useMemo(
+    () => sanitizeHtml(packageInfo?.descriptionHTML),
+    [packageInfo?.descriptionHTML],
   );
 
   const imageUrl =
@@ -140,10 +144,10 @@ const DetailPackage = () => {
           <main className="package-detail-content">
             <section id="overview" className="package-section">
               <h2>Tổng quan gói khám</h2>
-              {packageInfo?.descriptionHTML ? (
+              {packageDescriptionHtml ? (
                 <div
                   className="package-html-content"
-                  dangerouslySetInnerHTML={{ __html: packageInfo.descriptionHTML }}
+                  dangerouslySetInnerHTML={{ __html: packageDescriptionHtml }}
                 />
               ) : (
                 <p>Gói khám chưa có mô tả chi tiết.</p>

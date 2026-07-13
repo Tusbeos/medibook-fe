@@ -22,16 +22,20 @@ import {
 import "./UserRedux.scss";
 
 const UserRedux: React.FC = () => {
+  const [page, setPage] = useState(0);
   const {
     data: usersResponse,
     isLoading: isLoadingUsers,
     isFetching: isFetchingUsers,
     isError: isUsersError,
-  } = useGetUsersQuery();
+    refetch: refetchUsers,
+  } = useGetUsersQuery({ page, size: 10, roleId: USER_ROLE.CLINIC_MANAGER });
   const {
     data: clinicsResponse,
     isLoading: isLoadingClinics,
+    isFetching: isFetchingClinics,
     isError: isClinicsError,
+    refetch: refetchClinics,
   } = useGetClinicsQuery();
   const [generateUserEmail] = useLazyGenerateUserEmailQuery();
   const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
@@ -222,7 +226,10 @@ const UserRedux: React.FC = () => {
     [],
   );
   const isLoadingData =
-    isLoadingUsers || isFetchingUsers || isLoadingClinics;
+    isLoadingUsers ||
+    isFetchingUsers ||
+    isLoadingClinics ||
+    isFetchingClinics;
   const isSavingUser = isCreatingUser || isUpdatingUser || isDeletingUser;
   const hasDataError = isUsersError || isClinicsError;
 
@@ -238,14 +245,6 @@ const UserRedux: React.FC = () => {
           icon="fas fa-user-plus"
         />
 
-        {isLoadingData && (
-          <div className="alert alert-info">Đang tải dữ liệu người dùng...</div>
-        )}
-        {hasDataError && (
-          <div className="alert alert-danger">
-            Không thể tải đầy đủ dữ liệu người dùng.
-          </div>
-        )}
         {isSavingUser && (
           <div className="alert alert-info">Đang xử lý yêu cầu...</div>
         )}
@@ -321,10 +320,45 @@ const UserRedux: React.FC = () => {
           columns={columns}
           data={filteredUsers}
           rowKey={(item: any) => item.id}
-          emptyText="Không tìm thấy người dùng nào"
+          isLoading={isLoadingData}
+          isError={hasDataError}
+          loadingText="Đang tải danh sách Clinic Manager..."
+          errorText="Không thể tải danh sách Clinic Manager."
+          emptyText={
+            searchTerm.trim()
+              ? "Không có Clinic Manager phù hợp với từ khóa."
+              : "Chưa có Clinic Manager nào."
+          }
+          onRetry={() => {
+            void refetchUsers();
+            void refetchClinics();
+          }}
           onEdit={handleEditUser}
           onDelete={(item: any) => void handleDeleteUser(item.id)}
         />
+        {(usersResponse?.pagination?.totalPages || 0) > 1 && (
+          <div className="d-flex justify-content-center align-items-center gap-3 py-3">
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              disabled={usersResponse?.pagination?.first || isFetchingUsers}
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+            >
+              Trang trước
+            </button>
+            <span>
+              Trang {page + 1}/{usersResponse?.pagination?.totalPages || 1}
+            </span>
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              disabled={usersResponse?.pagination?.last || isFetchingUsers}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Trang sau
+            </button>
+          </div>
+        )}
       </Panel>
     </div>
   );

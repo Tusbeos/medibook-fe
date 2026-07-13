@@ -248,6 +248,28 @@ $primary-color: #45c3d2;
   }
 }
 
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px 0 4px;
+
+  button {
+    border: 1px solid #2f855a;
+    border-radius: 6px;
+    background: #fff;
+    color: #2f855a;
+    padding: 7px 14px;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+  }
+}
+
 @media (max-width: 600px) {
   .patient-history-container {
     .history-card .history-body .history-list .history-item .item-summary .summary-left {

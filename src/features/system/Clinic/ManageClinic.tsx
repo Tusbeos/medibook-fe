@@ -45,7 +45,9 @@ const ManageClinic = () => {
   const {
     data: clinicsResponse,
     isLoading: isLoadingClinics,
+    isFetching: isFetchingClinics,
     isError: isClinicsError,
+    refetch: refetchClinics,
   } = useGetClinicsQuery();
   const [getClinicById] = useLazyGetClinicByIdQuery();
   const [createClinic] = useCreateClinicMutation();
@@ -200,12 +202,6 @@ const ManageClinic = () => {
     );
   }, [clinics, searchTerm]);
 
-  const clinicEmptyText = isLoadingClinics
-    ? "Đang tải danh sách phòng khám..."
-    : isClinicsError
-      ? "Không tải được danh sách phòng khám."
-      : "Chưa có dữ liệu phòng khám";
-
   const columns = [
     {
       key: "name",
@@ -346,7 +342,16 @@ const ManageClinic = () => {
           columns={columns}
           data={filteredClinics}
           rowKey={(item: any) => item.id}
-          emptyText={clinicEmptyText}
+          isLoading={isLoadingClinics || isFetchingClinics}
+          isError={isClinicsError}
+          loadingText="Đang tải danh sách phòng khám..."
+          errorText="Không tải được danh sách phòng khám."
+          emptyText={
+            searchTerm.trim()
+              ? "Không có phòng khám phù hợp với từ khóa."
+              : "Chưa có dữ liệu phòng khám."
+          }
+          onRetry={() => void refetchClinics()}
           onEdit={handleEditClinic}
           onDelete={handleDeleteClinic}
         />

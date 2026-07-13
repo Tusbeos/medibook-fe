@@ -1,11 +1,11 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import HomeHeader from "layout/HomeHeader";
 import HomeFooter from "layout/HomeFooter";
 import Breadcrumb from "components/Breadcrumb";
 import "./DetailDoctor.scss";
-import { LANGUAGES } from "utils";
+import { LANGUAGES, sanitizeHtml } from "utils";
 import DoctorSchedules from "./DoctorSchedules";
 import DoctorExtraInfo from "./DoctorExtraInfo";
 import { IRootState } from "../../../types";
@@ -18,6 +18,10 @@ const DetailDoctor = () => {
   const detailDoctor = doctorResponse?.errCode === 0 && doctorResponse.data
     ? doctorResponse.data
     : { image: "", positionData: {} };
+  const doctorDescriptionHtml = useMemo(
+    () => sanitizeHtml(detailDoctor?.Markdown?.contentHTML),
+    [detailDoctor?.Markdown?.contentHTML],
+  );
 
   const buildDoctorName = useCallback(
     (doctor: any) => {
@@ -98,10 +102,10 @@ const DetailDoctor = () => {
           <div className="detail-info">
             {detailDoctor &&
               detailDoctor.Markdown &&
-              detailDoctor.Markdown.contentHTML && (
+              doctorDescriptionHtml && (
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: detailDoctor.Markdown.contentHTML,
+                    __html: doctorDescriptionHtml,
                   }}
                 ></div>
               )}

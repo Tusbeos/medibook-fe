@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
@@ -6,6 +6,7 @@ import {
   useApproveClinicManagerPackageMutation,
   useGetClinicManagerPackagesQuery,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 const getStatusKey = (pkg: any) =>
   pkg.statusId || pkg.status_id || pkg.statusData?.keyMap || "";
@@ -34,12 +35,6 @@ const ClinicManagerPackages: React.FC = () => {
         : [],
     [packagesResponse],
   );
-
-  useEffect(() => {
-    if (isError) {
-      toast.error("Không thể tải danh sách gói khám.");
-    }
-  }, [isError]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return packages;
@@ -104,12 +99,22 @@ const ClinicManagerPackages: React.FC = () => {
         </div>
 
         {isLoading || isFetching ? (
-          <div className="cm-empty">Đang tải...</div>
+          <DataState variant="loading" text="Đang tải danh sách gói khám..." />
+        ) : isError ? (
+          <DataState
+            variant="error"
+            text="Không thể tải danh sách gói khám."
+            onRetry={() => void refetchPackages()}
+          />
         ) : filtered.length === 0 ? (
-          <div className="cm-empty">
-            <i className="fas fa-box-open" />
-            Chưa có gói khám nào.
-          </div>
+          <DataState
+            variant="empty"
+            text={
+              packages.length > 0
+                ? "Không có gói khám phù hợp với từ khóa."
+                : "Chưa có gói khám nào."
+            }
+          />
         ) : (
           filtered.map((pkg) => {
             const statusKey = getStatusKey(pkg);

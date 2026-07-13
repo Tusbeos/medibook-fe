@@ -5,11 +5,13 @@ import "./ManageSchedule.scss";
 import Select from "react-select";
 import { LANGUAGES, USER_ROLE } from "../../../utils";
 import DatePicker from "components/Input/DatePicker";
+import { DataState } from "components/System/SystemShared";
 import { toast } from "react-toastify";
 import _ from "lodash";
 import moment from "moment";
-import { IRootState } from "../../../types";
+import { IAllCode, IRootState } from "../../../types";
 import {
+  useGetAllCodeQuery,
   useGetAllDoctorsQuery,
   useGetDoctorsByClinicIdQuery,
   useGetDoctorScheduleQuery,
@@ -27,28 +29,24 @@ const TIME_SLOT_GROUPS = [
   { key: "evening", label: "Buổi tối" },
 ];
 
-const FIXED_TIME_SLOTS = [
-  { keyMap: "T1", valueVi: "07:30 - 08:00", valueEn: "07:30 AM - 08:00 AM", group: "morning" },
-  { keyMap: "T2", valueVi: "08:00 - 08:30", valueEn: "08:00 AM - 08:30 AM", group: "morning" },
-  { keyMap: "T3", valueVi: "08:30 - 09:00", valueEn: "08:30 AM - 09:00 AM", group: "morning" },
-  { keyMap: "T4", valueVi: "09:00 - 09:30", valueEn: "09:00 AM - 09:30 AM", group: "morning" },
-  { keyMap: "T5", valueVi: "09:30 - 10:00", valueEn: "09:30 AM - 10:00 AM", group: "morning" },
-  { keyMap: "T6", valueVi: "10:00 - 10:30", valueEn: "10:00 AM - 10:30 AM", group: "morning" },
-  { keyMap: "T7", valueVi: "10:30 - 11:00", valueEn: "10:30 AM - 11:00 AM", group: "morning" },
-  { keyMap: "T8", valueVi: "11:00 - 11:30", valueEn: "11:00 AM - 11:30 AM", group: "morning" },
-  { keyMap: "T9", valueVi: "13:00 - 13:30", valueEn: "01:00 PM - 01:30 PM", group: "afternoon" },
-  { keyMap: "T10", valueVi: "13:30 - 14:00", valueEn: "01:30 PM - 02:00 PM", group: "afternoon" },
-  { keyMap: "T11", valueVi: "14:00 - 14:30", valueEn: "02:00 PM - 02:30 PM", group: "afternoon" },
-  { keyMap: "T12", valueVi: "14:30 - 15:00", valueEn: "02:30 PM - 03:00 PM", group: "afternoon" },
-  { keyMap: "T13", valueVi: "15:00 - 15:30", valueEn: "03:00 PM - 03:30 PM", group: "afternoon" },
-  { keyMap: "T14", valueVi: "15:30 - 16:00", valueEn: "03:30 PM - 04:00 PM", group: "afternoon" },
-  { keyMap: "T15", valueVi: "16:00 - 16:30", valueEn: "04:00 PM - 04:30 PM", group: "afternoon" },
-  { keyMap: "T16", valueVi: "16:30 - 17:00", valueEn: "04:30 PM - 05:00 PM", group: "afternoon" },
-  { keyMap: "T17", valueVi: "17:30 - 18:00", valueEn: "05:30 PM - 06:00 PM", group: "evening" },
-  { keyMap: "T18", valueVi: "18:00 - 18:30", valueEn: "06:00 PM - 06:30 PM", group: "evening" },
-  { keyMap: "T19", valueVi: "18:30 - 19:00", valueEn: "06:30 PM - 07:00 PM", group: "evening" },
-  { keyMap: "T20", valueVi: "19:00 - 19:30", valueEn: "07:00 PM - 07:30 PM", group: "evening" },
-];
+const getTimeSlotOrder = (keyMap = "") => {
+  const match = keyMap.match(/(\d+)$/);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+};
+
+const getTimeSlotGroup = (slot: IAllCode) => {
+  const startHour = Number(slot.valueVi?.match(/^(\d{1,2}):/)?.[1]);
+  if (Number.isFinite(startHour)) {
+    if (startHour < 12) return "morning";
+    if (startHour < 17) return "afternoon";
+    return "evening";
+  }
+
+  const order = getTimeSlotOrder(slot.keyMap);
+  if (order <= 8) return "morning";
+  if (order <= 16) return "afternoon";
+  return "evening";
+};
 
 const getScheduleSnapshot = (slots: any[] = []) => {
   return JSON.stringify(
@@ -95,6 +93,7 @@ const ManageSchedule = () => {
     isLoading: isLoadingAllDoctors,
     isFetching: isFetchingAllDoctors,
     isError: isAllDoctorsError,
+    refetch: refetchAllDoctors,
   } = useGetAllDoctorsQuery(undefined, {
     skip: !shouldLoadAllDoctors,
   });
@@ -103,9 +102,17 @@ const ManageSchedule = () => {
     isLoading: isLoadingClinicDoctors,
     isFetching: isFetchingClinicDoctors,
     isError: isClinicDoctorsError,
+    refetch: refetchClinicDoctors,
   } = useGetDoctorsByClinicIdQuery(userClinicId, {
     skip: !isClinicManager || !userClinicId,
   });
+  const {
+    data: timeCodesResponse,
+    isLoading: isLoadingTimeCodes,
+    isFetching: isFetchingTimeCodes,
+    isError: isTimeCodesError,
+    refetch: refetchTimeCodes,
+  } = useGetAllCodeQuery("TIME");
 
   const allDoctors = useMemo(
     () =>
@@ -122,6 +129,24 @@ const ManageSchedule = () => {
         ? clinicDoctorsResponse.data
         : [],
     [clinicDoctorsResponse],
+  );
+  const timeSlots = useMemo(
+    () =>
+      timeCodesResponse?.errCode === 0 && Array.isArray(timeCodesResponse.data)
+        ? timeCodesResponse.data
+            .filter((slot: IAllCode) => Boolean(slot.keyMap))
+            .sort(
+              (first: IAllCode, second: IAllCode) =>
+                getTimeSlotOrder(first.keyMap) - getTimeSlotOrder(second.keyMap),
+            )
+            .map((slot: IAllCode) => ({
+              keyMap: slot.keyMap,
+              valueVi: slot.valueVi || slot.keyMap,
+              valueEn: slot.valueEn || slot.valueVi || slot.keyMap,
+              group: getTimeSlotGroup(slot),
+            }))
+        : [],
+    [timeCodesResponse],
   );
 
   const buildDataInputSelect = useCallback(
@@ -143,7 +168,7 @@ const ManageSchedule = () => {
       scheduled.map((item: any) => [item.timeType, item]),
     );
 
-    return FIXED_TIME_SLOTS.map((slot) => {
+    return timeSlots.map((slot) => {
       const existing = scheduledByKey.get(slot.keyMap);
       return {
         ...slot,
@@ -154,7 +179,7 @@ const ManageSchedule = () => {
         currentNumber: existing?.currentNumber || 0,
       };
     });
-  }, []);
+  }, [timeSlots]);
 
   const listDoctors = useMemo(() => {
     if (isClinicManager) return buildDataInputSelect(clinicDoctors);
@@ -393,6 +418,11 @@ const ManageSchedule = () => {
       return;
     }
 
+    if (timeSlots.length === 0) {
+      toast.error("Không có định nghĩa khung giờ khám hợp lệ.");
+      return;
+    }
+
     if (rangeTime && rangeTime.length > 0) {
       let selectedTime = rangeTime.filter((item) => item.isSelected === true);
       const schedulesToDelete = rangeTime.filter(
@@ -467,6 +497,7 @@ const ManageSchedule = () => {
     ? isClinicDoctorsError
     : shouldLoadAllDoctors && isAllDoctorsError;
   const isSchedulePending = isLoadingSchedule || isFetchingSchedule;
+  const isTimeSlotsPending = isLoadingTimeCodes || isFetchingTimeCodes;
   const canSelectDoctor = isClinicManager;
   const selectedSlots = rangeTime.filter((item) => item.isSelected);
   const totalCapacity = selectedSlots.reduce(
@@ -532,10 +563,30 @@ const ManageSchedule = () => {
                 )}
 
                 {isDoctorListError && (
-                  <div className="col-12 alert alert-danger">
-                    Không thể tải danh sách bác sĩ.
+                  <div className="col-12">
+                    <DataState
+                      variant="error"
+                      text="Không thể tải danh sách bác sĩ."
+                      onRetry={() => {
+                        if (isClinicManager) void refetchClinicDoctors();
+                        else if (shouldLoadAllDoctors) void refetchAllDoctors();
+                      }}
+                      compact
+                    />
                   </div>
                 )}
+                {!isLoadingDoctorList &&
+                  !isDoctorListError &&
+                  canSelectDoctor &&
+                  listDoctors.length === 0 && (
+                    <div className="col-12">
+                      <DataState
+                        variant="empty"
+                        text="Cơ sở y tế chưa có bác sĩ để xếp lịch."
+                        compact
+                      />
+                    </div>
+                  )}
 
                 {/* Chọn Ngày */}
                 <div className="col-md-6 form-group">
@@ -581,15 +632,59 @@ const ManageSchedule = () => {
                     </div>
                   </div>
 
+                  {isTimeSlotsPending && (
+                    <DataState
+                      variant="loading"
+                      text="Đang tải danh mục khung giờ..."
+                      compact
+                    />
+                  )}
+                  {isTimeCodesError && (
+                    <DataState
+                      variant="error"
+                      text="Không thể tải danh mục khung giờ."
+                      onRetry={() => void refetchTimeCodes()}
+                      compact
+                    />
+                  )}
+                  {!isTimeSlotsPending &&
+                    !isTimeCodesError &&
+                    timeSlots.length === 0 && (
+                      <DataState
+                        variant="empty"
+                        text="Backend chưa cấu hình khung giờ khám."
+                        compact
+                      />
+                    )}
+
                   {isSchedulePending && (
-                    <div className="alert alert-info">Đang tải lịch khám...</div>
+                    <DataState
+                      variant="loading"
+                      text="Đang tải lịch khám..."
+                      compact
+                    />
                   )}
                   {isScheduleError && (
-                    <div className="alert alert-danger">
-                      Không thể tải lịch khám.
-                    </div>
+                    <DataState
+                      variant="error"
+                      text="Không thể tải lịch khám."
+                      onRetry={() => void refetchSchedule()}
+                      compact
+                    />
+                  )}
+                  {!isSchedulePending &&
+                    !isScheduleError &&
+                    !shouldFetchSchedule && (
+                      <DataState
+                        variant="empty"
+                        text="Vui lòng chọn bác sĩ để xem và chỉnh sửa lịch khám."
+                        compact
+                      />
                   )}
 
+                  {!isTimeSlotsPending &&
+                    !isTimeCodesError &&
+                    timeSlots.length > 0 && (
                   <div className="time-groups">
                     {TIME_SLOT_GROUPS.map((group) => {
                       const groupSlots = rangeTime.filter(
@@ -679,6 +774,7 @@ const ManageSchedule = () => {
                       );
                     })}
                   </div>
+                  )}
                 </div>
 
                 <div className="col-12 pick-hour-container legacy-time-picker">

@@ -12,6 +12,7 @@ import {
   useGetPatientsByDoctorQuery,
   useConfirmPatientBookingMutation,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 const ManagePatient = () => {
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
@@ -31,8 +32,11 @@ const ManagePatient = () => {
   const shouldLoadDoctors =
     isAdmin || (isDoctorRole && !userDoctorId && !!userInfo?.email);
 
-  const { data: doctorsResponse, isError: isDoctorsError } =
-    useGetAllDoctorsQuery(undefined, {
+  const {
+    data: doctorsResponse,
+    isError: isDoctorsError,
+    refetch: refetchDoctors,
+  } = useGetAllDoctorsQuery(undefined, {
       skip: !shouldLoadDoctors,
     });
 
@@ -96,6 +100,7 @@ const ManagePatient = () => {
     isLoading: isLoadingPatients,
     isFetching: isFetchingPatients,
     isError: isPatientsError,
+    refetch: refetchPatients,
   } = useGetPatientsByDoctorQuery(
     { doctorId: activeDoctorId, date: selectedDateValue },
     { skip: !shouldFetchPatients },
@@ -356,12 +361,6 @@ const ManagePatient = () => {
               </span>
             </div>
             <div className="card-body p-0">
-              {errorMessage && (
-                <div className="patient-error-message">
-                  <i className="fas fa-exclamation-circle"></i>
-                  {errorMessage}
-                </div>
-              )}
               <div className="table-responsive">
                 <table className="table table-striped table-bordered mb-0">
                   <thead>
@@ -379,9 +378,26 @@ const ManagePatient = () => {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={8} className="text-center p-4">
-                          <i className="fas fa-spinner fa-spin mr-2"></i> Đang
-                          tải dữ liệu...
+                        <td colSpan={8}>
+                          <DataState
+                            variant="loading"
+                            text="Đang tải danh sách bệnh nhân..."
+                          />
+                        </td>
+                      </tr>
+                    ) : errorMessage ? (
+                      <tr>
+                        <td colSpan={8}>
+                          <DataState
+                            variant="error"
+                            text={errorMessage}
+                            onRetry={() => {
+                              if (shouldFetchPatients) void refetchPatients();
+                              if (isDoctorsError && shouldLoadDoctors) {
+                                void refetchDoctors();
+                              }
+                            }}
+                          />
                         </td>
                       </tr>
                     ) : (
@@ -453,10 +469,17 @@ const ManagePatient = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={8} className="text-center p-4">
-                              {patients.length > 0
-                                ? "Không có bệnh nhân phù hợp với bộ lọc."
-                                : "Chưa có bệnh nhân đặt lịch vào ngày này."}
+                            <td colSpan={8}>
+                              <DataState
+                                variant="empty"
+                                text={
+                                  !shouldFetchPatients
+                                    ? "Vui lòng chọn bác sĩ để xem lịch hẹn."
+                                    : patients.length > 0
+                                      ? "Không có bệnh nhân phù hợp với bộ lọc."
+                                      : "Chưa có bệnh nhân đặt lịch vào ngày này."
+                                }
+                              />
                             </td>
                           </tr>
                         )}

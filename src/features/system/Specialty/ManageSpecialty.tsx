@@ -37,7 +37,9 @@ const ManageSpecialty = () => {
   const {
     data: specialtiesResponse,
     isLoading: isLoadingSpecialties,
+    isFetching: isFetchingSpecialties,
     isError: isSpecialtiesError,
+    refetch: refetchSpecialties,
   } = useGetSpecialtiesQuery();
   const [createSpecialty] = useCreateSpecialtyMutation();
   const [updateSpecialty] = useUpdateSpecialtyMutation();
@@ -154,12 +156,6 @@ const ManageSpecialty = () => {
       );
     });
   }, [searchTerm, specialties]);
-
-  const specialtyEmptyText = isLoadingSpecialties
-    ? "Đang tải danh sách chuyên khoa..."
-    : isSpecialtiesError
-      ? "Không tải được danh sách chuyên khoa."
-      : "Chưa có chuyên khoa phù hợp.";
 
   const columns = [
     {
@@ -302,7 +298,16 @@ const ManageSpecialty = () => {
           columns={columns}
           data={filteredSpecialties}
           rowKey={(item: ISpecialty) => item.id || 0}
-          emptyText={specialtyEmptyText}
+          isLoading={isLoadingSpecialties || isFetchingSpecialties}
+          isError={isSpecialtiesError}
+          loadingText="Đang tải danh sách chuyên khoa..."
+          errorText="Không tải được danh sách chuyên khoa."
+          emptyText={
+            searchTerm.trim()
+              ? "Không có chuyên khoa phù hợp với từ khóa."
+              : "Chưa có chuyên khoa nào."
+          }
+          onRetry={() => void refetchSpecialties()}
           onEdit={handleEditSpecialty}
           onDelete={handleDeleteSpecialty}
         />

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useClinicContext } from "./useClinicContext";
 import "./ClinicManagerShared.scss";
@@ -6,9 +6,13 @@ import {
   useGetClinicBookingsQuery,
   useUpdateClinicBookingStatusMutation,
 } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 const ClinicManagerBookings: React.FC = () => {
   const { isClinicManager, selectedClinicId } = useClinicContext();
+  const [filter, setFilter] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
   const {
     data: bookingsResponse,
     isLoading,
@@ -16,12 +20,15 @@ const ClinicManagerBookings: React.FC = () => {
     isError,
     refetch: refetchBookings,
   } = useGetClinicBookingsQuery(
-    { clinicId: selectedClinicId },
+    {
+      clinicId: selectedClinicId,
+      status: filter || undefined,
+      page,
+      size: 10,
+    },
     { skip: !selectedClinicId },
   );
   const [updateBookingStatus] = useUpdateClinicBookingStatusMutation();
-  const [filter, setFilter] = useState<string>("");
-  const [search, setSearch] = useState("");
 
   const bookings = useMemo(
     () =>
@@ -31,17 +38,8 @@ const ClinicManagerBookings: React.FC = () => {
     [bookingsResponse],
   );
 
-  useEffect(() => {
-    if (isError) {
-      toast.error("Không thể tải danh sách lịch hẹn.");
-    }
-  }, [isError]);
-
   const filteredBookings = useMemo(() => {
     let list = bookings;
-    if (filter) {
-      list = list.filter((b) => b.statusId === filter);
-    }
     if (search.trim()) {
       const kw = search.trim().toLowerCase();
       list = list.filter(
@@ -53,7 +51,12 @@ const ClinicManagerBookings: React.FC = () => {
       );
     }
     return list;
-  }, [bookings, filter, search]);
+  }, [bookings, search]);
+
+  const handleFilterChange = useCallback((status: string) => {
+    setFilter(status);
+    setPage(0);
+  }, []);
 
   const handleConfirm = useCallback(
     async (bookingId: number) => {
@@ -106,16 +109,6 @@ const ClinicManagerBookings: React.FC = () => {
     }
   };
 
-  const counts = useMemo(
-    () => ({
-      all: bookings.length,
-      S1: bookings.filter((b) => b.statusId === "S1").length,
-      S2: bookings.filter((b) => b.statusId === "S2").length,
-      S3: bookings.filter((b) => b.statusId === "S3").length,
-    }),
-    [bookings],
-  );
-
   if (!isClinicManager || !selectedClinicId) {
     return (
       <div className="cm-page">
@@ -142,27 +135,27 @@ const ClinicManagerBookings: React.FC = () => {
         <div className="cm-filter-tabs">
           <button
             className={filter === "" ? "active" : ""}
-            onClick={() => setFilter("")}
+            onClick={() => handleFilterChange("")}
           >
-            Tất cả ({counts.all})
+            Tất cả
           </button>
           <button
             className={filter === "S2" ? "active" : ""}
-            onClick={() => setFilter("S2")}
+            onClick={() => handleFilterChange("S2")}
           >
-            Chờ xác nhận ({counts.S2})
+            Chờ xác nhận
           </button>
           <button
             className={filter === "S3" ? "active" : ""}
-            onClick={() => setFilter("S3")}
+            onClick={() => handleFilterChange("S3")}
           >
-            Đã xác nhận ({counts.S3})
+            Đã xác nhận
           </button>
           <button
             className={filter === "S1" ? "active" : ""}
-            onClick={() => setFilter("S1")}
+            onClick={() => handleFilterChange("S1")}
           >
-            Chờ email ({counts.S1})
+            Chờ email
           </button>
         </div>
 
@@ -190,12 +183,22 @@ const ClinicManagerBookings: React.FC = () => {
         </div>
 
         {isLoading || isFetching ? (
-          <div className="cm-empty">Đang tải...</div>
+          <DataState variant="loading" text="Đang tải danh sách lịch hẹn..." />
+        ) : isError ? (
+          <DataState
+            variant="error"
+            text="Không thể tải danh sách lịch hẹn."
+            onRetry={() => void refetchBookings()}
+          />
         ) : filteredBookings.length === 0 ? (
-          <div className="cm-empty">
-            <i className="fas fa-calendar-times" />
-            Chưa có lịch hẹn nào.
-          </div>
+          <DataState
+            variant="empty"
+            text={
+              bookings.length > 0
+                ? "Không có lịch hẹn phù hợp với bộ lọc."
+                : "Chưa có lịch hẹn nào."
+            }
+          />
         ) : (
           filteredBookings.map((booking) => (
             <div
@@ -254,6 +257,29 @@ const ClinicManagerBookings: React.FC = () => {
           ))
         )}
       </div>
+      {(bookingsResponse?.pagination?.totalPages || 0) > 1 && (
+        <div className="d-flex justify-content-center align-items-center gap-3 py-3">
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            disabled={bookingsResponse?.pagination?.first || isFetching}
+            onClick={() => setPage((current) => Math.max(0, current - 1))}
+          >
+            Trang trước
+          </button>
+          <span>
+            Trang {page + 1}/{bookingsResponse?.pagination?.totalPages || 1}
+          </span>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            disabled={bookingsResponse?.pagination?.last || isFetching}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            Trang sau
+          </button>
+        </div>
+      )}
     </div>
   );
 };

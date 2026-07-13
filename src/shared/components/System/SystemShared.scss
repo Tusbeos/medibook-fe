@@ -48,6 +48,40 @@
   @include sys-empty-state;
 }
 
+.sys-data-state {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 72px;
+
+  i {
+    font-size: 16px;
+  }
+
+  button {
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    color: inherit;
+    cursor: pointer;
+    margin-left: 4px;
+    padding: 5px 10px;
+  }
+}
+
+.sys-data-state-compact {
+  min-height: 48px;
+}
+
+.sys-data-state-loading {
+  color: #2563eb;
+}
+
+.sys-data-state-error {
+  color: $sys-danger;
+}
+
 .sys-actions-row {
   @include sys-actions-row;
 }

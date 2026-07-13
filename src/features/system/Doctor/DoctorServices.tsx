@@ -8,6 +8,7 @@ import React, {
 import "./DoctorServices.scss";
 import { toast } from "react-toastify";
 import { useGetDoctorServicesQuery } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 interface IDoctorServiceItem {
   nameVi: string;
@@ -40,6 +41,7 @@ const DoctorServices = forwardRef<any, IDoctorServicesProps>(
       isLoading,
       isFetching,
       isError,
+      refetch,
     } = useGetDoctorServicesQuery(doctorIdFromParent, {
       skip: !doctorIdFromParent,
     });
@@ -146,21 +148,32 @@ const DoctorServices = forwardRef<any, IDoctorServicesProps>(
             </div>
             <div className="service-body">
               {isLoading || isFetching ? (
-                <div className="text-center p-3">
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  Đang tải dữ liệu dịch vụ...
-                </div>
+                <DataState
+                  variant="loading"
+                  text="Đang tải dữ liệu dịch vụ..."
+                  compact
+                />
               ) : isError ? (
-                <div className="text-center text-danger p-3">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
-                  Không thể tải danh sách dịch vụ.
-                </div>
+                <DataState
+                  variant="error"
+                  text="Không thể tải danh sách dịch vụ."
+                  onRetry={() => void refetch()}
+                  compact
+                />
               ) : (
-                arrServices &&
-                arrServices.length > 0 &&
-                arrServices.map((item, index) => {
-                  return (
-                    <div className="row service-row" key={index}>
+                <>
+                  {servicesResponse?.errCode === 0 &&
+                    Array.isArray(servicesResponse.data) &&
+                    servicesResponse.data.length === 0 && (
+                      <DataState
+                        variant="empty"
+                        text="Bác sĩ chưa có dịch vụ; hãy nhập dịch vụ đầu tiên."
+                        compact
+                      />
+                    )}
+                  {arrServices.map((item, index) => {
+                    return (
+                      <div className="row service-row" key={index}>
                       {/* Cột 1: Tên TV */}
                       <div className="col-3">
                         <input
@@ -224,15 +237,17 @@ const DoctorServices = forwardRef<any, IDoctorServicesProps>(
                           <i className="fas fa-trash-alt"></i>
                         </button>
                       </div>
-                    </div>
-                  );
-                })
+                      </div>
+                    );
+                  })}
+                </>
               )}
             </div>
             <div className="action-row">
               <button
                 className="btn btn-primary btn-add-new"
                 onClick={() => handleAddNewRow()}
+                disabled={isLoading || isFetching || isError}
               >
                 <i className="fas fa-plus-circle"></i> Thêm dịch vụ
               </button>
