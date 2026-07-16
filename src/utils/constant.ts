@@ -17,6 +17,8 @@ export const path = {
   LIST_TOP_DOCTOR: "/top-doctor",
   PATIENT_PROFILE: "/patient/profile",
   PATIENT_HISTORY: "/patient/history",
+  LIST_ARTICLE: "/articles",
+  DETAIL_ARTICLE: "/articles/:slug",
 };
 
 export const LANGUAGES = {
@@ -45,4 +47,5 @@ export const USER_ROLE = {
   DOCTOR: "R2",
   PATIENT: "R3",
   CLINIC_MANAGER: "R4",
+  WRITER: "R5",
 };

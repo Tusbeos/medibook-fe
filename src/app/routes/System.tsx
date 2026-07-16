@@ -15,6 +15,10 @@ import ClinicManagerBookings from "features/system/ClinicManager/ClinicManagerBo
 import ClinicManagerPackages from "features/system/ClinicManager/ClinicManagerPackages";
 import ClinicManagerApprovals from "features/system/ClinicManager/ClinicManagerApprovals";
 import ClinicManagerReviewDoctor from "features/system/ClinicManager/ClinicManagerReviewDoctor";
+import WriterArticles from "features/system/Article/WriterArticles";
+import ArticleEditor from "features/system/Article/ArticleEditor";
+import AdminArticleReview from "features/system/Article/AdminArticleReview";
+import { RequireWriter } from "hoc/authentication";
 import { IRootState } from "types";
 import { USER_ROLE } from "utils";
 import "./System.scss";
@@ -23,6 +27,7 @@ const System = () => {
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const isClinicManager = userInfo?.roleId === USER_ROLE.CLINIC_MANAGER;
+  const isWriter = userInfo?.roleId === USER_ROLE.WRITER;
 
   return (
     <div className="admin-layout">
@@ -32,7 +37,40 @@ const System = () => {
         <div className="system-container">
           <div className="system-list">
             <Routes>
-              {isClinicManager ? (
+              {isWriter ? (
+                <>
+                  <Route
+                    path="writer/articles"
+                    element={
+                      <RequireWriter>
+                        <WriterArticles />
+                      </RequireWriter>
+                    }
+                  />
+                  <Route
+                    path="writer/articles/new"
+                    element={
+                      <RequireWriter>
+                        <ArticleEditor />
+                      </RequireWriter>
+                    }
+                  />
+                  <Route
+                    path="writer/articles/:articleId/edit"
+                    element={
+                      <RequireWriter>
+                        <ArticleEditor />
+                      </RequireWriter>
+                    }
+                  />
+                  <Route
+                    path="*"
+                    element={
+                      <Navigate to="/system/writer/articles" replace />
+                    }
+                  />
+                </>
+              ) : isClinicManager ? (
                 <>
                   <Route
                     path="clinic-manager"
@@ -75,6 +113,10 @@ const System = () => {
                 <>
                   <Route path="user-crud-redux" element={<UserRedux />} />
                   <Route path="user-management" element={<UserRedux />} />
+                  <Route
+                    path="writer-management"
+                    element={<UserRedux roleId={USER_ROLE.WRITER} />}
+                  />
                   <Route path="manage-doctor" element={<ManageDoctor />} />
                   <Route
                     path="manage-doctor/create"
@@ -90,6 +132,7 @@ const System = () => {
                   />
                   <Route path="manage-clinic" element={<ManageClinic />} />
                   <Route path="manage-package" element={<ManagePackage />} />
+                  <Route path="articles" element={<AdminArticleReview />} />
                   <Route path="*" element={<UserRedux />} />
                 </>
               )}

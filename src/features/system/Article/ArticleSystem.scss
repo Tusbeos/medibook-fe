@@ -1,0 +1,275 @@
+.article-system-page {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+
+  .sys-panel {
+    min-width: 0;
+  }
+
+  .sys-form-field input,
+  .sys-form-field textarea,
+  .article-review-controls textarea {
+    width: 100%;
+    border: 1px solid #d8e1e8;
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: #263238;
+    background: #fff;
+
+    &:focus {
+      outline: none;
+      border-color: #1aa090;
+      box-shadow: 0 0 0 3px rgba(26, 160, 144, 0.12);
+    }
+  }
+}
+
+.article-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #edf1f4;
+  flex-wrap: wrap;
+}
+
+.article-status-tabs {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+
+  button {
+    border: 1px solid #d8e1e8;
+    border-radius: 18px;
+    background: #fff;
+    color: #52616b;
+    padding: 7px 12px;
+    cursor: pointer;
+
+    &.active {
+      border-color: #1aa090;
+      color: #087568;
+      background: #e9f8f5;
+      font-weight: 600;
+    }
+  }
+}
+
+.article-title-cell {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+
+  strong {
+    color: #263238;
+  }
+
+  span {
+    color: #77848c;
+    font-size: 13px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.article-table-actions,
+.article-editor-actions,
+.article-review-actions,
+.article-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.article-table-actions {
+  button {
+    border: 1px solid #d8e1e8;
+    background: #fff;
+    border-radius: 6px;
+    color: #52616b;
+    padding: 6px 9px;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &.submit {
+      color: #087568;
+      border-color: #8bd3c8;
+      background: #f0fbf9;
+    }
+  }
+
+  span {
+    color: #9aa5ab;
+    font-size: 13px;
+  }
+}
+
+.article-primary-button,
+.article-secondary-button,
+.article-danger-button,
+.article-pagination button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.article-primary-button {
+  background: #118c7e;
+  color: #fff;
+}
+
+.article-secondary-button,
+.article-pagination button {
+  background: #eef2f4;
+  color: #455a64;
+}
+
+.article-danger-button {
+  background: #fff0f0;
+  color: #b42318;
+  border: 1px solid #f2b8b5;
+}
+
+.article-pagination {
+  justify-content: flex-end;
+  padding: 16px 20px;
+  color: #66757e;
+}
+
+.article-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.65fr);
+  gap: 18px;
+}
+
+.article-editor-page .sys-form-field {
+  padding: 0 20px;
+  margin-top: 18px;
+}
+
+.article-thumbnail-preview {
+  margin: 16px 20px 0;
+
+  img {
+    width: 220px;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e4eaee;
+  }
+}
+
+.article-editor-actions {
+  justify-content: flex-end;
+  padding: 20px;
+}
+
+.article-review-panel {
+  padding: 24px;
+}
+
+.article-review-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #edf1f4;
+  padding-bottom: 18px;
+
+  h2 {
+    margin: 5px 0 8px;
+    color: #263238;
+  }
+
+  p {
+    color: #718088;
+    margin: 0;
+  }
+}
+
+.article-review-eyebrow {
+  color: #118c7e;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.article-review-thumbnail {
+  display: block;
+  width: min(720px, 100%);
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 22px auto;
+}
+
+.article-review-summary {
+  color: #52616b;
+  background: #f5f8f9;
+  border-left: 4px solid #1aa090;
+  padding: 14px 16px;
+  line-height: 1.6;
+}
+
+.article-review-content {
+  color: #263238;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.article-review-controls {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #edf1f4;
+  margin-top: 24px;
+  padding-top: 20px;
+
+  > label:first-child {
+    font-weight: 600;
+    color: #37474f;
+  }
+}
+
+.article-featured-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #52616b;
+
+  input {
+    width: auto;
+  }
+}
+
+.article-review-actions {
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .article-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .article-toolbar {
+    align-items: stretch;
+  }
+}

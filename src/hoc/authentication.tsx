@@ -11,6 +11,7 @@ interface IGuardProps {
 const getRoleHomePath = (roleId?: string) => {
   if (roleId === USER_ROLE.DOCTOR) return "/doctor/manage-schedule";
   if (roleId === USER_ROLE.CLINIC_MANAGER) return "/system/clinic-manager";
+  if (roleId === USER_ROLE.WRITER) return "/system/writer/articles";
   if (roleId === USER_ROLE.ADMIN) return "/system/user-management";
   return "/home";
 };
@@ -91,6 +92,32 @@ export const RequireAdmin: React.FC<IGuardProps> = ({ children }) => {
     return <Navigate to="/doctor/manage-schedule" replace />;
   }
   return <Navigate to="/login" replace />;
+};
+
+/** System shell guard for every role that owns a /system workspace. */
+export const RequireSystem: React.FC<IGuardProps> = ({ children }) => {
+  const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const role = useSelector((state: IRootState) => state.user.userInfo?.roleId);
+
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (
+    role === USER_ROLE.ADMIN ||
+    role === USER_ROLE.CLINIC_MANAGER ||
+    role === USER_ROLE.WRITER
+  ) {
+    return children;
+  }
+  return <Navigate to={getRoleHomePath(role)} replace />;
+};
+
+/** Writer-only screens inside the shared system shell. */
+export const RequireWriter: React.FC<IGuardProps> = ({ children }) => {
+  const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const role = useSelector((state: IRootState) => state.user.userInfo?.roleId);
+
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (role === USER_ROLE.WRITER) return children;
+  return <Navigate to={getRoleHomePath(role)} replace />;
 };
 
 /**

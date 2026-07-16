@@ -46,7 +46,8 @@ type PublicTagType =
   | "User"
   | "AllCode"
   | "History"
-  | "Booking";
+  | "Booking"
+  | "Article";
 
 export type SearchResult = {
   type: "doctor" | "clinic" | "specialty" | "package";
@@ -121,6 +122,7 @@ export const publicApi = createApi({
     "AllCode",
     "History",
     "Booking",
+    "Article",
   ],
   keepUnusedDataFor: 30,
   refetchOnMountOrArgChange: false,

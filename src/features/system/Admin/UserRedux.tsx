@@ -21,7 +21,15 @@ import {
 } from "components/System/SystemShared";
 import "./UserRedux.scss";
 
-const UserRedux: React.FC = () => {
+interface UserReduxProps {
+  roleId?: string;
+}
+
+const UserRedux: React.FC<UserReduxProps> = ({
+  roleId = USER_ROLE.CLINIC_MANAGER,
+}) => {
+  const isWriter = roleId === USER_ROLE.WRITER;
+  const roleLabel = isWriter ? "Writer" : "Clinic Manager";
   const [page, setPage] = useState(0);
   const {
     data: usersResponse,
@@ -29,14 +37,14 @@ const UserRedux: React.FC = () => {
     isFetching: isFetchingUsers,
     isError: isUsersError,
     refetch: refetchUsers,
-  } = useGetUsersQuery({ page, size: 10, roleId: USER_ROLE.CLINIC_MANAGER });
+  } = useGetUsersQuery({ page, size: 10, roleId });
   const {
     data: clinicsResponse,
     isLoading: isLoadingClinics,
     isFetching: isFetchingClinics,
     isError: isClinicsError,
     refetch: refetchClinics,
-  } = useGetClinicsQuery();
+  } = useGetClinicsQuery(undefined, { skip: isWriter });
   const [generateUserEmail] = useLazyGenerateUserEmailQuery();
   const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
@@ -65,7 +73,7 @@ const UserRedux: React.FC = () => {
   const [userEditId, setUserEditId] = useState<number | string>("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Auto-generate email for R4: firstName@mgr.medibook.com (BE API with debounce)
+  // Generate a unique MediBook email for the selected managed role.
   useEffect(() => {
     if (currentAction !== CRUD_ACTIONS.CREATE) return;
     if (!firstName) {
@@ -76,28 +84,30 @@ const UserRedux: React.FC = () => {
       try {
         const res = await generateUserEmail({
           firstName,
-          role: "R4",
+          role: roleId,
         }).unwrap();
         if (res?.errCode === 0 && res.data) {
           setEmail(res.data);
         } else {
-          setEmail(generateMedibookEmail(firstName, undefined, "R4"));
+          setEmail(generateMedibookEmail(firstName, undefined, roleId));
         }
       } catch {
-        setEmail(generateMedibookEmail(firstName, undefined, "R4"));
+        setEmail(generateMedibookEmail(firstName, undefined, roleId));
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [currentAction, firstName, generateUserEmail]);
+  }, [currentAction, firstName, generateUserEmail, roleId]);
 
   const checkValidateInput = useCallback(() => {
     const fields: Record<string, string> = {
       email,
       password,
       firstName,
-      clinicId: String(clinicId),
     };
-    const arrCheck = ["email", "password", "firstName", "clinicId"];
+    if (!isWriter) fields.clinicId = String(clinicId);
+    const arrCheck = isWriter
+      ? ["email", "password", "firstName"]
+      : ["email", "password", "firstName", "clinicId"];
     for (const key of arrCheck) {
       if (!fields[key]) {
         alert("Missing parameter: " + key);
@@ -105,7 +115,7 @@ const UserRedux: React.FC = () => {
       }
     }
     return true;
-  }, [email, password, firstName, clinicId]);
+  }, [email, password, firstName, clinicId, isWriter]);
 
   const resetForm = useCallback(() => {
     setEmail("");
@@ -123,8 +133,8 @@ const UserRedux: React.FC = () => {
       password,
       firstName,
       lastName: "",
-      roleId: USER_ROLE.CLINIC_MANAGER,
-      clinicId: Number(clinicId),
+      roleId,
+      clinicId: isWriter ? undefined : Number(clinicId),
     };
     try {
       const res =
@@ -137,15 +147,15 @@ const UserRedux: React.FC = () => {
       if (res?.errCode === 0) {
         toast.success(
           currentAction === CRUD_ACTIONS.CREATE
-            ? "Tạo Clinic Manager thành công."
-            : "Cập nhật Clinic Manager thành công.",
+            ? `Tạo ${roleLabel} thành công.`
+            : `Cập nhật ${roleLabel} thành công.`,
         );
         resetForm();
         return;
       }
-      toast.error(res?.errMessage || "Lưu Clinic Manager thất bại.");
+      toast.error(res?.errMessage || `Lưu ${roleLabel} thất bại.`);
     } catch {
-      toast.error("Lưu Clinic Manager thất bại.");
+      toast.error(`Lưu ${roleLabel} thất bại.`);
     }
   }, [
     checkValidateInput,
@@ -158,6 +168,9 @@ const UserRedux: React.FC = () => {
     resetForm,
     updateUser,
     userEditId,
+    isWriter,
+    roleId,
+    roleLabel,
   ]);
 
   const handleEditUser = useCallback((user: any) => {
@@ -176,32 +189,34 @@ const UserRedux: React.FC = () => {
       try {
         const res = await deleteUser(userId).unwrap();
         if (res?.errCode === 0) {
-          toast.success("Xóa Clinic Manager thành công.");
+          toast.success(`Xóa ${roleLabel} thành công.`);
           if (String(userEditId) === String(userId)) resetForm();
           return;
         }
-        toast.error(res?.errMessage || "Xóa Clinic Manager thất bại.");
+        toast.error(res?.errMessage || `Xóa ${roleLabel} thất bại.`);
       } catch {
-        toast.error("Xóa Clinic Manager thất bại.");
+        toast.error(`Xóa ${roleLabel} thất bại.`);
       }
     },
-    [deleteUser, resetForm, userEditId],
+    [deleteUser, resetForm, roleLabel, userEditId],
   );
 
   const filteredUsers = useMemo(() => {
-    const r4Users = (listUsers || []).filter((u: any) => u.roleId === "R4");
-    if (!searchTerm.trim()) return r4Users;
+    const roleUsers = (listUsers || []).filter(
+      (u: any) => u.roleId === roleId,
+    );
+    if (!searchTerm.trim()) return roleUsers;
     const term = searchTerm.toLowerCase();
-    return r4Users.filter(
+    return roleUsers.filter(
       (u: any) =>
         (u.email || "").toLowerCase().includes(term) ||
         (u.firstName || "").toLowerCase().includes(term) ||
         (u.clinicName || "").toLowerCase().includes(term),
     );
-  }, [listUsers, searchTerm]);
+  }, [listUsers, roleId, searchTerm]);
 
-  const columns = useMemo(
-    () => [
+  const columns = useMemo(() => {
+    const baseColumns = [
       { key: "email", title: "Email" },
       {
         key: "name",
@@ -212,7 +227,9 @@ const UserRedux: React.FC = () => {
           </span>
         ),
       },
-      {
+    ];
+    if (!isWriter) {
+      baseColumns.push({
         key: "clinic",
         title: "Cơ sở y tế",
         render: (item: any) =>
@@ -221,17 +238,16 @@ const UserRedux: React.FC = () => {
           ) : (
             <StatusBadge label="Chưa phân quyền" variant="warning" />
           ),
-      },
-    ],
-    [],
-  );
+      });
+    }
+    return baseColumns;
+  }, [isWriter]);
   const isLoadingData =
     isLoadingUsers ||
     isFetchingUsers ||
-    isLoadingClinics ||
-    isFetchingClinics;
+    (!isWriter && (isLoadingClinics || isFetchingClinics));
   const isSavingUser = isCreatingUser || isUpdatingUser || isDeletingUser;
-  const hasDataError = isUsersError || isClinicsError;
+  const hasDataError = isUsersError || (!isWriter && isClinicsError);
 
   return (
     <div className="manage-user-container">
@@ -239,8 +255,8 @@ const UserRedux: React.FC = () => {
         <PanelHeading
           title={
             currentAction === CRUD_ACTIONS.EDIT
-              ? "Cập nhật tài khoản Clinic Manager"
-              : "Tạo tài khoản Clinic Manager"
+              ? `Cập nhật tài khoản ${roleLabel}`
+              : `Tạo tài khoản ${roleLabel}`
           }
           icon="fas fa-user-plus"
         />
@@ -282,20 +298,22 @@ const UserRedux: React.FC = () => {
             />
           </FormField>
 
-          <FormField label="Cơ sở y tế quản lý">
-            <select
-              className="sys-input"
-              onChange={(e) => setClinicId(e.target.value)}
-              value={clinicId}
-            >
-              <option value="">-- Chọn cơ sở y tế --</option>
-              {clinicArr.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
+          {!isWriter && (
+            <FormField label="Cơ sở y tế quản lý">
+              <select
+                className="sys-input"
+                onChange={(e) => setClinicId(e.target.value)}
+                value={clinicId}
+              >
+                <option value="">-- Chọn cơ sở y tế --</option>
+                {clinicArr.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
         </div>
 
         <ActionButtons
@@ -308,11 +326,15 @@ const UserRedux: React.FC = () => {
       </Panel>
 
       <Panel>
-        <PanelHeading title="Danh sách Clinic Manager" icon="fas fa-users">
+        <PanelHeading title={`Danh sách ${roleLabel}`} icon="fas fa-users">
           <SearchBox
             value={searchTerm}
             onChange={setSearchTerm}
-            placeholder="Tìm kiếm theo tên, email, cơ sở..."
+            placeholder={
+              isWriter
+                ? "Tìm kiếm theo tên, email..."
+                : "Tìm kiếm theo tên, email, cơ sở..."
+            }
           />
         </PanelHeading>
 
@@ -322,16 +344,16 @@ const UserRedux: React.FC = () => {
           rowKey={(item: any) => item.id}
           isLoading={isLoadingData}
           isError={hasDataError}
-          loadingText="Đang tải danh sách Clinic Manager..."
-          errorText="Không thể tải danh sách Clinic Manager."
+          loadingText={`Đang tải danh sách ${roleLabel}...`}
+          errorText={`Không thể tải danh sách ${roleLabel}.`}
           emptyText={
             searchTerm.trim()
-              ? "Không có Clinic Manager phù hợp với từ khóa."
-              : "Chưa có Clinic Manager nào."
+              ? `Không có ${roleLabel} phù hợp với từ khóa.`
+              : `Chưa có ${roleLabel} nào.`
           }
           onRetry={() => {
             void refetchUsers();
-            void refetchClinics();
+            if (!isWriter) void refetchClinics();
           }}
           onEdit={handleEditUser}
           onDelete={(item: any) => void handleDeleteUser(item.id)}

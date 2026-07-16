@@ -58,7 +58,7 @@ const Login: React.FC = () => {
       }
       console.log("Login success");
 
-      // System login is only for Admin, Doctor, and Clinic Manager.
+      // System login supports Admin, Doctor, Clinic Manager, and Writer.
       const roleId = userInfo?.roleId;
       if (roleId === USER_ROLE.ADMIN) {
         navigate("/system");
@@ -66,6 +66,8 @@ const Login: React.FC = () => {
         navigate("/system/clinic-manager");
       } else if (roleId === USER_ROLE.DOCTOR) {
         navigate("/doctor/manage-schedule");
+      } else if (roleId === USER_ROLE.WRITER) {
+        navigate("/system/writer/articles");
       } else {
         navigate("/");
       }

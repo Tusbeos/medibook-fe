@@ -6,7 +6,7 @@ import { Scrollbars } from "react-custom-scrollbars-2";
 import { ToastContainer } from "react-toastify";
 import {
   RedirectIfAuth,
-  RequireAdmin,
+  RequireSystem,
   RequireDoctor,
   RequirePatient,
 } from "hoc/authentication";
@@ -33,6 +33,8 @@ import PatientHistory from "features/patient/History/PatientHistory";
 import PackageList from "features/patient/Package/PackageList";
 import DetailPackage from "features/patient/Package/DetailPackage";
 import SearchPage from "features/public/search/SearchPage";
+import ArticleList from "features/public/article/ArticleList";
+import ArticleDetail from "features/public/article/ArticleDetail";
 
 const ScrollToTopOnRouteChange: React.FC<{
   scrollbarsRef: React.RefObject<Scrollbars>;
@@ -81,9 +83,9 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 <Route
                   path={`${path.SYSTEM}/*`}
                   element={
-                    <RequireAdmin>
+                    <RequireSystem>
                       <System />
-                    </RequireAdmin>
+                    </RequireSystem>
                   }
                 />
                 <Route
@@ -110,6 +112,8 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                   path={path.SEARCH}
                   element={<SearchPage />}
                 />
+                <Route path={path.LIST_ARTICLE} element={<ArticleList />} />
+                <Route path={path.DETAIL_ARTICLE} element={<ArticleDetail />} />
                 <Route
                   path={path.DETAIL_DOCTOR}
                   element={<DetailDoctor />}

@@ -35,6 +35,7 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   const goClinic = useCallback(() => navigate("/clinic"), [navigate]);
   const goDoctor = useCallback(() => navigate("/top-doctor"), [navigate]);
   const goPackage = useCallback(() => navigate("/package"), [navigate]);
+  const goArticles = useCallback(() => navigate("/articles"), [navigate]);
   const goSearch = useCallback(() => {
     const query = searchTerm.trim();
     if (query) {
@@ -184,6 +185,15 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
               onClick={goPackage}
             >
               Gói khám
+            </button>
+            <button
+              className={
+                location.pathname.startsWith("/articles") ? "active" : ""
+              }
+              type="button"
+              onClick={goArticles}
+            >
+              Cẩm nang
             </button>
           </nav>
 

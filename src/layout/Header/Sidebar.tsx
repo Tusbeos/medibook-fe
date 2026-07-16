@@ -25,7 +25,31 @@ const Sidebar: React.FC = () => {
             label: "Quản lý bệnh nhân",
           },
         ]
-      : roleId === USER_ROLE.CLINIC_MANAGER
+      : roleId === USER_ROLE.WRITER
+        ? [
+            {
+              to: "/system/writer/articles",
+              icon: "far fa-newspaper",
+              label: "Quản lý bài viết",
+              end: true,
+            },
+            {
+              to: "/system/writer/articles/new",
+              icon: "fas fa-pen-nib",
+              label: "Tạo bài viết",
+            },
+            {
+              to: "/system/writer/articles?status=AS1",
+              icon: "far fa-file-alt",
+              label: "Bài nháp",
+            },
+            {
+              to: "/system/writer/articles?status=AS2",
+              icon: "far fa-clock",
+              label: "Bài chờ duyệt",
+            },
+          ]
+        : roleId === USER_ROLE.CLINIC_MANAGER
         ? [
             {
               to: "/system/clinic-manager",
@@ -84,6 +108,16 @@ const Sidebar: React.FC = () => {
               to: "/system/manage-package",
               icon: "far fa-calendar-alt",
               label: "Quản lý gói khám",
+            },
+            {
+              to: "/system/writer-management",
+              icon: "fas fa-user-edit",
+              label: "Quản lý Writer",
+            },
+            {
+              to: "/system/articles",
+              icon: "fas fa-clipboard-check",
+              label: "Duyệt bài viết",
             },
           ];
 
