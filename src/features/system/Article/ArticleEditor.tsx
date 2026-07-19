@@ -34,6 +34,8 @@ const ArticleEditor: React.FC = () => {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailError, setThumbnailError] = useState("");
+  const [thumbnailPreviewFailed, setThumbnailPreviewFailed] = useState(false);
   const [contentMarkdown, setContentMarkdown] = useState("");
   const [contentHtml, setContentHtml] = useState("");
 
@@ -43,6 +45,8 @@ const ArticleEditor: React.FC = () => {
     setTitle(article.title || "");
     setSummary(article.summary || "");
     setThumbnailUrl(article.thumbnailUrl || "");
+    setThumbnailError("");
+    setThumbnailPreviewFailed(false);
     setContentMarkdown(article.contentMarkdown || "");
     setContentHtml(article.contentHtml || "");
   }, [data]);
@@ -55,6 +59,26 @@ const ArticleEditor: React.FC = () => {
     [],
   );
 
+  const validateThumbnailUrl = (value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return "";
+    try {
+      const parsed = new URL(normalized);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        return "URL ảnh phải bắt đầu bằng http:// hoặc https://.";
+      }
+    } catch {
+      return "URL ảnh không đúng định dạng.";
+    }
+    return "";
+  };
+
+  const handleThumbnailChange = (value: string) => {
+    setThumbnailUrl(value);
+    setThumbnailError(validateThumbnailUrl(value));
+    setThumbnailPreviewFailed(false);
+  };
+
   const handleSave = async () => {
     if (!title.trim()) return toast.error("Vui lòng nhập tiêu đề.");
     if (!contentMarkdown.trim() || !contentHtml.trim()) {
@@ -65,6 +89,11 @@ const ArticleEditor: React.FC = () => {
     }
     if (summary.trim().length > 1000) {
       return toast.error("Tóm tắt không được vượt quá 1000 ký tự.");
+    }
+    const nextThumbnailError = validateThumbnailUrl(thumbnailUrl);
+    if (nextThumbnailError) {
+      setThumbnailError(nextThumbnailError);
+      return toast.error(nextThumbnailError);
     }
 
     const payload: SaveArticlePayload = {
@@ -117,11 +146,22 @@ const ArticleEditor: React.FC = () => {
           </FormField>
           <FormField label="URL ảnh đại diện">
             <input
+              id="article-thumbnail-url"
               value={thumbnailUrl}
               maxLength={2048}
-              onChange={(event) => setThumbnailUrl(event.target.value)}
-              placeholder="https://..."
+              aria-invalid={Boolean(thumbnailError)}
+              aria-describedby="article-thumbnail-help article-thumbnail-error"
+              onChange={(event) => handleThumbnailChange(event.target.value)}
+              placeholder="https://cdn.example.com/article-cover.jpg"
             />
+            <small id="article-thumbnail-help" className="article-thumbnail-help">
+              Dùng URL ảnh công khai (khuyến nghị HTTPS), kích thước khoảng 1200×630 px. MediBook chưa hỗ trợ tải ảnh trực tiếp.
+            </small>
+            {thumbnailError && (
+              <small id="article-thumbnail-error" className="article-thumbnail-error" role="alert">
+                {thumbnailError}
+              </small>
+            )}
           </FormField>
         </div>
         <FormField label="Tóm tắt">
@@ -133,9 +173,20 @@ const ArticleEditor: React.FC = () => {
             placeholder="Mô tả ngắn hiển thị trên danh sách bài viết"
           />
         </FormField>
-        {thumbnailUrl && (
+        {thumbnailUrl.trim() && !thumbnailError && (
           <div className="article-thumbnail-preview">
-            <img src={thumbnailUrl} alt="Xem trước ảnh đại diện" />
+            {thumbnailPreviewFailed ? (
+              <div className="article-thumbnail-fallback" role="status">
+                <i className="far fa-image" aria-hidden="true" />
+                <span>Không tải được ảnh từ URL này. Hãy kiểm tra URL công khai.</span>
+              </div>
+            ) : (
+              <img
+                src={thumbnailUrl.trim()}
+                alt="Xem trước ảnh đại diện"
+                onError={() => setThumbnailPreviewFailed(true)}
+              />
+            )}
           </div>
         )}
         <FormField label="Nội dung" required>
