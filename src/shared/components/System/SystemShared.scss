@@ -88,6 +88,12 @@
 
 .sys-save-button {
   @include sys-save-button;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+  }
 }
 
 .sys-cancel-button {
@@ -106,6 +112,16 @@
     background: #f3f4f6;
     color: $sys-text-secondary;
   }
+
+  &.sys-badge-danger {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  &.sys-badge-info {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
 }
 
 .sys-form-field {
@@ -113,6 +129,12 @@
 
   .sys-required {
     color: $sys-danger;
+  }
+
+  .sys-form-error {
+    color: $sys-danger;
+    font-size: 13px;
+    margin-top: -6px;
   }
 }
 

@@ -235,6 +235,7 @@ interface ActionButtonsProps {
   saveLabel?: string;
   editLabel?: string;
   cancelLabel?: string;
+  disabled?: boolean;
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -244,9 +245,15 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   saveLabel = "LƯU THÔNG TIN",
   editLabel = "CẬP NHẬT THÔNG TIN",
   cancelLabel = "HỦY CHỈNH SỬA",
+  disabled = false,
 }) => (
   <div className="sys-actions-row">
-    <button type="button" className="sys-save-button" onClick={onSave}>
+    <button
+      type="button"
+      className="sys-save-button"
+      onClick={onSave}
+      disabled={disabled}
+    >
       <i className="far fa-save" />
       <span>{isEditing ? editLabel : saveLabel}</span>
     </button>
@@ -261,7 +268,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 // ==================== StatusBadge ====================
 interface StatusBadgeProps {
   label: string;
-  variant?: "success" | "warning" | "default";
+  variant?: "success" | "warning" | "danger" | "info" | "default";
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -278,12 +285,14 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 interface FormFieldProps {
   label: string;
   required?: boolean;
+  error?: string;
   children: React.ReactNode;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
   label,
   required,
+  error,
   children,
 }) => (
   <div className="sys-form-field">
@@ -291,5 +300,10 @@ export const FormField: React.FC<FormFieldProps> = ({
       {label} {required && <span className="sys-required">*</span>}
     </label>
     {children}
+    {error && (
+      <span className="sys-form-error" role="alert">
+        {error}
+      </span>
+    )}
   </div>
 );

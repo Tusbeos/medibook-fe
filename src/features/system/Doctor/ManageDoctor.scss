@@ -542,6 +542,28 @@ $card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
           }
         }
 
+        .doctor-account-status-cell {
+          align-items: flex-start;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .doctor-account-status-select {
+          background: #fff;
+          border: 1px solid #dbe3ee;
+          border-radius: 7px;
+          color: #334155;
+          font-size: 13px;
+          max-width: 175px;
+          padding: 6px 8px;
+
+          &:disabled {
+            cursor: wait;
+            opacity: 0.65;
+          }
+        }
+
         &.action-cell {
           position: relative;
 

@@ -1,6 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import type { AxiosError, AxiosRequestConfig } from "axios";
 import axios from "../../axiosClient";
+import type { AccountStatus } from "../../utils/accountStatus";
 
 type ApiResponse<T = any> = {
   errCode?: number;
@@ -35,6 +36,11 @@ type DoctorsPaginatedData = {
   totalPages: number;
   totalElements: number;
   currentPage: number;
+};
+
+export type UserAccountStatusRecord = {
+  userId: number;
+  accountStatus: AccountStatus;
 };
 
 type PublicTagType =
@@ -310,6 +316,23 @@ export const publicApi = createApi({
       providesTags: (result) => buildListTags("User", result),
       keepUnusedDataFor: 30,
     }),
+    getUserAccountStatuses: builder.query<
+      ApiResponse<UserAccountStatusRecord[]>,
+      Array<number | string>
+    >({
+      query: (userIds) => ({
+        url: "/api/users/account-statuses",
+        params: { ids: userIds.join(",") },
+      }),
+      providesTags: (result) => [
+        ...(result?.data || []).map((item) => ({
+          type: "User" as const,
+          id: item.userId,
+        })),
+        { type: "User" as const, id: "ACCOUNT_STATUS_LIST" },
+      ],
+      keepUnusedDataFor: 30,
+    }),
     generateUserEmail: builder.query<
       ApiResponse<string>,
       { firstName: string; lastName?: string; role?: string }
@@ -401,13 +424,28 @@ export const publicApi = createApi({
       query: ({ id, ...data }) => ({
         url: `/api/users/${id}`,
         method: "PUT",
-        data: { id, ...data },
+        data,
       }),
       invalidatesTags: (_result, _error, arg) => [
         { type: "User", id: arg.id },
         { type: "User", id: "LIST" },
         { type: "Doctor", id: arg.id },
         { type: "Doctor", id: "LIST" },
+      ],
+    }),
+    updateUserAccountStatus: builder.mutation<
+      ApiResponse<any>,
+      { userId: number | string; status: AccountStatus }
+    >({
+      query: ({ userId, status }) => ({
+        url: `/api/users/${userId}/status`,
+        method: "PATCH",
+        data: { status },
+      }),
+      invalidatesTags: (_result, _error, { userId }) => [
+        { type: "User", id: userId },
+        { type: "User", id: "LIST" },
+        { type: "User", id: "ACCOUNT_STATUS_LIST" },
       ],
     }),
     deleteUser: builder.mutation<ApiResponse<any>, number | string>({
@@ -702,6 +740,7 @@ export const {
   useLazyGetPackageByIdQuery,
   useGetUserByIdQuery,
   useGetUsersQuery,
+  useGetUserAccountStatusesQuery,
   useLazyGenerateUserEmailQuery,
   useGetAllCodeQuery,
   useGetPatientHistoryQuery,
@@ -711,6 +750,7 @@ export const {
   useGetHistoryByBookingQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
+  useUpdateUserAccountStatusMutation,
   useDeleteUserMutation,
   useCreateClinicMutation,
   useUpdateClinicMutation,

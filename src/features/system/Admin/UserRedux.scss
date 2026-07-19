@@ -13,6 +13,59 @@
     font-weight: 600;
   }
 
+  .user-contact-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    small {
+      color: $sys-text-muted;
+    }
+  }
+
+  .user-avatar-field {
+    align-items: end;
+    display: flex;
+    gap: 18px;
+    grid-column: 1 / -1;
+  }
+
+  .user-avatar-input {
+    height: auto;
+    min-height: 48px;
+    padding: 10px 14px;
+  }
+
+  .user-avatar-preview {
+    border: 1px solid $sys-bg-input-border;
+    border-radius: 50%;
+    height: 76px;
+    object-fit: cover;
+    width: 76px;
+  }
+
+  .user-account-status-control {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .user-account-status-select {
+    background: $sys-bg-white;
+    border: 1px solid $sys-bg-input-border;
+    border-radius: 7px;
+    color: $sys-text-primary;
+    font-size: 13px;
+    max-width: 180px;
+    padding: 6px 8px;
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+  }
+
   // ActionButtons override: horizontal layout for form
   .sys-actions-row {
     flex-direction: row;
@@ -25,6 +78,11 @@
     }
 
     .sys-actions-row {
+      flex-direction: column;
+    }
+
+    .user-avatar-field {
+      align-items: flex-start;
       flex-direction: column;
     }
   }

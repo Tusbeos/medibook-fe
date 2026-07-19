@@ -16,13 +16,18 @@ import Select from "react-select";
 import { CRUD_ACTIONS, LANGUAGES } from "utils";
 import { FormattedMessage, useIntl } from "react-intl";
 import DoctorServices from "./DoctorServices";
-import { DataState } from "components/System/SystemShared";
+import { DataState, StatusBadge } from "components/System/SystemShared";
 import { IRootState } from "../../../types";
 import { toast } from "react-toastify";
 import CommonUtils, {
   getBase64FromBuffer,
   generateMedibookEmail,
 } from "../../../utils/CommonUtils";
+import {
+  ACCOUNT_STATUS_OPTIONS,
+  type AccountStatus,
+  getAccountStatusMeta,
+} from "../../../utils/accountStatus";
 import {
   type DoctorsPaginatedArgs,
   useCreateUserMutation,
@@ -33,11 +38,13 @@ import {
   useGetDoctorByIdQuery,
   useGetDoctorsPaginatedQuery,
   useGetDoctorSpecialtiesQuery,
+  useGetUserAccountStatusesQuery,
   useGetSpecialtiesQuery,
   useLazyGenerateUserEmailQuery,
   useSaveDoctorInfoMutation,
   useSaveDoctorServicesMutation,
   useUpdateUserMutation,
+  useUpdateUserAccountStatusMutation,
 } from "../../../store/api/publicApi";
 
 const mdParser = new MarkdownIt();
@@ -107,6 +114,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
   const [generateUserEmail] = useLazyGenerateUserEmailQuery();
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
+  const [updateUserAccountStatus] = useUpdateUserAccountStatusMutation();
   const [deleteUser] = useDeleteUserMutation();
   const [saveDoctorInfo] = useSaveDoctorInfoMutation();
   const [saveDoctorServices] = useSaveDoctorServicesMutation();
@@ -190,6 +198,8 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
 
   // Edit Profile States
   const [activeEditMenu, setActiveEditMenu] = useState<string | null>(null);
+  const [accountStatusUpdatingUserId, setAccountStatusUpdatingUserId] =
+    useState<number | string>();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editProfileData, setEditProfileData] = useState<any>(null);
 
@@ -351,6 +361,27 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
         "USERS",
       ),
     [buildDataInputSelect, paginatedDoctorsResponse],
+  );
+  const paginatedDoctorIds = useMemo(
+    () => paginatedDoctors.map((doctor) => doctor.value),
+    [paginatedDoctors],
+  );
+  const {
+    currentData: accountStatusesResponse,
+    isFetching: isFetchingAccountStatuses,
+    isError: isAccountStatusesError,
+  } = useGetUserAccountStatusesQuery(paginatedDoctorIds, {
+    skip: viewMode !== "list" || paginatedDoctorIds.length === 0,
+  });
+  const accountStatusByUserId = useMemo<Map<string, AccountStatus>>(
+    () =>
+      new Map<string, AccountStatus>(
+        getResponseList(accountStatusesResponse).map((item: any) => [
+          String(item.userId),
+          item.accountStatus as AccountStatus,
+        ] as [string, AccountStatus]),
+      ),
+    [accountStatusesResponse],
   );
   const totalPages =
     paginatedDoctorsResponse?.errCode === 0
@@ -742,6 +773,41 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
       toast.error("Xóa bác sĩ thất bại.");
     }
     setActiveEditMenu(null);
+  };
+
+  const handleDoctorAccountStatusChange = async (
+    doc: any,
+    status: AccountStatus,
+  ) => {
+    const userId = doc.raw?.id || doc.value;
+    const currentStatus = accountStatusByUserId.get(String(userId));
+    if (!userId || status === currentStatus) return;
+    const statusMeta = getAccountStatusMeta(status);
+    if (
+      status !== "ACTIVE" &&
+      !window.confirm(
+        `Chuyển tài khoản ${doc.label} sang trạng thái “${statusMeta?.label}”?`,
+      )
+    )
+      return;
+
+    setAccountStatusUpdatingUserId(userId);
+    try {
+      const res = await updateUserAccountStatus({ userId, status }).unwrap();
+      if (res?.errCode === 0) {
+        toast.success("Cập nhật trạng thái tài khoản bác sĩ thành công.");
+      } else {
+        toast.error(res?.errMessage || "Cập nhật trạng thái tài khoản thất bại.");
+      }
+    } catch (error: any) {
+      toast.error(
+        error?.data?.errMessage ||
+          error?.data?.message ||
+          "Cập nhật trạng thái tài khoản thất bại.",
+      );
+    } finally {
+      setAccountStatusUpdatingUserId(undefined);
+    }
   };
 
   const handleOpenEditProfile = (doc: any) => {
@@ -1172,14 +1238,15 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
                 <th>TÊN BÁC SĨ</th>
                 <th>CHUYÊN KHOA</th>
                 <th>CƠ SỞ</th>
-                <th>TRẠNG THÁI</th>
+                <th>TRẠNG THÁI HỒ SƠ</th>
+                <th>TÀI KHOẢN</th>
                 <th>THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
               {isPaginatedDoctorsPending ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <DataState
                       variant="loading"
                       text="Đang tải danh sách bác sĩ..."
@@ -1188,7 +1255,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
                 </tr>
               ) : isPaginatedDoctorsError ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <DataState
                       variant="error"
                       text="Không thể tải danh sách bác sĩ."
@@ -1253,6 +1320,57 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
                         );
                       })()}
                     </td>
+                    <td>
+                      {(() => {
+                        const accountStatus = accountStatusByUserId.get(
+                          String(doc.raw?.id || doc.value),
+                        );
+                        const statusMeta = getAccountStatusMeta(accountStatus);
+                        const isUpdating =
+                          String(accountStatusUpdatingUserId) ===
+                          String(doc.raw?.id || doc.value);
+                        return (
+                          <div className="doctor-account-status-cell">
+                            <StatusBadge
+                              label={
+                                isAccountStatusesError
+                                  ? "Không tải được"
+                                  : isFetchingAccountStatuses && !statusMeta
+                                    ? "Đang tải..."
+                                    : statusMeta?.label || "Không xác định"
+                              }
+                              variant={statusMeta?.variant || "default"}
+                            />
+                            <select
+                              className="doctor-account-status-select"
+                              aria-label={`Đổi trạng thái tài khoản ${doc.label}`}
+                              value={accountStatus || ""}
+                              disabled={
+                                isUpdating ||
+                                isFetchingAccountStatuses ||
+                                isAccountStatusesError ||
+                                !statusMeta
+                              }
+                              onChange={(event) =>
+                                void handleDoctorAccountStatusChange(
+                                  doc,
+                                  event.target.value as AccountStatus,
+                                )
+                              }
+                            >
+                              {!statusMeta && (
+                                <option value="">Chọn trạng thái</option>
+                              )}
+                              {ACCOUNT_STATUS_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="action-cell">
                       <div className="dropdown-action">
                         <button
@@ -1293,7 +1411,7 @@ const ManageDoctor: React.FC<ManageDoctorProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <DataState
                       variant="empty"
                       text={
