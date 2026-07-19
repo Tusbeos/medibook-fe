@@ -159,11 +159,11 @@
     }
   }
 
-  .password-label-row {
+  .password-actions-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    justify-content: flex-end;
+    margin-top: 12px;
 
     .text-link {
       border: 0;
@@ -172,7 +172,23 @@
       color: #074a9f;
       font-weight: 700;
       cursor: pointer;
+      transition: color 0.18s ease;
+
+      &:hover {
+        color: #063c80;
+        text-decoration: underline;
+      }
+
+      &:focus-visible {
+        border-radius: 4px;
+        outline: 3px solid rgba(11, 90, 184, 0.2);
+        outline-offset: 4px;
+      }
     }
+  }
+
+  .password-input-group {
+    margin-bottom: 16px;
   }
 
   .input-shell {
@@ -278,6 +294,185 @@
       background: #064d9f;
     }
   }
+
+  .login-content--recovery {
+    padding: 48px 56px 52px;
+  }
+
+  .forgot-password-view {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .forgot-back-button {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    padding: 6px 0;
+    background: transparent;
+    color: #31516f;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+      color: #0758b8;
+    }
+
+    &:focus-visible {
+      border-radius: 4px;
+      outline: 3px solid rgba(11, 90, 184, 0.2);
+      outline-offset: 4px;
+    }
+  }
+
+  .forgot-password-icon {
+    width: 72px;
+    height: 72px;
+    display: grid;
+    place-items: center;
+    margin-top: 30px;
+    border-radius: 22px;
+    background: linear-gradient(145deg, #e9f3ff 0%, #d9eaff 100%);
+    color: #0758b8;
+    box-shadow: inset 0 0 0 1px rgba(7, 88, 184, 0.08);
+
+    i {
+      font-size: 1.75rem;
+      transform: rotate(-12deg);
+    }
+  }
+
+  .forgot-password-heading {
+    margin: 24px 0 26px;
+
+    h2 {
+      margin-top: 8px;
+    }
+
+    p {
+      max-width: 460px;
+      line-height: 1.6;
+    }
+  }
+
+  .forgot-password-eyebrow {
+    color: #0758b8;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .recovery-account-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid #dbe7f4;
+    border-radius: 12px;
+    background: #f8fbff;
+
+    > div:last-child {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    span {
+      color: #66778a;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    strong {
+      overflow: hidden;
+      color: #16324f;
+      font-size: 0.98rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .recovery-account-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #0758b8;
+    box-shadow: 0 6px 16px rgba(32, 81, 130, 0.1);
+  }
+
+  .recovery-steps {
+    display: grid;
+    gap: 14px;
+    margin: 24px 0;
+  }
+
+  .recovery-step {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    align-items: start;
+    gap: 12px;
+
+    > span {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e8f2ff;
+      color: #0758b8;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: #34465a;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+  }
+
+  .recovery-security-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px 17px;
+    border-radius: 11px;
+    background: #fff8e7;
+    color: #74551a;
+
+    > i {
+      margin-top: 2px;
+      color: #b98113;
+      font-size: 1.1rem;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.48;
+    }
+
+    strong {
+      display: block;
+      margin-bottom: 2px;
+      color: #5e4310;
+    }
+  }
+
+  .recovery-login-button {
+    height: 62px;
+    margin-top: 26px;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -357,6 +552,10 @@
       border-radius: 14px;
     }
 
+    .login-content--recovery {
+      padding: 30px 24px 34px;
+    }
+
     .login-heading h2 {
       font-size: 1.85rem;
     }
@@ -364,6 +563,21 @@
     .input-shell,
     .btn-login {
       height: 58px;
+    }
+
+    .forgot-password-icon {
+      width: 62px;
+      height: 62px;
+      margin-top: 24px;
+      border-radius: 18px;
+    }
+
+    .forgot-password-heading {
+      margin-top: 20px;
+    }
+
+    .recovery-login-button {
+      margin-top: 22px;
     }
   }
 }

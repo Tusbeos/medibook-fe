@@ -19,6 +19,17 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errMessage, setErrMessage] = useState("");
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
+  const openForgotPassword = () => {
+    setErrMessage("");
+    setShowPassword(false);
+    setIsForgotPasswordOpen(true);
+  };
+
+  const closeForgotPassword = () => {
+    setIsForgotPasswordOpen(false);
+  };
 
   const handleLogin = useCallback(async () => {
     setErrMessage("");
@@ -122,68 +133,174 @@ const Login: React.FC = () => {
 
       <section className="login-form-panel">
         <div className="login-container">
-          <div className="login-content">
-            <div className="login-heading">
-              <h2>Đăng nhập hệ thống</h2>
-              <p>Dành cho Admin, Bác sĩ và Quản lý phòng khám</p>
-            </div>
-
-            <div className="form-group input-login">
-              <label>Email nội bộ</label>
-              <div className="input-shell">
-                <i className="fas fa-at" />
-                <input
-                  type="text"
-                  placeholder="admin@medibook.vn"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-              </div>
-            </div>
-
-            <div className="form-group input-login">
-              <div className="password-label-row">
-                <label>Mật khẩu</label>
-                <button type="button" className="text-link">
-                  Quên mật khẩu?
-                </button>
-              </div>
-              <div className="input-shell password-shell">
-                <i className="fas fa-lock" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
+          <div
+            className={`login-content${isForgotPasswordOpen ? " login-content--recovery" : ""}`}
+          >
+            {isForgotPasswordOpen ? (
+              <div className="forgot-password-view">
                 <button
                   type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword((s) => !s)}
+                  className="forgot-back-button"
+                  onClick={closeForgotPassword}
+                  autoFocus
                 >
-                  <i
-                    className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}
-                  />
+                  <i className="fas fa-arrow-left" aria-hidden="true" />
+                  Quay lại đăng nhập
+                </button>
+
+                <div className="forgot-password-icon" aria-hidden="true">
+                  <i className="fas fa-key" />
+                </div>
+
+                <div className="login-heading forgot-password-heading">
+                  <span className="forgot-password-eyebrow">
+                    Hỗ trợ tài khoản
+                  </span>
+                  <h2>Quên mật khẩu?</h2>
+                  <p>
+                    Tài khoản hệ thống được cấp và quản lý nội bộ. Hãy liên hệ
+                    quản trị viên phụ trách để xác minh và khôi phục quyền truy
+                    cập an toàn.
+                  </p>
+                </div>
+
+                <div className="recovery-account-card">
+                  <div className="recovery-account-icon" aria-hidden="true">
+                    <i className="fas fa-envelope" />
+                  </div>
+                  <div>
+                    <span>Email cần hỗ trợ</span>
+                    <strong>
+                      {username.trim() || "Email tài khoản nội bộ của bạn"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="recovery-steps" aria-label="Các bước khôi phục">
+                  <div className="recovery-step">
+                    <span>1</span>
+                    <p>
+                      Cung cấp email nội bộ và vai trò tài khoản cho quản trị
+                      viên.
+                    </p>
+                  </div>
+                  <div className="recovery-step">
+                    <span>2</span>
+                    <p>
+                      Xác minh danh tính theo quy trình của đơn vị hoặc phòng
+                      khám.
+                    </p>
+                  </div>
+                  <div className="recovery-step">
+                    <span>3</span>
+                    <p>
+                      Nhận thông tin đăng nhập mới và đổi mật khẩu ngay sau khi
+                      truy cập.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="recovery-security-note">
+                  <i className="fas fa-shield-alt" aria-hidden="true" />
+                  <p>
+                    <strong>Lưu ý bảo mật</strong>
+                    Không cung cấp mật khẩu cũ, mã truy cập hoặc token đăng nhập
+                    cho bất kỳ ai.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-login recovery-login-button"
+                  onClick={closeForgotPassword}
+                >
+                  Quay lại nhập mật khẩu
                 </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="login-heading">
+                  <h2>Đăng nhập hệ thống</h2>
+                  <p>
+                    Dành cho Admin, Bác sĩ, Quản lý phòng khám và Người viết bài
+                  </p>
+                </div>
 
-            <label className="remember-row">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <span>Ghi nhớ đăng nhập</span>
-            </label>
+                <div className="form-group input-login">
+                  <label htmlFor="system-login-email">Email nội bộ</label>
+                  <div className="input-shell">
+                    <i className="fas fa-at" aria-hidden="true" />
+                    <input
+                      id="system-login-email"
+                      type="email"
+                      placeholder="admin@medibook.vn"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      autoComplete="username"
+                      autoFocus
+                    />
+                  </div>
+                </div>
 
-            {errMessage && <div className="login-error">{errMessage}</div>}
+                <div className="form-group input-login password-input-group">
+                  <label htmlFor="system-login-password">Mật khẩu</label>
+                  <div className="input-shell password-shell">
+                    <i className="fas fa-lock" aria-hidden="true" />
+                    <input
+                      id="system-login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={
+                        showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"
+                      }
+                      aria-pressed={showPassword}
+                    >
+                      <i
+                        className={
+                          showPassword ? "fas fa-eye-slash" : "fas fa-eye"
+                        }
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
 
-            <button className="btn-login" onClick={handleLogin}>
-              Đăng nhập
-            </button>
+                  <div className="password-actions-row">
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={openForgotPassword}
+                    >
+                      Quên mật khẩu?
+                    </button>
+                  </div>
+                </div>
+
+                <label className="remember-row">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  <span>Ghi nhớ đăng nhập</span>
+                </label>
+
+                {errMessage && <div className="login-error">{errMessage}</div>}
+
+                <button className="btn-login" onClick={handleLogin}>
+                  Đăng nhập
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
