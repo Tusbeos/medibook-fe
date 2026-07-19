@@ -777,31 +777,6 @@ const ManageSchedule = () => {
                   )}
                 </div>
 
-                <div className="col-12 pick-hour-container legacy-time-picker">
-                  <label className="mb-3">Chọn khung giờ khám:</label>
-                  <div className="time-content">
-                    {rangeTime &&
-                      rangeTime.length > 0 &&
-                      rangeTime.map((item, index) => {
-                        return (
-                          <button
-                            className={
-                              item.isSelected === true
-                                ? "btn btn-schedule active"
-                                : "btn btn-schedule"
-                            }
-                            key={index}
-                            onClick={() => handleClickTime(item)}
-                          >
-                            {language === LANGUAGES.VI
-                              ? item.valueVi
-                              : item.valueEn}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-
                 {/* Nút Lưu */}
                 <div className="col-12 btn-container">
                   <button

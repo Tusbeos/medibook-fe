@@ -5,9 +5,11 @@ $border-color: #d1d3e2;
 $card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
 
 .manage-schedule-container {
+    width: 100%;
     padding: 20px 30px;
     background-color: #fff;
-    min-height: 100vh;
+    min-height: 0;
+    box-sizing: border-box;
     font-family: 'Segoe UI', sans-serif;
 
     .m-s-title {
@@ -74,10 +76,6 @@ $card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
     }
     .pick-hour-container {
         margin-top: 10px;
-
-        &.legacy-time-picker {
-            display: none;
-        }
 
         .schedule-toolbar {
             display: flex;
@@ -282,39 +280,6 @@ $card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
                             color: #94a3b8;
                         }
                     }
-                }
-            }
-        }
-        
-        .time-content {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-
-            .btn-schedule {
-                padding: 10px 20px;
-                border: 1px solid #e0e0e0;
-                background-color: #fff;
-                color: #333;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
-                min-width: 120px;
-                transition: all 0.2s;
-                cursor: pointer;
-
-                &:hover {
-                    background-color: #f1f1f1;
-                    border-color: #ccc;
-                    transform: translateY(-2px);
-                }
-
-                &.active {
-                    background-color: #ffe7ba; 
-                    border-color: #ffc107;
-                    color: #333;
-                    font-weight: 600;
-                    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
                 }
             }
         }
