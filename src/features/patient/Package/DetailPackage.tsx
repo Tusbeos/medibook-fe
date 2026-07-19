@@ -63,6 +63,7 @@ const DetailPackage = () => {
     "https://via.placeholder.com/900x520?text=Goi+kham";
 
   const clinicId = packageInfo?.clinicId || packageInfo?.clinicData?.id;
+  const isBookable = !packageInfo?.statusId || packageInfo.statusId === "SD2";
 
   const breadcrumbItems = [
     { label: "Trang chủ", to: "/home" },
@@ -120,12 +121,13 @@ const DetailPackage = () => {
             <div className="package-price">{formatPrice(packageInfo?.price)}</div>
             {packageInfo?.note && <p className="package-note">{packageInfo.note}</p>}
             <div className="package-actions">
-              <button
-                type="button"
-                onClick={() => alert("Chức năng đặt gói khám sẽ được bổ sung ở bước tiếp theo.")}
-              >
-                Đặt gói khám
-              </button>
+              {isBookable ? (
+                <Link className="primary-action" to={`/booking-package/${packageInfo.id}`}>
+                  Đặt gói khám
+                </Link>
+              ) : (
+                <span className="package-unavailable">Tạm ngừng nhận đặt</span>
+              )}
               {clinicId && (
                 <Link to={`/clinic/detail-clinic/${clinicId}`}>Xem phòng khám</Link>
               )}

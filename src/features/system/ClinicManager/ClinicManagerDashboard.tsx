@@ -21,7 +21,6 @@ const ClinicManagerDashboard: React.FC = () => {
   const {
     data: doctorsResponse,
     isLoading: isDoctorsLoading,
-    isFetching: isDoctorsFetching,
     isError: isDoctorsError,
     refetch: refetchDoctors,
   } = useGetDoctorsByClinicIdQuery(selectedClinicId, {
@@ -30,7 +29,6 @@ const ClinicManagerDashboard: React.FC = () => {
   const {
     data: packagesResponse,
     isLoading: isPackagesLoading,
-    isFetching: isPackagesFetching,
     isError: isPackagesError,
     refetch: refetchPackages,
   } = useGetClinicManagerPackagesQuery(selectedClinicId, {
@@ -39,22 +37,30 @@ const ClinicManagerDashboard: React.FC = () => {
   const {
     data: bookingsResponse,
     isLoading: isBookingsLoading,
-    isFetching: isBookingsFetching,
     isError: isBookingsError,
     refetch: refetchBookings,
   } = useGetClinicBookingsQuery(
     { clinicId: selectedClinicId, page: 0, size: 5 },
-    { skip: !selectedClinicId },
+    {
+      skip: !selectedClinicId,
+      pollingInterval: 10_000,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+    },
   );
   const {
     data: pendingBookingsResponse,
     isLoading: isPendingBookingsLoading,
-    isFetching: isPendingBookingsFetching,
     isError: isPendingBookingsError,
     refetch: refetchPendingBookings,
   } = useGetClinicBookingsQuery(
     { clinicId: selectedClinicId, status: "S2", page: 0, size: 1 },
-    { skip: !selectedClinicId },
+    {
+      skip: !selectedClinicId,
+      pollingInterval: 10_000,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+    },
   );
 
   const doctors = useMemo(() => readList(doctorsResponse), [doctorsResponse]);
@@ -63,17 +69,13 @@ const ClinicManagerDashboard: React.FC = () => {
     isDoctorsLoading ||
     isPackagesLoading ||
     isBookingsLoading ||
-    isPendingBookingsLoading ||
-    isDoctorsFetching ||
-    isPackagesFetching ||
-    isBookingsFetching ||
-    isPendingBookingsFetching;
+    isPendingBookingsLoading;
 
   const hasError =
-    isDoctorsError ||
-    isPackagesError ||
-    isBookingsError ||
-    isPendingBookingsError;
+    (isDoctorsError && !doctorsResponse) ||
+    (isPackagesError && !packagesResponse) ||
+    (isBookingsError && !bookingsResponse) ||
+    (isPendingBookingsError && !pendingBookingsResponse);
 
   const pendingDoctors = useMemo(
     () => doctors.filter((doctor) => getStatusKey(doctor) === "SD1"),
@@ -204,7 +206,9 @@ const ClinicManagerDashboard: React.FC = () => {
           <div className="cm-metric-value">
             <strong>{isLoading ? "..." : totalBookings}</strong>
             {pendingBookings > 0 && (
-              <span className="cm-chip warning">{pendingBookings} chờ XN</span>
+              <span className="cm-chip warning">
+                {pendingBookings} chờ phòng khám
+              </span>
             )}
           </div>
         </div>

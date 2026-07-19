@@ -8,3 +8,4 @@ export {
 export {default as KeyCodeUtils} from './KeyCodeUtils';
 export { default as LanguageUtils } from "./LanguageUtils";
 export { sanitizeHtml } from "./sanitizeHtml";
+export { getApiErrorMessage } from "./apiError";

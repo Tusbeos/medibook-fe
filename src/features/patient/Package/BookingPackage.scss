@@ -1,0 +1,379 @@
+.booking-package-page {
+  background: #f6f9fc;
+  min-height: 100vh;
+
+  .package-booking-layout {
+    align-items: start;
+    display: grid;
+    gap: 28px;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    padding-bottom: 56px;
+  }
+
+  .package-booking-summary,
+  .package-booking-card,
+  .package-booking-state {
+    background: #fff;
+    border: 1px solid #e4eaf2;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgb(16 24 40 / 6%);
+  }
+
+  .package-booking-summary {
+    overflow: hidden;
+    position: sticky;
+    top: 84px;
+
+    > img {
+      background: #eef8fa;
+      display: block;
+      height: 210px;
+      object-fit: cover;
+      width: 100%;
+    }
+
+    .summary-body {
+      padding: 22px;
+
+      > span {
+        color: #159aaa;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        color: #101828;
+        font-size: 22px;
+        line-height: 1.35;
+        margin: 8px 0 14px;
+      }
+
+      p {
+        color: #667085;
+        line-height: 1.5;
+        margin: 0 0 16px;
+
+        i {
+          color: #45c3d2;
+          margin-right: 7px;
+        }
+      }
+
+      strong {
+        color: #d92d20;
+        display: block;
+        font-size: 25px;
+        margin-bottom: 18px;
+      }
+
+      a {
+        color: #159aaa;
+        font-weight: 700;
+        text-decoration: none;
+      }
+    }
+  }
+
+  .package-booking-card {
+    padding: 30px;
+  }
+
+  .form-heading {
+    border-bottom: 1px solid #edf1f6;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+
+    span {
+      color: #159aaa;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      color: #101828;
+      font-size: 28px;
+      margin: 6px 0 8px;
+    }
+
+    p {
+      color: #667085;
+      margin: 0;
+    }
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+
+    label {
+      color: #344054;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    input,
+    select,
+    textarea {
+      background: #fff;
+      border: 1px solid #cfd8e6;
+      border-radius: 7px;
+      color: #1d2939;
+      font: inherit;
+      outline: none;
+      padding: 11px 12px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      width: 100%;
+
+      &:focus {
+        border-color: #45c3d2;
+        box-shadow: 0 0 0 3px rgb(69 195 210 / 14%);
+      }
+
+      &[aria-invalid="true"] {
+        border-color: #d92d20;
+      }
+
+      &:read-only {
+        background: #f4f7fa;
+        color: #667085;
+      }
+    }
+
+    input,
+    select {
+      height: 44px;
+    }
+
+    textarea {
+      line-height: 1.55;
+      resize: vertical;
+    }
+  }
+
+  .field-error,
+  .field-hint,
+  .character-count {
+    display: block;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .field-error,
+  .field-hint.error {
+    color: #d92d20;
+  }
+
+  .field-hint,
+  .character-count {
+    color: #667085;
+  }
+
+  .character-count {
+    text-align: right;
+  }
+
+  .selected-profile {
+    background: #f0fbfc;
+    border: 1px solid #c8edf1;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: -6px 0 22px;
+    padding: 14px 16px;
+
+    strong {
+      color: #176b87;
+      flex-basis: 100%;
+    }
+
+    span {
+      color: #475467;
+      font-size: 13px;
+    }
+  }
+
+  .form-alert {
+    background: #fff1f0;
+    border: 1px solid #f7c4c0;
+    border-radius: 7px;
+    color: #b42318;
+    margin-bottom: 20px;
+    padding: 12px 14px;
+  }
+
+  .package-submit {
+    background: #159aaa;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+    min-height: 48px;
+    padding: 0 22px;
+    width: 100%;
+
+    &:hover:not(:disabled) {
+      background: #128794;
+    }
+
+    &:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+  }
+
+  .submit-note {
+    color: #667085;
+    font-size: 12px;
+    margin: 9px 0 0;
+    text-align: center;
+  }
+
+  .package-booking-success,
+  .package-booking-blocked {
+    color: #475467;
+    margin: auto;
+    max-width: 560px;
+    padding: 42px 10px;
+    text-align: center;
+
+    > i {
+      color: #12b76a;
+      font-size: 54px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      color: #101828;
+      font-size: 27px;
+      margin: 0 0 12px;
+    }
+
+    p {
+      line-height: 1.7;
+      margin: 0 auto 22px;
+    }
+
+    a {
+      background: #159aaa;
+      border-radius: 7px;
+      color: #fff;
+      display: inline-flex;
+      font-weight: 800;
+      padding: 12px 18px;
+      text-decoration: none;
+    }
+  }
+
+  .package-booking-success dl {
+    background: #f7fbfc;
+    border-radius: 8px;
+    margin: 0 0 22px;
+    padding: 8px 18px;
+
+    div {
+      border-bottom: 1px solid #e8eef3;
+      display: flex;
+      justify-content: space-between;
+      padding: 11px 0;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    dt {
+      color: #667085;
+    }
+
+    dd {
+      color: #1d2939;
+      font-weight: 700;
+      margin: 0;
+    }
+  }
+
+  .package-booking-blocked > i {
+    color: #f79009;
+  }
+
+  .package-booking-state {
+    margin-bottom: 48px;
+    margin-top: 40px;
+    padding: 50px 24px;
+    text-align: center;
+
+    h1 {
+      color: #101828;
+      font-size: 25px;
+    }
+
+    a {
+      color: #159aaa;
+      font-weight: 700;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .package-booking-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .package-booking-summary {
+      position: static;
+
+      > img {
+        height: 260px;
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    .package-booking-layout {
+      gap: 18px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .package-booking-card {
+      padding: 20px 16px;
+    }
+
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .full-width {
+      grid-column: auto;
+    }
+
+    .package-booking-summary > img {
+      height: 190px;
+    }
+
+    .package-booking-success dl div {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+  }
+}

@@ -1,18 +1,27 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { useClinicContext } from "./useClinicContext";
-import "./ClinicManagerShared.scss";
+import { DataState } from "components/System/SystemShared";
 import {
   useGetClinicBookingsQuery,
   useUpdateClinicBookingStatusMutation,
 } from "../../../store/api/publicApi";
-import { DataState } from "components/System/SystemShared";
+import {
+  BOOKING_STATUS,
+  BOOKING_STATUS_OPTIONS,
+  getBookingStatusMeta,
+} from "../../../utils/bookingStatus";
+import { getApiErrorMessage } from "../../../utils/apiError";
+import { useClinicContext } from "./useClinicContext";
+import "./ClinicManagerShared.scss";
 
 const ClinicManagerBookings: React.FC = () => {
   const { isClinicManager, selectedClinicId } = useClinicContext();
-  const [filter, setFilter] = useState<string>("");
+  const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [updatingBookingId, setUpdatingBookingId] = useState<number | null>(
+    null,
+  );
   const {
     data: bookingsResponse,
     isLoading,
@@ -26,7 +35,12 @@ const ClinicManagerBookings: React.FC = () => {
       page,
       size: 10,
     },
-    { skip: !selectedClinicId },
+    {
+      skip: !selectedClinicId,
+      pollingInterval: 10_000,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+    },
   );
   const [updateBookingStatus] = useUpdateClinicBookingStatusMutation();
 
@@ -39,18 +53,16 @@ const ClinicManagerBookings: React.FC = () => {
   );
 
   const filteredBookings = useMemo(() => {
-    let list = bookings;
-    if (search.trim()) {
-      const kw = search.trim().toLowerCase();
-      list = list.filter(
-        (b) =>
-          (b.patientName || "").toLowerCase().includes(kw) ||
-          (b.profileName || "").toLowerCase().includes(kw) ||
-          (b.doctorName || "").toLowerCase().includes(kw) ||
-          (b.patientEmail || "").toLowerCase().includes(kw),
-      );
-    }
-    return list;
+    if (!search.trim()) return bookings;
+
+    const keyword = search.trim().toLowerCase();
+    return bookings.filter(
+      (booking) =>
+        (booking.patientName || "").toLowerCase().includes(keyword) ||
+        (booking.profileName || "").toLowerCase().includes(keyword) ||
+        (booking.doctorName || "").toLowerCase().includes(keyword) ||
+        (booking.patientEmail || "").toLowerCase().includes(keyword),
+    );
   }, [bookings, search]);
 
   const handleFilterChange = useCallback((status: string) => {
@@ -61,7 +73,9 @@ const ClinicManagerBookings: React.FC = () => {
   const handleConfirm = useCallback(
     async (bookingId: number) => {
       if (!selectedClinicId) return;
+      if (!window.confirm("Xác nhận tiếp nhận lịch hẹn này?")) return;
 
+      setUpdatingBookingId(bookingId);
       try {
         await updateBookingStatus({
           bookingId,
@@ -69,8 +83,12 @@ const ClinicManagerBookings: React.FC = () => {
           decision: "confirm",
         }).unwrap();
         toast.success("Xác nhận lịch hẹn thành công!");
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Xác nhận thất bại.");
+      } catch (error) {
+        toast.error(
+          getApiErrorMessage(error, "Xác nhận lịch hẹn thất bại."),
+        );
+      } finally {
+        setUpdatingBookingId(null);
       }
     },
     [selectedClinicId, updateBookingStatus],
@@ -79,7 +97,15 @@ const ClinicManagerBookings: React.FC = () => {
   const handleReject = useCallback(
     async (bookingId: number) => {
       if (!selectedClinicId) return;
+      if (
+        !window.confirm(
+          "Từ chối lịch hẹn sẽ chuyển lịch sang trạng thái không còn hiệu lực. Tiếp tục?",
+        )
+      ) {
+        return;
+      }
 
+      setUpdatingBookingId(bookingId);
       try {
         await updateBookingStatus({
           bookingId,
@@ -87,26 +113,30 @@ const ClinicManagerBookings: React.FC = () => {
           decision: "reject",
         }).unwrap();
         toast.success("Từ chối lịch hẹn thành công!");
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Từ chối thất bại.");
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, "Từ chối lịch hẹn thất bại."));
+      } finally {
+        setUpdatingBookingId(null);
       }
     },
     [selectedClinicId, updateBookingStatus],
   );
 
-  const getStatusClass = (statusId: string) => {
-    switch (statusId) {
-      case "S1":
-        return "pending";
-      case "S2":
-        return "verified";
-      case "S3":
-        return "confirmed";
-      case "S5":
-        return "rejected";
-      default:
-        return "inactive";
-    }
+  const getStatusView = (statusId: string) => {
+    const meta = getBookingStatusMeta(statusId);
+    const classByTone = {
+      warning: "pending-email",
+      info: "pending-clinic",
+      primary: "ready",
+      success: "completed",
+      danger: "cancelled",
+      neutral: "inactive",
+    };
+
+    return {
+      label: meta?.label || statusId || "Không rõ",
+      className: meta ? classByTone[meta.tone] : classByTone.neutral,
+    };
   };
 
   if (!isClinicManager || !selectedClinicId) {
@@ -127,7 +157,7 @@ const ClinicManagerBookings: React.FC = () => {
           <i className="fas fa-search" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Tìm theo tên bệnh nhân, bác sĩ, email..."
           />
         </div>
@@ -139,24 +169,15 @@ const ClinicManagerBookings: React.FC = () => {
           >
             Tất cả
           </button>
-          <button
-            className={filter === "S2" ? "active" : ""}
-            onClick={() => handleFilterChange("S2")}
-          >
-            Chờ xác nhận
-          </button>
-          <button
-            className={filter === "S3" ? "active" : ""}
-            onClick={() => handleFilterChange("S3")}
-          >
-            Đã xác nhận
-          </button>
-          <button
-            className={filter === "S1" ? "active" : ""}
-            onClick={() => handleFilterChange("S1")}
-          >
-            Chờ email
-          </button>
+          {BOOKING_STATUS_OPTIONS.map((status) => (
+            <button
+              key={status.id}
+              className={filter === status.id ? "active" : ""}
+              onClick={() => handleFilterChange(status.id)}
+            >
+              {status.shortLabel}
+            </button>
+          ))}
         </div>
 
         <button
@@ -164,7 +185,8 @@ const ClinicManagerBookings: React.FC = () => {
           onClick={() => refetchBookings()}
           disabled={isFetching}
         >
-          <i className="fas fa-sync-alt" /> Refresh
+          <i className={`fas fa-sync-alt ${isFetching ? "fa-spin" : ""}`} />
+          Làm mới
         </button>
       </div>
 
@@ -182,9 +204,9 @@ const ClinicManagerBookings: React.FC = () => {
           <span>Hành động</span>
         </div>
 
-        {isLoading || isFetching ? (
+        {isLoading && bookings.length === 0 ? (
           <DataState variant="loading" text="Đang tải danh sách lịch hẹn..." />
-        ) : isError ? (
+        ) : isError && bookings.length === 0 ? (
           <DataState
             variant="error"
             text="Không thể tải danh sách lịch hẹn."
@@ -200,63 +222,80 @@ const ClinicManagerBookings: React.FC = () => {
             }
           />
         ) : (
-          filteredBookings.map((booking) => (
-            <div
-              className="cm-table-row"
-              key={booking.id}
-              style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1fr 1.5fr 1fr" }}
-            >
-              <div className="cm-name-cell">
-                <div className="cm-avatar">
-                  {(booking.profileName || booking.patientName || "?")
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-                <div className="cm-name-info">
-                  <strong>
-                    {booking.profileName || booking.patientName || "N/A"}
-                  </strong>
-                  <small>{booking.patientEmail}</small>
-                </div>
-              </div>
-              <span>{booking.doctorName || "N/A"}</span>
-              <span>{booking.date}</span>
-              <span>{booking.timeTypeValue || booking.timeType}</span>
-              <span className={`cm-status ${getStatusClass(booking.statusId)}`}>
-                <span className="status-dot" />
-                {booking.statusValue || booking.statusId}
-              </span>
-              <span
+          filteredBookings.map((booking) => {
+            const status = getStatusView(booking.statusId);
+            const isUpdating = updatingBookingId === booking.id;
+
+            return (
+              <div
+                className="cm-table-row"
+                key={booking.id}
                 style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1fr 1.5fr 1fr",
                 }}
               >
-                {booking.reason || "-"}
-              </span>
-              <div className="cm-actions-cell">
-                {booking.statusId === "S2" && (
-                  <>
-                    <button
-                      className="cm-action-btn confirm"
-                      onClick={() => handleConfirm(booking.id)}
-                    >
-                      <i className="fas fa-check" />
-                    </button>
-                    <button
-                      className="cm-action-btn reject"
-                      onClick={() => handleReject(booking.id)}
-                    >
-                      <i className="fas fa-times" />
-                    </button>
-                  </>
-                )}
+                <div className="cm-name-cell">
+                  <div className="cm-avatar">
+                    {(booking.profileName || booking.patientName || "?")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+                  <div className="cm-name-info">
+                    <strong>
+                      {booking.profileName || booking.patientName || "N/A"}
+                    </strong>
+                    <small>{booking.patientEmail}</small>
+                  </div>
+                </div>
+                <span>{booking.doctorName || "N/A"}</span>
+                <span>{booking.date}</span>
+                <span>{booking.timeTypeValue || booking.timeType}</span>
+                <span className={`cm-status ${status.className}`}>
+                  <span className="status-dot" />
+                  {status.label}
+                </span>
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {booking.reason || "-"}
+                </span>
+                <div className="cm-actions-cell">
+                  {booking.statusId ===
+                    BOOKING_STATUS.PENDING_CLINIC_CONFIRMATION && (
+                    <>
+                      <button
+                        className="cm-action-btn confirm"
+                        onClick={() => handleConfirm(booking.id)}
+                        disabled={updatingBookingId !== null}
+                        title="Xác nhận lịch hẹn"
+                      >
+                        <i
+                          className={`fas ${
+                            isUpdating ? "fa-spinner fa-spin" : "fa-check"
+                          }`}
+                        />
+                      </button>
+                      <button
+                        className="cm-action-btn reject"
+                        onClick={() => handleReject(booking.id)}
+                        disabled={updatingBookingId !== null}
+                        title="Từ chối lịch hẹn"
+                      >
+                        <i className="fas fa-times" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
       {(bookingsResponse?.pagination?.totalPages || 0) > 1 && (
         <div className="d-flex justify-content-center align-items-center gap-3 py-3">
           <button

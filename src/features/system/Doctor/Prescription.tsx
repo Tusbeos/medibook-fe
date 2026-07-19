@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   useCreateHistoryMutation,
   useGetHistoryByBookingQuery,
 } from "../../../store/api/publicApi";
 import { DataState } from "components/System/SystemShared";
+import { getApiErrorMessage } from "../../../utils/apiError";
 import "./Prescription.scss";
 
 const Prescription: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedDateValue = Number(
+    (location.state as { selectedDateValue?: number } | null)
+      ?.selectedDateValue,
+  );
 
   const [diagnosis, setDiagnosis] = useState("");
   const [prescription, setPrescription] = useState("");
@@ -21,11 +27,11 @@ const Prescription: React.FC = () => {
   const {
     data: historyResponse,
     isLoading: isHistoryLoading,
-    isFetching: isHistoryFetching,
     isError: isHistoryError,
     refetch: refetchHistory,
   } = useGetHistoryByBookingQuery(bookingId || "", {
     skip: !bookingId,
+    refetchOnMountOrArgChange: true,
   });
   const [createHistory, { isLoading }] = useCreateHistoryMutation();
 
@@ -40,7 +46,16 @@ const Prescription: React.FC = () => {
     if (d.examinationDate) setExaminationDate(d.examinationDate);
   }, [historyResponse]);
 
-  const isFetching = isHistoryLoading || isHistoryFetching;
+  const hasExistingHistory =
+    historyResponse?.errCode === 0 && !!historyResponse.data;
+  const isInitialLoading = isHistoryLoading && !historyResponse;
+
+  const navigateBack = () =>
+    navigate("/doctor/manage-patient", {
+      state: Number.isFinite(selectedDateValue)
+        ? { selectedDateValue }
+        : undefined,
+    });
 
   const handleSubmit = async () => {
     const parsedBookingId = Number(bookingId);
@@ -62,12 +77,17 @@ const Prescription: React.FC = () => {
       }).unwrap();
       if (res && res.errCode === 0) {
         toast.success("Lưu hồ sơ khám thành công!");
-        navigate("/doctor/manage-patient");
+        navigateBack();
       } else {
         toast.error(res?.errMessage || "Lưu thất bại!");
       }
-    } catch (e) {
-      toast.error("Đã có lỗi xảy ra, vui lòng thử lại!");
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          "Đã có lỗi xảy ra, vui lòng thử lại!",
+        ),
+      );
     }
   };
 
@@ -77,7 +97,7 @@ const Prescription: React.FC = () => {
       <div className="prescription-header">
         <button
           className="btn btn-outline-secondary btn-sm back-btn"
-          onClick={() => navigate("/doctor/manage-patient")}
+          onClick={navigateBack}
         >
           <i className="fas fa-arrow-left mr-1"></i> Quay lại
         </button>
@@ -88,14 +108,14 @@ const Prescription: React.FC = () => {
         </div>
       </div>
 
-      {isFetching ? (
+      {isInitialLoading ? (
         <DataState variant="loading" text="Đang tải hồ sơ khám..." />
       ) : (
         <>
           {isHistoryError && (
             <DataState
               variant="error"
-              text="Không thể kiểm tra hồ sơ khám đã lưu. Bạn vẫn có thể nhập hồ sơ mới."
+              text="Không thể kiểm tra hồ sơ khám đã lưu. Hãy tải lại trước khi lưu để tránh ghi đè dữ liệu."
               onRetry={() => void refetchHistory()}
               compact
             />
@@ -164,8 +184,8 @@ const Prescription: React.FC = () => {
           <div className="prescription-actions">
             <button
               className="btn btn-secondary mr-3"
-              onClick={() => navigate("/doctor/manage-patient")}
-              disabled={isLoading}
+              onClick={navigateBack}
+              disabled={isLoading || isHistoryError}
             >
               <i className="fas fa-times mr-1"></i> Hủy
             </button>
@@ -180,7 +200,10 @@ const Prescription: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <i className="fas fa-save mr-1"></i> Xác nhận hoàn tất
+                  <i className="fas fa-save mr-1"></i>{" "}
+                  {hasExistingHistory
+                    ? "Cập nhật hồ sơ"
+                    : "Xác nhận hoàn tất"}
                 </>
               )}
             </button>

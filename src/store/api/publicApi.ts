@@ -17,6 +17,55 @@ type ApiResponse<T = any> = {
   };
 };
 
+export type PatientProfileRecord = {
+  id: number;
+  userId: number;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  address?: string;
+  relationship?: string;
+};
+
+export type CreatePackageBookingPayload = {
+  packageId: number;
+  profileId?: number;
+  email: string;
+  fullName?: string;
+  phoneNumber?: string;
+  gender?: string;
+  birthday?: string;
+  address?: string;
+  reason?: string;
+  desiredDate: string;
+  language: "vi" | "en";
+};
+
+export type PackageBookingRecord = {
+  id: number;
+  packageId: number;
+  packageName: string;
+  clinicId: number;
+  clinicName: string;
+  patientId: number;
+  profileId?: number;
+  patientName: string;
+  email: string;
+  phoneNumber: string;
+  desiredDate: string;
+  reason?: string;
+  status:
+    | "PENDING_EMAIL"
+    | "PENDING_CLINIC"
+    | "CONFIRMED"
+    | "CANCELLED"
+    | "EXPIRED";
+  createdAt: string;
+  updatedAt: string;
+};
+
 type HomeStats = {
   clinicCount: number;
   doctorCount: number;
@@ -53,6 +102,8 @@ type PublicTagType =
   | "AllCode"
   | "History"
   | "Booking"
+  | "PackageBooking"
+  | "PatientProfile"
   | "Article";
 
 export type SearchResult = {
@@ -128,6 +179,8 @@ export const publicApi = createApi({
     "AllCode",
     "History",
     "Booking",
+    "PackageBooking",
+    "PatientProfile",
     "Article",
   ],
   keepUnusedDataFor: 30,
@@ -300,6 +353,36 @@ export const publicApi = createApi({
         { type: "Package", id: packageId },
       ],
       keepUnusedDataFor: 300,
+    }),
+    getPatientProfiles: builder.query<
+      ApiResponse<PatientProfileRecord[]>,
+      number | string
+    >({
+      query: (userId) => ({ url: `/api/patient-profiles/user/${userId}` }),
+      providesTags: (result) => buildListTags("PatientProfile", result),
+      keepUnusedDataFor: 60,
+    }),
+    createPackageBooking: builder.mutation<
+      ApiResponse<PackageBookingRecord>,
+      CreatePackageBookingPayload
+    >({
+      query: (data) => ({
+        url: "/api/package-bookings",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: [{ type: "PackageBooking", id: "MINE" }],
+    }),
+    verifyPackageBooking: builder.mutation<
+      ApiResponse<PackageBookingRecord>,
+      { token: string; packageId: number }
+    >({
+      query: (data) => ({
+        url: "/api/package-bookings/verify",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: [{ type: "PackageBooking", id: "MINE" }],
     }),
     getUserById: builder.query<ApiResponse<any>, number | string>({
       query: (userId) => ({ url: `/api/users/${userId}` }),
@@ -652,30 +735,7 @@ export const publicApi = createApi({
         method: "POST",
         params: { clinicId },
       }),
-      invalidatesTags: (_result, _error, arg) => [
-        { type: "Booking", id: `clinic-${arg.clinicId}-all` },
-      ],
-    }),
-    confirmPatientBooking: builder.mutation<
-      ApiResponse<any>,
-      {
-        bookingId: number | string;
-        doctorId: number | string;
-        statusId?: string;
-        date: number | string;
-      }
-    >({
-      query: ({ bookingId, doctorId, statusId = "S3" }) => ({
-        url: `/api/bookings/${bookingId}/confirm`,
-        method: "POST",
-        data: { doctorId, statusId },
-      }),
-      invalidatesTags: (_result, _error, arg) => [
-        {
-          type: "Booking",
-          id: `doctor-${arg.doctorId}-${arg.date}`,
-        },
-      ],
+      invalidatesTags: ["Booking"],
     }),
     bookAppointment: builder.mutation<ApiResponse<any>, any>({
       query: (data) => ({ url: "/api/bookings", method: "POST", data }),
@@ -709,9 +769,7 @@ export const publicApi = createApi({
     }),
     createHistory: builder.mutation<ApiResponse<any>, any>({
       query: (data) => ({ url: "/api/histories", method: "POST", data }),
-      invalidatesTags: (_result, _error, arg) => [
-        { type: "History", id: `booking-${arg.bookingId}` },
-      ],
+      invalidatesTags: ["History", "Booking"],
     }),
   }),
 });
@@ -738,6 +796,9 @@ export const {
   useGetPackagesQuery,
   useGetPackageByIdQuery,
   useLazyGetPackageByIdQuery,
+  useGetPatientProfilesQuery,
+  useCreatePackageBookingMutation,
+  useVerifyPackageBookingMutation,
   useGetUserByIdQuery,
   useGetUsersQuery,
   useGetUserAccountStatusesQuery,
@@ -770,7 +831,6 @@ export const {
   useReviewClinicManagerDoctorMutation,
   useUpdateClinicManagerDoctorStatusMutation,
   useUpdateClinicBookingStatusMutation,
-  useConfirmPatientBookingMutation,
   useBookAppointmentMutation,
   useVerifyBookingMutation,
   useChangePasswordMutation,

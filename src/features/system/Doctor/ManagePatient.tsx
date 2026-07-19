@@ -1,27 +1,36 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./ManagePatient.scss";
 import { FormattedMessage } from "react-intl";
 import DatePicker from "components/Input/DatePicker";
 import { LANGUAGES, USER_ROLE } from "../../../utils";
-import { toast } from "react-toastify";
 import { IRootState } from "../../../types";
 import {
   useGetAllDoctorsQuery,
   useGetPatientsByDoctorQuery,
-  useConfirmPatientBookingMutation,
 } from "../../../store/api/publicApi";
 import { DataState } from "components/System/SystemShared";
+import {
+  BOOKING_STATUS,
+  BOOKING_STATUS_OPTIONS,
+  getBookingStatusMeta,
+} from "../../../utils/bookingStatus";
 
 const ManagePatient = () => {
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const language = useSelector((state: IRootState) => state.app.language);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnedDate = Number((location.state as any)?.selectedDateValue);
 
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | string>("");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    Number.isFinite(returnedDate) && returnedDate > 0
+      ? new Date(returnedDate)
+      : new Date(),
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -103,9 +112,13 @@ const ManagePatient = () => {
     refetch: refetchPatients,
   } = useGetPatientsByDoctorQuery(
     { doctorId: activeDoctorId, date: selectedDateValue },
-    { skip: !shouldFetchPatients },
+    {
+      skip: !shouldFetchPatients,
+      pollingInterval: 10_000,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+    },
   );
-  const [confirmPatientBooking] = useConfirmPatientBookingMutation();
 
   const patients = useMemo(
     () =>
@@ -115,9 +128,9 @@ const ManagePatient = () => {
     [patientsResponse],
   );
 
-  const isLoading = isLoadingPatients || isFetchingPatients;
+  const isLoading = isLoadingPatients && patients.length === 0;
   const errorMessage = useMemo(() => {
-    if (isPatientsError) {
+    if (isPatientsError && patients.length === 0) {
       return "Không thể tải danh sách bệnh nhân. Vui lòng thử lại.";
     }
     if (patientsResponse && patientsResponse.errCode !== 0) {
@@ -131,7 +144,13 @@ const ManagePatient = () => {
       return "Không thể tải danh sách bác sĩ.";
     }
     return "";
-  }, [isDoctorsError, isPatientsError, patientsResponse, shouldLoadDoctors]);
+  }, [
+    isDoctorsError,
+    isPatientsError,
+    patients.length,
+    patientsResponse,
+    shouldLoadDoctors,
+  ]);
 
   const handleChangeDate = useCallback((date: any) => {
     if (!date || !date[0]) return;
@@ -142,38 +161,6 @@ const ManagePatient = () => {
     if (!event || !event.target) return;
     setSelectedDoctorId(event.target.value);
   }, []);
-
-  const handleConfirmBooking = async (item: any) => {
-    const bookingId = item?.id;
-    if (!bookingId) return;
-
-    const confirmed = window.confirm("Xác nhận bệnh nhân đã khám xong?");
-    if (!confirmed) return;
-
-    const doctorId =
-      item?.doctorId ||
-      activeDoctorId ||
-      userInfo?.id ||
-      userInfo?.userId ||
-      selectedDoctorId ||
-      "";
-
-    try {
-      const res = await confirmPatientBooking({
-        bookingId,
-        doctorId,
-        statusId: "S3",
-        date: selectedDateValue,
-      }).unwrap();
-      if (res && res.errCode === 0) {
-        toast.success("Xác nhận thành công!");
-      } else {
-        toast.error(res?.errMessage || "Xác nhận thất bại!");
-      }
-    } catch (e) {
-      toast.error("Xác nhận thất bại!");
-    }
-  };
 
   const doctorDisplayName = userInfo
     ? `${userInfo.lastName || ""} ${userInfo.firstName || ""}`.trim()
@@ -200,19 +187,19 @@ const ManagePatient = () => {
   };
 
   const getStatusMeta = (statusId: string) => {
-    switch (statusId) {
-      case "S1":
-        return { label: "Chờ xác nhận email", className: "badge badge-warning text-danger" };
-      case "S2":
-        return { label: "Chờ khám", className: "badge badge-info text-warning" };
-      case "S3":
-        return { label: "Đã khám", className: "badge badge-success text-primary" };
-      case "S4":
-      case "S5":
-        return { label: "Đã hủy", className: "badge badge-secondary" };
-      default:
-        return { label: statusId || "Không rõ", className: "badge badge-secondary" };
-    }
+    const meta = getBookingStatusMeta(statusId);
+    const classByTone = {
+      warning: "badge badge-warning text-dark",
+      info: "badge badge-info text-dark",
+      primary: "badge badge-primary",
+      success: "badge badge-success",
+      danger: "badge badge-danger",
+      neutral: "badge badge-secondary",
+    };
+    return {
+      label: meta?.label || statusId || "Không rõ",
+      className: meta ? classByTone[meta.tone] : classByTone.neutral,
+    };
   };
 
   const statusTabs = useMemo(() => {
@@ -224,10 +211,11 @@ const ManagePatient = () => {
 
     return [
       { key: "ALL", label: "Tất cả", count: patients.length },
-      { key: "S1", label: "Chờ email", count: countByStatus.S1 || 0 },
-      { key: "S2", label: "Chờ khám", count: countByStatus.S2 || 0 },
-      { key: "S3", label: "Đã khám", count: countByStatus.S3 || 0 },
-      { key: "CANCELLED", label: "Đã hủy", count: (countByStatus.S4 || 0) + (countByStatus.S5 || 0) },
+      ...BOOKING_STATUS_OPTIONS.map((status) => ({
+        key: status.id,
+        label: status.shortLabel,
+        count: countByStatus[status.id] || 0,
+      })),
     ];
   }, [patients]);
 
@@ -236,9 +224,7 @@ const ManagePatient = () => {
 
     return patients.filter((item) => {
       const matchesStatus =
-        statusFilter === "ALL" ||
-        item?.statusId === statusFilter ||
-        (statusFilter === "CANCELLED" && ["S4", "S5"].includes(item?.statusId));
+        statusFilter === "ALL" || item?.statusId === statusFilter;
 
       if (!matchesStatus) return false;
       if (!normalizedSearch) return true;
@@ -359,6 +345,11 @@ const ManagePatient = () => {
               <span>
                 <i className="fas fa-list-alt"></i> Danh sách bệnh nhân đặt lịch
               </span>
+              {isFetchingPatients && !isLoadingPatients && (
+                <small className="text-muted">
+                  <i className="fas fa-sync-alt fa-spin mr-1" /> Đang đồng bộ
+                </small>
+              )}
             </div>
             <div className="card-body p-0">
               <div className="table-responsive">
@@ -431,8 +422,8 @@ const ManagePatient = () => {
                                 </span>
                               </td>
                               <td>
-                                {/* S1: chờ xác nhận email → không hiện nút */}
-                                {item.statusId === "S1" && (
+                                {item.statusId ===
+                                  BOOKING_STATUS.PENDING_EMAIL_CONFIRMATION && (
                                   <span
                                     className="text-muted"
                                     style={{ fontSize: "12px" }}
@@ -440,29 +431,49 @@ const ManagePatient = () => {
                                     Chờ xác nhận email
                                   </span>
                                 )}
-                                {/* S2: email đã xác nhận → hiện nút Xác nhận khám */}
-                                {item.statusId === "S2" && (
-                                  <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={() => handleConfirmBooking(item)}
+                                {item.statusId ===
+                                  BOOKING_STATUS.PENDING_CLINIC_CONFIRMATION && (
+                                  <span
+                                    className="text-muted"
+                                    style={{ fontSize: "12px" }}
                                   >
-                                    <i className="fas fa-check mr-1"></i> Xác
-                                    nhận khám
-                                  </button>
+                                    Chờ phòng khám xác nhận
+                                  </span>
                                 )}
-                                {/* S3: đã khám → hiện nút Kê đơn */}
-                                {item.statusId === "S3" && (
+                                {item.statusId ===
+                                  BOOKING_STATUS.READY_FOR_EXAMINATION &&
+                                  isDoctorRole && (
                                   <button
                                     className="btn btn-success btn-sm"
                                     onClick={() =>
                                       navigate(
                                         `/doctor/prescription/${item.id}`,
+                                        { state: { selectedDateValue } },
                                       )
                                     }
                                   >
                                     <i className="fas fa-notes-medical mr-1"></i>{" "}
-                                    Kê đơn
+                                    Khám &amp; kê đơn
                                   </button>
+                                )}
+                                {item.statusId ===
+                                  BOOKING_STATUS.READY_FOR_EXAMINATION &&
+                                  !isDoctorRole && (
+                                  <span className="text-muted small">
+                                    Chờ bác sĩ phụ trách khám
+                                  </span>
+                                )}
+                                {item.statusId === BOOKING_STATUS.COMPLETED && (
+                                  <span className="text-success small">
+                                    <i className="fas fa-check-circle mr-1" />
+                                    Đã lưu hồ sơ
+                                  </span>
+                                )}
+                                {item.statusId ===
+                                  BOOKING_STATUS.CANCELLED_OR_REJECTED && (
+                                  <span className="text-danger small">
+                                    Không còn hiệu lực
+                                  </span>
                                 )}
                               </td>
                             </tr>

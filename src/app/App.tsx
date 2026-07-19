@@ -32,6 +32,8 @@ import PatientProfile from "features/patient/Profile/PatientProfile";
 import PatientHistory from "features/patient/History/PatientHistory";
 import PackageList from "features/patient/Package/PackageList";
 import DetailPackage from "features/patient/Package/DetailPackage";
+import BookingPackage from "features/patient/Package/BookingPackage";
+import VerifyPackageBooking from "features/patient/Package/VerifyPackageBooking";
 import SearchPage from "features/public/search/SearchPage";
 import ArticleList from "features/public/article/ArticleList";
 import ArticleDetail from "features/public/article/ArticleDetail";
@@ -141,6 +143,14 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 <Route
                   path={path.DETAIL_PACKAGE}
                   element={<DetailPackage />}
+                />
+                <Route
+                  path={path.BOOKING_PACKAGE}
+                  element={<BookingPackage />}
+                />
+                <Route
+                  path={path.VERIFY_PACKAGE_BOOKING}
+                  element={<VerifyPackageBooking />}
                 />
                 <Route
                   path={path.LIST_TOP_DOCTOR}

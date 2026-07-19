@@ -6,6 +6,7 @@ import { IRootState } from "../../../types";
 import { LANGUAGES } from "../../../utils";
 import "./PatientHistory.scss";
 import { useGetPatientHistoryQuery } from "../../../store/api/publicApi";
+import { DataState } from "components/System/SystemShared";
 
 interface IHistoryRecord {
   id: number;
@@ -43,11 +44,22 @@ const PatientHistory: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [page, setPage] = useState(0);
   const userId = userInfo?.id || (userInfo as any)?.userId;
-  const { data: historyResponse, isLoading: loading, isFetching } =
-    useGetPatientHistoryQuery(
-      { patientId: userId || "", page, size: 10 },
-      { skip: !userId },
-    );
+  const {
+    data: historyResponse,
+    isLoading: loading,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetPatientHistoryQuery(
+    { patientId: userId || "", page, size: 10 },
+    {
+      skip: !userId,
+      pollingInterval: 30_000,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+      refetchOnMountOrArgChange: true,
+    },
+  );
   const histories = useMemo<IHistoryRecord[]>(
     () =>
       historyResponse?.errCode === 0 && Array.isArray(historyResponse.data)
@@ -55,6 +67,10 @@ const PatientHistory: React.FC = () => {
         : [],
     [historyResponse],
   );
+  const isInitialLoading = loading && histories.length === 0;
+  const hasError =
+    histories.length === 0 &&
+    (isError || (historyResponse != null && historyResponse.errCode !== 0));
 
   // Lọc theo tab
   const filteredHistories = histories.filter((r) => {
@@ -133,7 +149,7 @@ const PatientHistory: React.FC = () => {
           </div>
 
           <div className="history-body">
-            {loading ? (
+            {isInitialLoading ? (
               <div className="loading-state">
                 <i className="fas fa-spinner fa-spin" />
                 <span>
@@ -143,6 +159,12 @@ const PatientHistory: React.FC = () => {
                   />
                 </span>
               </div>
+            ) : hasError ? (
+              <DataState
+                variant="error"
+                text="Không thể tải lịch sử khám bệnh."
+                onRetry={() => void refetch()}
+              />
             ) : filteredHistories.length === 0 ? (
               <div className="empty-state">
                 <i className="fas fa-clipboard-list" />

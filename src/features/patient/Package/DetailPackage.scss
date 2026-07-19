@@ -91,7 +91,6 @@
     display: flex;
     gap: 14px;
 
-    button,
     a {
       align-items: center;
       border-radius: 6px;
@@ -104,17 +103,28 @@
       text-decoration: none;
     }
 
-    button {
+    a.primary-action {
       background: #45c3d2;
-      border: 0;
       color: #fff;
       cursor: pointer;
       text-transform: uppercase;
     }
 
-    a {
+    a:not(.primary-action) {
       background: #eef8fa;
       color: #159aaa;
+    }
+
+    .package-unavailable {
+      background: #f2f4f7;
+      border-radius: 6px;
+      color: #667085;
+      display: inline-flex;
+      font-size: 14px;
+      font-weight: 800;
+      min-height: 44px;
+      padding: 0 18px;
+      align-items: center;
     }
   }
 
