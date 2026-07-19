@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ARTICLE_STATUS,
+  ARTICLE_WORKSPACE_LIVE_OPTIONS,
   ArticleListItem,
   ArticleStatus,
   useGetWriterArticlesQuery,
@@ -30,7 +31,10 @@ const WriterArticles: React.FC = () => {
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [page, setPage] = useState(0);
   const { data, isLoading, isFetching, isError, refetch } =
-    useGetWriterArticlesQuery({ page, size: 10, q: search, status });
+    useGetWriterArticlesQuery(
+      { page, size: 10, q: search, status },
+      ARTICLE_WORKSPACE_LIVE_OPTIONS,
+    );
   const [submitArticle, { isLoading: isSubmitting }] =
     useSubmitArticleMutation();
 
@@ -70,13 +74,31 @@ const WriterArticles: React.FC = () => {
     <div className="article-system-page">
       <Panel>
         <PanelHeading title="Bài viết của tôi" icon="far fa-newspaper">
-          <button
-            type="button"
-            className="article-primary-button"
-            onClick={() => navigate("/system/writer/articles/new")}
-          >
-            <i className="fas fa-plus" /> Tạo bài viết
-          </button>
+          <div className="article-heading-actions">
+            <span className="article-live-sync" aria-live="polite">
+              <i
+                className={
+                  isFetching && !isLoading
+                    ? "fas fa-sync-alt fa-spin"
+                    : isError && articles.length > 0
+                      ? "fas fa-exclamation-triangle"
+                      : "fas fa-circle"
+                }
+              />
+              {isFetching && !isLoading
+                ? "Đang đồng bộ..."
+                : isError && articles.length > 0
+                  ? "Tạm mất đồng bộ"
+                  : "Tự động cập nhật"}
+            </span>
+            <button
+              type="button"
+              className="article-primary-button"
+              onClick={() => navigate("/system/writer/articles/new")}
+            >
+              <i className="fas fa-plus" /> Tạo bài viết
+            </button>
+          </div>
         </PanelHeading>
 
         <div className="article-toolbar">
@@ -102,8 +124,8 @@ const WriterArticles: React.FC = () => {
         <DataTable<ArticleListItem>
           data={articles}
           rowKey={(article) => article.id}
-          isLoading={isLoading || isFetching}
-          isError={isError}
+          isLoading={isLoading}
+          isError={isError && articles.length === 0}
           onRetry={refetch}
           emptyText="Chưa có bài viết phù hợp."
           columns={[

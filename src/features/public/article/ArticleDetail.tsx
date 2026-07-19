@@ -3,14 +3,24 @@ import { Link, useParams } from "react-router-dom";
 import HomeFooter from "layout/HomeFooter";
 import HomeHeader from "layout/HomeHeader";
 import { DataState } from "components/System/SystemShared";
-import { useGetPublishedArticleQuery } from "store/api/articleApi";
+import {
+  ARTICLE_PUBLIC_LIVE_OPTIONS,
+  useGetPublishedArticleQuery,
+} from "store/api/articleApi";
 import { sanitizeHtml } from "utils/sanitizeHtml";
 import "./Article.scss";
 
 const ArticleDetail: React.FC = () => {
   const { slug = "" } = useParams();
-  const query = useGetPublishedArticleQuery(slug, { skip: !slug });
+  const query = useGetPublishedArticleQuery(slug, {
+    ...ARTICLE_PUBLIC_LIVE_OPTIONS,
+    skip: !slug,
+  });
   const article = query.data?.data;
+  const responseStatus = (query.error as { status?: number } | undefined)
+    ?.status;
+  const isUnavailable =
+    !article || (query.isError && responseStatus === 404);
   const safeContent = useMemo(
     () => sanitizeHtml(article?.contentHtml),
     [article?.contentHtml],
@@ -26,11 +36,11 @@ const ArticleDetail: React.FC = () => {
     <div className="public-article-page public-article-detail-page">
       <HomeHeader isShowBanner={false} />
       <main>
-        {query.isLoading || query.isFetching ? (
+        {query.isLoading ? (
           <div className="public-article-detail-state">
             <DataState variant="loading" text="Đang tải bài viết..." />
           </div>
-        ) : query.isError || !article ? (
+        ) : isUnavailable ? (
           <div className="public-article-detail-state">
             <DataState
               variant="error"

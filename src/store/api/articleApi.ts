@@ -9,6 +9,25 @@ export const ARTICLE_STATUS = {
   ARCHIVED: "AS6",
 } as const;
 
+/**
+ * Workspace data is workflow-sensitive, so Writer/Admin screens check for
+ * changes from other authenticated sessions every 10 seconds. Public pages
+ * use a slower interval to avoid unnecessary traffic.
+ */
+export const ARTICLE_WORKSPACE_LIVE_OPTIONS = {
+  pollingInterval: 10_000,
+  skipPollingIfUnfocused: true,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+} as const;
+
+export const ARTICLE_PUBLIC_LIVE_OPTIONS = {
+  pollingInterval: 30_000,
+  skipPollingIfUnfocused: true,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+} as const;
+
 export type ArticleStatus =
   (typeof ARTICLE_STATUS)[keyof typeof ARTICLE_STATUS];
 

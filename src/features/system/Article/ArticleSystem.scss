@@ -35,6 +35,37 @@
   flex-wrap: wrap;
 }
 
+.article-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.article-live-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #5d716e;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  .fa-circle {
+    color: #24a88f;
+    font-size: 7px;
+  }
+
+  .fa-sync-alt {
+    color: #118c7e;
+  }
+
+  .fa-exclamation-triangle {
+    color: #c47a13;
+  }
+}
+
 .article-status-tabs {
   display: flex;
   gap: 7px;

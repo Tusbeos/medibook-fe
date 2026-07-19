@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
   ARTICLE_STATUS,
+  ARTICLE_WORKSPACE_LIVE_OPTIONS,
   ArticleListItem,
   ArticleStatus,
   useApproveArticleMutation,
@@ -37,13 +38,17 @@ const AdminArticleReview: React.FC = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [featured, setFeatured] = useState(false);
-  const listQuery = useGetAdminArticlesQuery({
-    page,
-    size: 10,
-    q: search,
-    status,
-  });
+  const listQuery = useGetAdminArticlesQuery(
+    {
+      page,
+      size: 10,
+      q: search,
+      status,
+    },
+    ARTICLE_WORKSPACE_LIVE_OPTIONS,
+  );
   const detailQuery = useGetAdminArticleQuery(selectedId!, {
+    ...ARTICLE_WORKSPACE_LIVE_OPTIONS,
     skip: selectedId === null,
   });
   const [approveArticle, approveState] = useApproveArticleMutation();
@@ -99,7 +104,28 @@ const AdminArticleReview: React.FC = () => {
   return (
     <div className="article-system-page admin-article-page">
       <Panel>
-        <PanelHeading title="Duyệt bài viết" icon="fas fa-clipboard-check" />
+        <PanelHeading title="Duyệt bài viết" icon="fas fa-clipboard-check">
+          <span className="article-live-sync" aria-live="polite">
+            <i
+              className={
+                (listQuery.isFetching && !listQuery.isLoading) ||
+                (detailQuery.isFetching && !detailQuery.isLoading)
+                  ? "fas fa-sync-alt fa-spin"
+                  : (listQuery.isError && articles.length > 0) ||
+                      (detailQuery.isError && Boolean(article))
+                    ? "fas fa-exclamation-triangle"
+                    : "fas fa-circle"
+              }
+            />
+            {(listQuery.isFetching && !listQuery.isLoading) ||
+            (detailQuery.isFetching && !detailQuery.isLoading)
+              ? "Đang đồng bộ..."
+              : (listQuery.isError && articles.length > 0) ||
+                  (detailQuery.isError && Boolean(article))
+                ? "Tạm mất đồng bộ"
+                : "Tự động cập nhật"}
+          </span>
+        </PanelHeading>
         <div className="article-toolbar">
           <div className="article-status-tabs" role="tablist">
             {ARTICLE_STATUS_OPTIONS.map((option) => (
@@ -129,8 +155,8 @@ const AdminArticleReview: React.FC = () => {
         <DataTable<ArticleListItem>
           data={articles}
           rowKey={(item) => item.id}
-          isLoading={listQuery.isLoading || listQuery.isFetching}
-          isError={listQuery.isError}
+          isLoading={listQuery.isLoading}
+          isError={listQuery.isError && articles.length === 0}
           onRetry={listQuery.refetch}
           emptyText="Không có bài viết trong trạng thái này."
           columns={[
@@ -202,9 +228,9 @@ const AdminArticleReview: React.FC = () => {
 
       {selectedId !== null && (
         <Panel className="article-review-panel">
-          {detailQuery.isLoading || detailQuery.isFetching ? (
+          {detailQuery.isLoading ? (
             <DataState variant="loading" text="Đang tải nội dung bài viết..." />
-          ) : detailQuery.isError || !article ? (
+          ) : !article ? (
             <DataState
               variant="error"
               text="Không thể tải nội dung bài viết."

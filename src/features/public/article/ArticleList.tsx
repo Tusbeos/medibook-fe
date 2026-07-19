@@ -4,6 +4,7 @@ import HomeFooter from "layout/HomeFooter";
 import HomeHeader from "layout/HomeHeader";
 import { DataState } from "components/System/SystemShared";
 import {
+  ARTICLE_PUBLIC_LIVE_OPTIONS,
   ArticleListItem,
   useGetFeaturedArticlesQuery,
   useGetPublishedArticlesQuery,
@@ -52,12 +53,18 @@ const ArticleList: React.FC = () => {
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
-  const articlesQuery = useGetPublishedArticlesQuery({
-    page,
-    size: 9,
-    q: query,
-  });
-  const featuredQuery = useGetFeaturedArticlesQuery(3);
+  const articlesQuery = useGetPublishedArticlesQuery(
+    {
+      page,
+      size: 9,
+      q: query,
+    },
+    ARTICLE_PUBLIC_LIVE_OPTIONS,
+  );
+  const featuredQuery = useGetFeaturedArticlesQuery(
+    3,
+    ARTICLE_PUBLIC_LIVE_OPTIONS,
+  );
   const articles = articlesQuery.data?.data || [];
   const featuredArticles = featuredQuery.data?.data || [];
   const pagination = articlesQuery.data?.pagination;
@@ -118,9 +125,9 @@ const ArticleList: React.FC = () => {
             {pagination && <p>{pagination.totalElements} bài viết</p>}
           </div>
 
-          {articlesQuery.isLoading || articlesQuery.isFetching ? (
+          {articlesQuery.isLoading ? (
             <DataState variant="loading" text="Đang tải bài viết..." />
-          ) : articlesQuery.isError ? (
+          ) : articlesQuery.isError && articles.length === 0 ? (
             <DataState
               variant="error"
               text="Không thể tải danh sách bài viết."

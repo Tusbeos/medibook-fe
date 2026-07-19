@@ -1,6 +1,7 @@
 import { logger } from "redux-logger";
 
 import { configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/query";
 import { createStateSyncMiddleware } from 'redux-state-sync';
 import { persistStore } from 'redux-persist';
 
@@ -28,6 +29,9 @@ const reduxStore = configureStore({
     }).concat(publicApi.middleware, ...middleware),
   devTools: isDevelopment,
 });
+
+// Required by RTK Query for refetch-on-focus/reconnect and focus-aware polling.
+setupListeners(reduxStore.dispatch);
 
 export const dispatch = reduxStore.dispatch;
 export type AppDispatch = typeof reduxStore.dispatch;
