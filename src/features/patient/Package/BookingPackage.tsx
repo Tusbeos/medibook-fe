@@ -1,5 +1,5 @@
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Breadcrumb from "components/Breadcrumb";
 import HomeFooter from "layout/HomeFooter";
@@ -13,6 +13,7 @@ import {
 } from "store/api/publicApi";
 import type { PackageBookingRecord } from "store/api/publicApi";
 import "./BookingPackage.scss";
+import { savePendingPatientAuthFlow } from "features/auth/patientAuthFlow";
 
 type FormValues = {
   email: string;
@@ -44,6 +45,8 @@ const profileName = (profile: { firstName?: string; lastName?: string }) =>
 
 const BookingPackage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
   const packageId = Number(id);
   const isValidPackageId = Number.isInteger(packageId) && packageId > 0;
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
@@ -92,6 +95,14 @@ const BookingPackage = () => {
   const [createPackageBooking, { isLoading: isSubmitting }] =
     useCreatePackageBookingMutation();
 
+  const restoredState = location.state as {
+    bookingKind?: string;
+    bookingDraft?: {
+      values?: FormValues;
+      profileChoice?: string;
+    };
+  } | null;
+
   const today = useMemo(() => formatLocalDate(new Date()), []);
   const maxDate = useMemo(() => {
     const date = new Date();
@@ -107,7 +118,7 @@ const BookingPackage = () => {
     if (!isPatientAccount || !userInfo) return;
     setValues((current) => ({
       ...current,
-      email: current.email || userInfo.email || "",
+      email: userInfo.email || current.email,
       fullName:
         current.fullName ||
         `${userInfo.lastName || ""} ${userInfo.firstName || ""}`.trim(),
@@ -116,6 +127,17 @@ const BookingPackage = () => {
       address: current.address || userInfo.address || "",
     }));
   }, [isPatientAccount, userInfo]);
+
+  useEffect(() => {
+    if (restoredState?.bookingKind !== "package") return;
+    const draft = restoredState.bookingDraft;
+    if (!draft?.values) return;
+    setValues({
+      ...draft.values,
+      email: userInfo?.email || draft.values.email,
+    });
+    setProfileChoice(draft.profileChoice || "self");
+  }, [restoredState?.bookingDraft, restoredState?.bookingKind, userInfo?.email]);
 
   const updateValue = (field: keyof FormValues, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -162,12 +184,33 @@ const BookingPackage = () => {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (isSubmitting || createdBooking || !validate()) return;
+
+    if (!isLoggedIn) {
+      const normalizedEmail = values.email.trim().toLowerCase();
+      const returnTo = `/booking-package/${packageId}`;
+      savePendingPatientAuthFlow({
+        email: normalizedEmail,
+        returnTo,
+        bookingKind: "package",
+        bookingDraft: { values: { ...values, email: normalizedEmail }, profileChoice },
+      });
+      navigate("/patient/auth?mode=register", {
+        state: { email: normalizedEmail, returnTo },
+      });
+      return;
+    }
+
+    if (!isPatientAccount) {
+      setSubmitError("Vui lòng sử dụng tài khoản bệnh nhân để đặt gói khám.");
+      return;
+    }
+
     setSubmitError("");
     try {
       const response = await createPackageBooking({
         packageId,
         ...(selectedProfile ? { profileId: selectedProfile.id } : {}),
-        email: values.email.trim(),
+        email: userInfo?.email || values.email.trim(),
         ...(!selectedProfile
           ? {
               fullName: values.fullName.trim(),

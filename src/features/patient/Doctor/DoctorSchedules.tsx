@@ -76,7 +76,10 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
   );
   const shouldSkipSchedule = !detailDoctorFromParent || detailDoctorFromParent === -1;
   const { data: scheduleResponse } = useGetDoctorScheduleQuery(
-    { doctorId: detailDoctorFromParent, date: selectedDate },
+    {
+      doctorId: detailDoctorFromParent,
+      date: moment(selectedDate).format("YYYY-MM-DD"),
+    },
     { skip: shouldSkipSchedule },
   );
 

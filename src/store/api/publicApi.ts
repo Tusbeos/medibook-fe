@@ -314,7 +314,7 @@ export const publicApi = createApi({
     }),
     getDoctorSchedule: builder.query<
       ApiResponse<any[]>,
-      { doctorId: number | string; date: number | string }
+      { doctorId: number | string; date: string }
     >({
       query: ({ doctorId, date }) => ({
         url: `/api/doctors/${doctorId}/schedules`,
@@ -448,7 +448,7 @@ export const publicApi = createApi({
     }),
     getPatientsByDoctor: builder.query<
       ApiResponse<any[]>,
-      { doctorId: number | string; date: number | string }
+      { doctorId: number | string; date: string }
     >({
       query: ({ doctorId, date }) => ({
         url: `/api/doctors/${doctorId}/patients`,
@@ -669,7 +669,7 @@ export const publicApi = createApi({
       {
         doctorId: number | string;
         scheduleId: number | string;
-        date: number | string;
+        date: string;
       }
     >({
       query: ({ doctorId, scheduleId }) => ({

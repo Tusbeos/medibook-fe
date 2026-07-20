@@ -80,7 +80,7 @@ export interface ITimeBooking {
   id?: number;
   currentNumber?: number;
   maxNumber?: number;
-  date?: string | number;
+  date?: string;
   timeType?: string;
   doctorId?: number;
   timeTypeData?: IAllCode;
@@ -94,8 +94,8 @@ export interface IBookingData {
   gender?: string;
   phoneNumber?: string;
   email?: string;
-  date?: string | number;
-  birthday?: string | number;
+  date?: string;
+  birthday?: string;
   address?: string;
   reason?: string;
   doctorId?: string | number;

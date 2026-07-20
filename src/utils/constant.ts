@@ -3,6 +3,7 @@ export const path = {
   HOMEPAGE: "/home",
   SEARCH: "/search",
   LOGIN: "/login",
+  PATIENT_AUTH: "/patient/auth",
   LOG_OUT: "/logout",
   SYSTEM: "/system",
   DETAIL_DOCTOR: "/detail-doctor/:id",

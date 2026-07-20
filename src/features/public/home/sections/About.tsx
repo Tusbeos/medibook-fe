@@ -16,16 +16,18 @@ const About: React.FC = () => {
               <span className="benefit-icon">
                 <i className="fas fa-shield-alt" />
               </span>
-              <div>
+              <div className="benefit-text">
                 <strong>Bác sĩ xác thực</strong>
-                <span>Thông tin chuyên môn được kiểm tra trước khi hiển thị.</span>
+                <span>
+                  Thông tin chuyên môn được kiểm tra trước khi hiển thị.
+                </span>
               </div>
             </div>
             <div className="benefit-item">
               <span className="benefit-icon">
                 <i className="fas fa-lock" />
               </span>
-              <div>
+              <div className="benefit-text">
                 <strong>Bảo mật dữ liệu</strong>
                 <span>Thông tin cá nhân và hồ sơ đặt lịch được bảo vệ.</span>
               </div>
@@ -34,7 +36,7 @@ const About: React.FC = () => {
               <span className="benefit-icon">
                 <i className="fas fa-check-circle" />
               </span>
-              <div>
+              <div className="benefit-text">
                 <strong>Xác nhận nhanh</strong>
                 <span>Đặt lịch trực tiếp theo khung giờ còn trống.</span>
               </div>
@@ -43,7 +45,7 @@ const About: React.FC = () => {
               <span className="benefit-icon">
                 <i className="fas fa-headset" />
               </span>
-              <div>
+              <div className="benefit-text">
                 <strong>Hỗ trợ 24/7</strong>
                 <span>Đội ngũ hỗ trợ luôn sẵn sàng khi bạn cần.</span>
               </div>
@@ -55,21 +57,21 @@ const About: React.FC = () => {
           <h3>Quy trình đặt lịch</h3>
           <div className="step">
             <span className="step-index active">1</span>
-            <div>
+            <div className="step-text">
               <strong>Tìm chuyên khoa</strong>
               <span>Tìm theo chuyên khoa, tên bác sĩ hoặc triệu chứng.</span>
             </div>
           </div>
           <div className="step">
             <span className="step-index">2</span>
-            <div>
+            <div className="step-text">
               <strong>Chọn thời gian</strong>
               <span>Chọn khung giờ phù hợp với lịch cá nhân.</span>
             </div>
           </div>
           <div className="step">
             <span className="step-index">3</span>
-            <div>
+            <div className="step-text">
               <strong>Xác nhận và đi khám</strong>
               <span>Nhận xác nhận lịch hẹn và đến cơ sở y tế.</span>
             </div>

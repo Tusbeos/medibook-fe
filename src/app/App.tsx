@@ -17,6 +17,7 @@ import { IRootState } from "types";
 
 import Home from "app/routes/Home";
 import Login from "features/auth/Login";
+import PatientAuth from "features/auth/PatientAuth";
 import System from "app/routes/System";
 import HomePage from "features/public/home/HomePage";
 import CustomScrollbars from "components/CustomScrollbars";
@@ -82,6 +83,7 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                     </RedirectIfAuth>
                   }
                 />
+                <Route path={path.PATIENT_AUTH} element={<PatientAuth />} />
                 <Route
                   path={`${path.SYSTEM}/*`}
                   element={
@@ -122,7 +124,11 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 />
                 <Route
                   path={path.BOOKING_DOCTOR}
-                  element={<BookingDoctor />}
+                  element={
+                    <RequirePatient>
+                      <BookingDoctor />
+                    </RequirePatient>
+                  }
                 />
                 <Route
                   path={path.VERIFY_EMAIL_BOOKING}

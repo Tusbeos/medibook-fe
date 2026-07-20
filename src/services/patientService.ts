@@ -2,7 +2,7 @@ import axios from "../axiosClient";
 
 const getPatientsByDoctor = (
   doctorId: number | string,
-  date: number | string,
+  date: string,
 ): Promise<any> => {
   return axios.get(`/api/doctors/${doctorId}/patients`, {
     params: { date },

@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useIntl, FormattedMessage } from "react-intl";
 import "./BookingDoctor.scss";
-import { LANGUAGES, toImageCssUrl } from "utils";
+import { LANGUAGES, USER_ROLE, toImageCssUrl } from "utils";
 import moment from "moment";
 import { NumericFormat } from "react-number-format";
 import HomeHeader from "layout/HomeHeader";
@@ -15,6 +15,15 @@ import {
   useGetDoctorByIdQuery,
 } from "../../../store/api/publicApi";
 
+const toIsoCalendarDate = (value: unknown): string | undefined => {
+  if (value === null || value === undefined || value === "") return undefined;
+  const text = String(value);
+  const parsed = /^\d+$/.test(text)
+    ? moment(Number(text))
+    : moment(text, "YYYY-MM-DD", true);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : undefined;
+};
+
 const BookingDoctor = () => {
   const [bookAppointment, { isLoading: isBooking }] =
     useBookAppointmentMutation();
@@ -23,6 +32,9 @@ const BookingDoctor = () => {
   const navigate = useNavigate();
   const intl = useIntl();
   const language = useSelector((state: IRootState) => state.app.language);
+  const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const userInfo = useSelector((state: IRootState) => state.user.userInfo);
+  const roleId = userInfo?.roleId || userInfo?.roleData?.keyMap;
 
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -45,7 +57,11 @@ const BookingDoctor = () => {
   const [relationship, setRelationship] = useState("");
   const [medicalHistory, setMedicalHistory] = useState("");
 
-  const routeState = location.state as { dataTime?: any } | null;
+  const routeState = location.state as {
+    dataTime?: any;
+    bookingDraft?: any;
+    bookingKind?: string;
+  } | null;
   const timeBooking = useMemo(() => routeState?.dataTime || {}, [routeState]);
   const { data: doctorResponse } = useGetDoctorByIdQuery(id || "", { skip: !id });
   const detailDoctor = doctorResponse?.errCode === 0 && doctorResponse.data
@@ -54,6 +70,39 @@ const BookingDoctor = () => {
   const doctorInfo = detailDoctor?.DoctorInfo || {};
   const doctorId = id || "";
   const timeType = timeBooking?.timeType || "";
+
+  useEffect(() => {
+    if (isLoggedIn && roleId === USER_ROLE.PATIENT && userInfo?.email) {
+      setEmail(userInfo.email);
+    }
+  }, [isLoggedIn, roleId, userInfo?.email]);
+
+  useEffect(() => {
+    const draft = routeState?.bookingKind === "doctor"
+      ? routeState.bookingDraft
+      : null;
+    if (!draft) return;
+    setLastName(draft.lastName || "");
+    setFirstName(draft.firstName || "");
+    setGender(draft.gender || "");
+    setPhoneNumber(draft.phoneNumber || "");
+    setEmail(userInfo?.email || draft.email || "");
+    const draftBirthday = toIsoCalendarDate(draft.birthday);
+    setBirthday(draftBirthday ? moment(draftBirthday, "YYYY-MM-DD").toDate() : "");
+    setAddress(draft.address || "");
+    setReason(draft.reason || "");
+    setIsForOther(Boolean(draft.isForOther));
+    setProfileLastName(draft.profileLastName || "");
+    setProfileFirstName(draft.profileFirstName || "");
+    setProfileGender(draft.profileGender || "");
+    setProfilePhoneNumber(draft.profilePhoneNumber || "");
+    setProfileDateOfBirth(
+      draft.profileDateOfBirth ? new Date(draft.profileDateOfBirth) : "",
+    );
+    setProfileAddress(draft.profileAddress || "");
+    setRelationship(draft.relationship || "");
+    setMedicalHistory(draft.medicalHistory || "");
+  }, [routeState?.bookingDraft, routeState?.bookingKind, userInfo?.email]);
 
   const renderTimeBooking = useCallback(
     (tb: any) => {
@@ -64,10 +113,10 @@ const BookingDoctor = () => {
             : tb.timeTypeData.valueEn;
         let dateResult = "";
         if (tb.date) {
-          let startTime = +tb.date;
-          let dateFormatted = moment(startTime).format("DD/MM/YYYY");
+          let startTime = moment(toIsoCalendarDate(tb.date), "YYYY-MM-DD", true);
+          let dateFormatted = startTime.format("DD/MM/YYYY");
           if (language === LANGUAGES.VI) {
-            let dayNumber = moment(startTime).day();
+            let dayNumber = startTime.day();
             let days = [
               "Chủ Nhật",
               "Thứ 2",
@@ -80,7 +129,7 @@ const BookingDoctor = () => {
             let dayName = days[dayNumber];
             dateResult = `${dayName} - ${dateFormatted}`;
           } else {
-            let dayNameEn = moment(startTime).locale("en").format("dddd");
+            let dayNameEn = startTime.locale("en").format("dddd");
             dateResult = `${dayNameEn} - ${dateFormatted}`;
           }
         }
@@ -151,9 +200,14 @@ const BookingDoctor = () => {
   const handleConfirmBooking = useCallback(async () => {
     let timeString = renderTimeBooking(timeBooking);
     let doctorNameStr = buildDoctorName(detailDoctor);
-    let appointmentDate = timeBooking?.date || "";
-    let birthdayVal = birthday ? new Date(birthday).getTime() : "";
+    let appointmentDate = toIsoCalendarDate(timeBooking?.date);
+    let birthdayVal = toIsoCalendarDate(birthday);
     let fullName = `${lastName || ""} ${firstName || ""}`.trim();
+
+    if (!appointmentDate) {
+      toast.error("NgÃ y khÃ¡m khÃ´ng há»£p lá»‡. Vui lÃ²ng chá»n láº¡i khung giá».");
+      return;
+    }
 
     // Chuẩn bị payload, bao gồm thông tin đặt hộ nếu có
     let payload: any = {
@@ -192,6 +246,21 @@ const BookingDoctor = () => {
       };
     }
 
+    if (!isLoggedIn) {
+      const returnTo = `/booking-doctor/${doctorId}`;
+      navigate("/patient/auth?mode=login", {
+        state: { returnTo },
+      });
+      return;
+    }
+
+    if (roleId !== USER_ROLE.PATIENT) {
+      toast.error("Vui lòng sử dụng tài khoản bệnh nhân để đặt lịch.");
+      return;
+    }
+
+    payload.email = userInfo?.email || email.trim().toLowerCase();
+
     try {
       const res = await bookAppointment(payload).unwrap();
       if (res?.errCode !== 0) {
@@ -228,6 +297,9 @@ const BookingDoctor = () => {
     profileAddress,
     relationship,
     medicalHistory,
+    isLoggedIn,
+    roleId,
+    userInfo?.email,
     navigate,
     bookAppointment,
   ]);
@@ -432,9 +504,15 @@ const BookingDoctor = () => {
                         id: "booking.booking-doctor.email",
                       })}
                       value={email}
+                      readOnly={isLoggedIn && roleId === USER_ROLE.PATIENT}
                       onChange={(event) => handleOnChangeInput(event, "email")}
                     />
                   </div>
+                  {isLoggedIn && roleId === USER_ROLE.PATIENT && (
+                    <small className="text-muted d-block mt-1">
+                      Email được lấy từ tài khoản bệnh nhân đang đăng nhập.
+                    </small>
+                  )}
                 </div>
 
                 {/* Ngày sinh và địa chỉ — ẩn khi đặt hộ (dùng form riêng bên dưới) */}

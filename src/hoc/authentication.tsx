@@ -63,9 +63,11 @@ export const PublicOnly: React.FC<IGuardProps> = ({ children }) => {
 export const RequirePatient: React.FC<IGuardProps> = ({ children }) => {
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
+  const location = useLocation();
 
   if (!isLoggedIn) {
-    return <Navigate to="/home?patientLogin=1" replace />;
+    const returnTo = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/patient/auth?mode=login" state={{ returnTo }} replace />;
   }
 
   if (userInfo?.roleId === USER_ROLE.PATIENT) {

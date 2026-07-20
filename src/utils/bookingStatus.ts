@@ -64,7 +64,9 @@ const BOOKING_STATUS_BY_ID = new Map(
 export const getBookingStatusMeta = (
   statusId?: string | null,
 ): BookingStatusMeta | null =>
-  statusId ? BOOKING_STATUS_BY_ID.get(statusId as BookingStatusId) || null : null;
+  statusId
+    ? BOOKING_STATUS_BY_ID.get(statusId as BookingStatusId) || null
+    : null;
 
 export const getBookingStatusLabel = (statusId?: string | null) =>
   getBookingStatusMeta(statusId)?.label || statusId || "Không rõ";

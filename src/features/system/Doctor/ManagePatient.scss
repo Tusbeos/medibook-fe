@@ -5,164 +5,172 @@ $border-color: #d1d3e2;
 $card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
 
 .manage-patient-container {
-    padding: 20px 30px;
-    background-color: #fff;
-    min-height: 100%;
-    font-family: 'Segoe UI', sans-serif;
-    caret-color: transparent;
-    // Page Title
-    .ms-title {
-        text-align: center;
-        text-transform: uppercase;
-        font-size: 22px;
-        font-weight: 700;
-        margin-bottom: 25px;
-        color: $text-color;
-        border-bottom: 2px solid $bg-light;
-        padding-bottom: 10px;
-    }
-    .info-card {
-        background: #fff;
-        border: 1px solid $border-color;
-        border-radius: 8px;
-        box-shadow: $card-shadow;
-        overflow: hidden;
-        margin-bottom: 0;
+  padding: 20px 30px;
+  background-color: #fff;
+  min-height: 100%;
+  font-family: "Cascadia Code", "Segoe UI", Arial, sans-serif;
+  caret-color: transparent;
+  // Page Title
+  .ms-title {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    color: $text-color;
+    border-bottom: 2px solid $bg-light;
+    padding-bottom: 10px;
+  }
+  .info-card {
+    background: #fff;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    box-shadow: $card-shadow;
+    overflow: hidden;
+    margin-bottom: 0;
 
-        .card-header {
-            background-color: $bg-light;
-            padding: 10px 20px;
-            font-weight: 600;
-            color: darken($primary-color, 15%);
-            border-bottom: 1px solid $border-color;
-            display: flex;
-            align-items: center;
-            font-size: 15px;
-            
-            i { margin-right: 8px; }
-        }
+    .card-header {
+      background-color: $bg-light;
+      padding: 10px 20px;
+      font-weight: 600;
+      color: darken($primary-color, 15%);
+      border-bottom: 1px solid $border-color;
+      display: flex;
+      align-items: center;
+      font-size: 15px;
 
-        .card-body {
-            padding: 20px;
-
-            &.p-0 {
-                padding: 0;
-            }
-        }
-    }
-    .form-group {
-        margin-bottom: 15px;
-        caret-color: auto;
-
-        label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: block;
-            color: #555;
-            font-size: 14px;
-
-            &.label-bold { color: #333; }
-        }
-
-        .form-control {
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-            padding: 8px 12px;
-            font-size: 14px;
-            height: 38px;
-            transition: all 0.2s;
-
-            &:focus {
-                border-color: $primary-color;
-                box-shadow: 0 0 0 0.2rem rgba(69, 195, 210, 0.25);
-                outline: none;
-            }
-        }
+      i {
+        margin-right: 8px;
+      }
     }
 
-    .status-filter-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 5px;
+    .card-body {
+      padding: 20px;
 
-        .status-filter-button {
-            border: 1px solid $border-color;
-            background: #fff;
-            color: #4b5563;
-            border-radius: 6px;
-            padding: 7px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
+      &.p-0 {
+        padding: 0;
+      }
+    }
+  }
+  .form-group {
+    margin-bottom: 15px;
+    caret-color: auto;
 
-            span {
-                min-width: 22px;
-                height: 22px;
-                border-radius: 999px;
-                background: $bg-light;
-                color: #374151;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 12px;
-            }
+    label {
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+      color: #555;
+      font-size: 14px;
 
-            &:hover,
-            &.active {
-                border-color: $primary-color;
-                color: darken($primary-color, 18%);
-                background: rgba(69, 195, 210, 0.08);
-            }
-        }
+      &.label-bold {
+        color: #333;
+      }
     }
 
-    .patient-error-message {
-        margin: 16px;
-        padding: 10px 12px;
-        border-radius: 6px;
-        border: 1px solid #f5c2c7;
-        background: #f8d7da;
-        color: #842029;
-        font-size: 14px;
-        display: flex;
+    .form-control {
+      border-radius: 4px;
+      border: 1px solid #ced4da;
+      padding: 8px 12px;
+      font-size: 14px;
+      height: 38px;
+      transition: all 0.2s;
+
+      &:focus {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 0.2rem rgba(69, 195, 210, 0.25);
+        outline: none;
+      }
+    }
+  }
+
+  .status-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 5px;
+
+    .status-filter-button {
+      border: 1px solid $border-color;
+      background: #fff;
+      color: #4b5563;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+
+      span {
+        min-width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: $bg-light;
+        color: #374151;
+        display: inline-flex;
         align-items: center;
-        gap: 8px;
-    }
+        justify-content: center;
+        font-size: 12px;
+      }
 
-    .table-responsive {
-        .table {
-            th {
-                vertical-align: middle;
-                text-align: center;
-                background-color: #f1f3f5;
-                font-weight: 600;
-                color: #444;
-                border-bottom: 2px solid $border-color;
-            }
-            
-            td {
-                vertical-align: middle;
-                font-size: 14px;
-                color: #333;
-            }
-
-            // Striped rows
-            &.table-striped tbody tr:nth-of-type(odd) {
-                background-color: rgba(0, 0, 0, 0.02);
-            }
-
-            // Hover effect
-            &.table-hover tbody tr:hover {
-                background-color: rgba(69, 195, 210, 0.05);
-            }
-        }
+      &:hover,
+      &.active {
+        border-color: $primary-color;
+        color: darken($primary-color, 18%);
+        background: rgba(69, 195, 210, 0.08);
+      }
     }
-    .loading-text {
-        font-style: italic;
-        color: #666;
+  }
+
+  .patient-error-message {
+    margin: 16px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #f5c2c7;
+    background: #f8d7da;
+    color: #842029;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .table-responsive {
+    .table {
+      th {
+        vertical-align: middle;
+        text-align: center;
+        background-color: #f1f3f5;
+        font-weight: 600;
+        color: #444;
+        border-bottom: 2px solid $border-color;
+      }
+
+      td {
+        vertical-align: middle;
+        font-size: 14px;
+        color: #333;
+      }
+
+      // Striped rows
+      &.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+
+      // Hover effect
+      &.table-hover tbody tr:hover {
+        background-color: rgba(69, 195, 210, 0.05);
+      }
     }
+    .doctor-status-ready,
+    .doctor-status-completed {
+      color: #000000 !important;
+    }
+  }
+  .loading-text {
+    font-style: italic;
+    color: #666;
+  }
 }

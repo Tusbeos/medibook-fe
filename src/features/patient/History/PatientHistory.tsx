@@ -82,19 +82,10 @@ const PatientHistory: React.FC = () => {
   // Chuyển timestamp sang ngày hiển thị
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "—";
-    const ts = Number(dateStr);
-    if (!isNaN(ts) && ts > 0) {
-      const d = new Date(ts);
-      return d.toLocaleDateString(
-        language === LANGUAGES.VI ? "vi-VN" : "en-US",
-        {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        },
-      );
-    }
-    return dateStr;
+    const parsed = new Date(`${dateStr}T00:00:00`);
+    return Number.isNaN(parsed.getTime())
+      ? dateStr
+      : parsed.toLocaleDateString(language === LANGUAGES.VI ? "vi-VN" : "en-US");
   };
 
   const toggleExpand = (id: number) => {

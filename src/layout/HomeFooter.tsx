@@ -1,6 +1,6 @@
 import React from "react";
 import "./HomeFooter.scss";
-import headerLogo from "assets/Header Logo.png";
+import headerLogo from "assets/Header Logo 1.png";
 
 const HomeFooter: React.FC = () => {
   return (

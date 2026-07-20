@@ -25,6 +25,17 @@ const handlePatientLoginApi = (
   return handleLoginApi(userEmail, userPassword);
 };
 
+const handlePatientRegisterApi = (data: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName?: string;
+  phoneNumber?: string;
+  address?: string;
+}): Promise<any> => {
+  return axios.post("/api/auth/register", data);
+};
+
 const handleLogoutApi = (refreshToken: string): Promise<any> => {
   return axios.post("/api/auth/logout", { refreshToken });
 };
@@ -74,6 +85,7 @@ export {
   handleLoginApi,
   handleSystemLoginApi,
   handlePatientLoginApi,
+  handlePatientRegisterApi,
   handleLogoutApi,
   handleGetAllUsers,
   handleGetUserById,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
+import moment from "moment";
 import "./ManagePatient.scss";
 import { FormattedMessage } from "react-intl";
 import DatePicker from "components/Input/DatePicker";
@@ -23,12 +24,12 @@ const ManagePatient = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const returnedDate = Number((location.state as any)?.selectedDateValue);
+  const returnedDate = (location.state as any)?.selectedDateValue;
 
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(() =>
-    Number.isFinite(returnedDate) && returnedDate > 0
-      ? new Date(returnedDate)
+    typeof returnedDate === "string" && moment(returnedDate, "YYYY-MM-DD", true).isValid()
+      ? moment(returnedDate, "YYYY-MM-DD").toDate()
       : new Date(),
   );
   const [searchTerm, setSearchTerm] = useState("");
@@ -92,7 +93,7 @@ const ManagePatient = () => {
   }, [isAdmin, isDoctorRole, matchedDoctorId, userDoctorId, userInfo?.id]);
 
   const selectedDateValue = useMemo(
-    () => new Date(selectedDate).setHours(0, 0, 0, 0),
+    () => moment(selectedDate).format("YYYY-MM-DD"),
     [selectedDate],
   );
 
@@ -191,8 +192,8 @@ const ManagePatient = () => {
     const classByTone = {
       warning: "badge badge-warning text-dark",
       info: "badge badge-info text-dark",
-      primary: "badge badge-primary",
-      success: "badge badge-success",
+      primary: "badge badge-primary doctor-status-ready",
+      success: "badge badge-success doctor-status-completed",
       danger: "badge badge-danger",
       neutral: "badge badge-secondary",
     };

@@ -1,0 +1,192 @@
+.patient-auth-page {
+  background: #f4f8fb;
+  min-height: 100vh;
+
+  .patient-auth-main {
+    align-items: center;
+    display: grid;
+    gap: 64px;
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
+    margin: 0 auto;
+    max-width: 1180px;
+    min-height: calc(100vh - 180px);
+    padding: 56px 24px 72px;
+  }
+
+  .patient-auth-intro {
+    color: #16324f;
+
+    .patient-auth-eyebrow {
+      color: #159aaa;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(34px, 4vw, 52px);
+      line-height: 1.12;
+      margin: 14px 0 20px;
+      max-width: 680px;
+    }
+
+    p {
+      color: #52677b;
+      font-size: 17px;
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    ul {
+      display: grid;
+      gap: 12px;
+      list-style: none;
+      margin: 28px 0 0;
+      padding: 0;
+
+      li {
+        align-items: center;
+        display: flex;
+        font-weight: 700;
+        gap: 10px;
+      }
+
+      i { color: #20a779; }
+    }
+  }
+
+  .patient-auth-card {
+    background: #fff;
+    border: 1px solid #e2eaf1;
+    border-radius: 18px;
+    box-shadow: 0 24px 70px rgba(24, 55, 83, 0.12);
+    padding: 28px;
+  }
+
+  .patient-auth-tabs {
+    background: #eef4f7;
+    border-radius: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+
+    button {
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      color: #5c7083;
+      cursor: pointer;
+      font-weight: 800;
+      height: 42px;
+
+      &.active {
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(23, 55, 82, 0.1);
+        color: #159aaa;
+      }
+    }
+  }
+
+  .patient-auth-heading {
+    margin: 24px 0 20px;
+
+    h2 { color: #152f47; font-size: 25px; margin: 0 0 7px; }
+    p { color: #6a7d8f; line-height: 1.5; margin: 0; }
+  }
+
+  form { display: grid; gap: 15px; }
+
+  label {
+    color: #344c62;
+    display: grid;
+    font-size: 13px;
+    font-weight: 800;
+    gap: 7px;
+
+    strong { color: #d92d20; }
+    small { color: #667f92; font-weight: 500; }
+  }
+
+  input {
+    background: #fff;
+    border: 1px solid #cedae4;
+    border-radius: 9px;
+    color: #16324f;
+    font-size: 14px;
+    height: 45px;
+    outline: none;
+    padding: 0 12px;
+    width: 100%;
+
+    &:focus { border-color: #45c3d2; box-shadow: 0 0 0 4px rgba(69, 195, 210, 0.13); }
+    &:read-only { background: #f3f6f8; color: #52677b; }
+  }
+
+  .patient-auth-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+
+  .patient-auth-password {
+    position: relative;
+
+    input { padding-right: 44px; }
+    button {
+      background: transparent;
+      border: 0;
+      color: #647789;
+      cursor: pointer;
+      height: 45px;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 44px;
+    }
+  }
+
+  .patient-auth-error {
+    background: #fff1f0;
+    border: 1px solid #ffccc7;
+    border-radius: 9px;
+    color: #b42318;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 10px 12px;
+  }
+
+  .patient-auth-submit {
+    background: #159aaa;
+    border: 0;
+    border-radius: 9px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+    height: 48px;
+    margin-top: 2px;
+
+    &:disabled { cursor: wait; opacity: 0.7; }
+  }
+
+  .patient-auth-back {
+    color: #526f86;
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 18px;
+    text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .patient-auth-main { gap: 32px; grid-template-columns: 1fr; }
+    .patient-auth-intro { text-align: center; }
+    .patient-auth-intro p { margin-left: auto; margin-right: auto; }
+    .patient-auth-intro ul { margin-left: auto; margin-right: auto; max-width: 320px; text-align: left; }
+    .patient-auth-card { margin: 0 auto; max-width: 520px; width: 100%; }
+  }
+
+  @media (max-width: 520px) {
+    .patient-auth-main { padding: 34px 16px 52px; }
+    .patient-auth-intro h1 { font-size: 31px; }
+    .patient-auth-card { border-radius: 14px; padding: 20px; }
+    .patient-auth-grid { grid-template-columns: 1fr; }
+  }
+}

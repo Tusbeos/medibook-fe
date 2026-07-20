@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import "./HomeHeader.scss";
 import { useLocation, useNavigate } from "react-router-dom";
-import PatientLoginModal from "features/auth/PatientLoginModal";
 import SidebarDrawer from "components/SidebarDrawer/SidebarDrawer";
-import headerLogo from "assets/Header Logo.png";
+import headerLogo from "assets/Header Logo 1.png";
 import {
   SearchResult,
   useGetHomeStatsQuery,
@@ -18,7 +17,6 @@ interface IHomeHeaderProps {
 const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isPatientLoginOpen, setIsPatientLoginOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -96,24 +94,22 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
     [goSearch],
   );
 
-  const handleClosePatientLogin = useCallback(() => {
-    setIsPatientLoginOpen(false);
-    if (location.search.includes("patientLogin=1")) {
-      navigate(location.pathname, { replace: true });
-    }
-  }, [location.pathname, location.search, navigate]);
-
   const handleRequestPatientLogin = useCallback(() => {
     setIsSidebarOpen(false);
-    setIsPatientLoginOpen(true);
-  }, []);
+    navigate("/patient/auth?mode=login", {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("patientLogin") === "1") {
-      setIsPatientLoginOpen(true);
+      navigate("/patient/auth?mode=login", {
+        replace: true,
+        state: { returnTo: location.pathname },
+      });
     }
-  }, [location.search]);
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     const query = searchTerm.trim();
@@ -130,10 +126,6 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
 
   return (
     <>
-      <PatientLoginModal
-        isOpen={isPatientLoginOpen}
-        onClose={handleClosePatientLogin}
-      />
       <SidebarDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -220,8 +212,8 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
         <section className="home-hero">
           <div className="hero-content">
             <h1>
-              Chăm sóc chính xác,
-              <span>Sức khỏe vững vàng.</span>
+              Chăm sóc chính xác
+              <span>Sức khỏe vững vàng</span>
             </h1>
             <p>
               Kết nối với bác sĩ chuyên khoa uy tín, cơ sở y tế chất lượng và hệ

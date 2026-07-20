@@ -35,7 +35,7 @@ const deleteScheduleDoctor = (
 
 const getScheduleDoctorByDate = (
   doctorId: number | string,
-  date: number | string,
+  date: string,
 ): Promise<any> => {
   return axios.get(`/api/doctors/${doctorId}/schedules`, {
     params: { date },

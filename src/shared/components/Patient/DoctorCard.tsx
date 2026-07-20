@@ -118,7 +118,10 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
   const handleFetchSchedule = useCallback(
     async (doctorId: any, dateValue: number) => {
       try {
-        const queryArg = { doctorId, date: dateValue };
+        const queryArg = {
+          doctorId,
+          date: moment(dateValue).format("YYYY-MM-DD"),
+        };
         const cached = publicApi.endpoints.getDoctorSchedule.select(queryArg)(
           store.getState(),
         );

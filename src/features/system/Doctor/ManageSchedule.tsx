@@ -67,7 +67,7 @@ const ManageSchedule = () => {
   const language = useSelector((state: IRootState) => state.app.language);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const [selectedDoctor, setSelectedDoctor] = useState<any>({});
-  // Khởi tạo startDate về nửa đêm để khớp timestamp khi query/lưu lịch
+  // DatePicker keeps a local Date; every API request uses ISO yyyy-MM-dd.
   const [startDate, setStartDate] = useState<Date>(
     new Date(new Date().setHours(0, 0, 0, 0)),
   );
@@ -226,8 +226,8 @@ const ManageSchedule = () => {
   const selectedDateValue = useMemo(
     () =>
       startDate
-        ? new Date(new Date(startDate).setHours(0, 0, 0, 0)).getTime()
-        : 0,
+        ? moment(startDate).format("YYYY-MM-DD")
+        : "",
     [startDate],
   );
   const shouldFetchSchedule = !!activeDoctorId && !!selectedDateValue;
@@ -405,8 +405,8 @@ const ManageSchedule = () => {
     // Chuẩn hóa về nửa đêm để timestamp khớp với phía patient query lịch
     const formatDate =
       parsedStartDate && !isNaN(parsedStartDate.getTime())
-        ? new Date(new Date(parsedStartDate).setHours(0, 0, 0, 0)).getTime()
-        : null;
+        ? moment(parsedStartDate).format("YYYY-MM-DD")
+        : "";
 
     if (!formatDate) {
       toast.error("Ngày không hợp lệ!");
