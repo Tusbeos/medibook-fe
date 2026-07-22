@@ -27,6 +27,7 @@ export type PatientProfileRecord = {
   dateOfBirth?: string;
   address?: string;
   relationship?: string;
+  medicalHistory?: string;
 };
 
 export type CreatePackageBookingPayload = {
@@ -436,11 +437,17 @@ export const publicApi = createApi({
     }),
     getPatientHistory: builder.query<
       ApiResponse<any[]>,
-      { patientId: number | string; page: number; size: number }
+      {
+        patientId: number | string;
+        page: number;
+        size: number;
+        status?: string;
+        scope?: "all" | "self" | "relative";
+      }
     >({
-      query: ({ patientId, page, size }) => ({
+      query: ({ patientId, page, size, status, scope = "all" }) => ({
         url: `/api/histories/patient/${patientId}`,
-        params: { page, size },
+        params: { page, size, scope, ...(status ? { status } : {}) },
       }),
       providesTags: (_result, _error, arg) => [
         { type: "History", id: `patient-${arg.patientId}` },
@@ -735,12 +742,18 @@ export const publicApi = createApi({
         method: "POST",
         params: { clinicId },
       }),
-      invalidatesTags: ["Booking"],
+      invalidatesTags: ["Booking", "History"],
     }),
     bookAppointment: builder.mutation<ApiResponse<any>, any>({
-      query: (data) => ({ url: "/api/bookings", method: "POST", data }),
+      query: ({ cachePatientId: _cachePatientId, ...data }) => ({
+        url: "/api/bookings",
+        method: "POST",
+        data,
+      }),
       invalidatesTags: (_result, _error, arg) => [
         { type: "Schedule", id: `${arg.doctorId}-${arg.date}` },
+        { type: "History", id: `patient-${arg.cachePatientId}` },
+        { type: "User", id: arg.cachePatientId },
       ],
     }),
     verifyBooking: builder.mutation<
@@ -750,6 +763,8 @@ export const publicApi = createApi({
       query: (data) => ({ url: "/api/bookings/verify", method: "POST", data }),
       invalidatesTags: (_result, _error, arg) => [
         { type: "Doctor", id: arg.doctorId },
+        "History",
+        { type: "Booking", id: "LIST" },
       ],
     }),
     changePassword: builder.mutation<

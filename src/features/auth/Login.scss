@@ -54,6 +54,10 @@
 
     span {
       text-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+      align-items: end;
+      margin: 30px 0 0px 10px;
+      font-size: 50px;
+      font-weight: 600;
     }
   }
 
@@ -62,8 +66,8 @@
     height: 70px;
 
     img {
-      width: 74px;
-      height: 74px;
+      width: 100px;
+      height: 100px;
       object-fit: contain;
     }
   }

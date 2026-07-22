@@ -1,32 +1,57 @@
-import React, { FormEvent, useCallback, useMemo, useState } from "react";
-import { useDispatch } from "react-redux";
+import React, { FormEvent, useCallback, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import HomeHeader from "layout/HomeHeader";
 import HomeFooter from "layout/HomeFooter";
 import {
   handleGetUserById,
+  handleLogoutApi,
   handlePatientLoginApi,
   handlePatientRegisterApi,
 } from "services/userService";
-import { userLoginSuccess } from "store/actions/userActions";
+import { processLogout, userLoginSuccess } from "store/actions/userActions";
 import { USER_ROLE } from "utils";
+import type { IRootState } from "types";
+import { getRoleHomePath } from "hoc/authentication";
 import {
   clearPendingPatientAuthFlow,
   getPendingPatientAuthFlow,
+  savePendingPatientAuthFlow,
 } from "./patientAuthFlow";
+import type { PendingPatientAuthFlow } from "./patientAuthFlow";
 import "./PatientAuth.scss";
 
 type AuthMode = "login" | "register";
+
+type PatientAuthLocationState = {
+  email?: string;
+  returnTo?: string;
+  pendingFlow?: PendingPatientAuthFlow;
+};
+
+const getRoleLabel = (roleId?: string) => {
+  if (roleId === USER_ROLE.ADMIN) return "Quản trị viên";
+  if (roleId === USER_ROLE.DOCTOR) return "Bác sĩ";
+  if (roleId === USER_ROLE.CLINIC_MANAGER) return "Quản lý phòng khám";
+  if (roleId === USER_ROLE.WRITER) return "Người viết bài";
+  return "Tài khoản hệ thống";
+};
 
 const PatientAuth = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const pendingFlow = useMemo(() => getPendingPatientAuthFlow(), []);
-  const locationState = location.state as
-    | { email?: string; returnTo?: string }
-    | null;
+  const locationState = location.state as PatientAuthLocationState | null;
+  const [pendingFlow, setPendingFlow] = useState<PendingPatientAuthFlow | null>(
+    () => getPendingPatientAuthFlow(),
+  );
+  const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
+  const currentUser = useSelector((state: IRootState) => state.user.userInfo);
+  const currentRoleId =
+    currentUser?.roleId || (currentUser as any)?.roleData?.keyMap;
+  const isSystemAccount =
+    isLoggedIn && currentRoleId !== USER_ROLE.PATIENT;
   const initialEmail = pendingFlow?.email || locationState?.email || "";
   const mode: AuthMode = searchParams.get("mode") === "register"
     ? "register"
@@ -42,6 +67,29 @@ const PatientAuth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+
+  useEffect(() => {
+    const incomingFlow = locationState?.pendingFlow;
+    if (!incomingFlow?.returnTo) return;
+
+    const storedFlow = getPendingPatientAuthFlow();
+    const isSameFlow =
+      storedFlow?.returnTo === incomingFlow.returnTo &&
+      storedFlow?.bookingKind === incomingFlow.bookingKind;
+    const nextFlow: PendingPatientAuthFlow = {
+      ...(isSameFlow ? storedFlow : {}),
+      ...incomingFlow,
+      returnTo: incomingFlow.returnTo,
+      routeState: {
+        ...(isSameFlow ? storedFlow?.routeState || {} : {}),
+        ...(incomingFlow.routeState || {}),
+      },
+    };
+    savePendingPatientAuthFlow(nextFlow);
+    setPendingFlow(nextFlow);
+    setEmail((current) => current || nextFlow.email || "");
+  }, [locationState?.pendingFlow]);
 
   const switchMode = useCallback(
     (nextMode: AuthMode) => {
@@ -61,8 +109,24 @@ const PatientAuth = () => {
 
       let userInfo = response.data;
       if (userInfo.roleId !== USER_ROLE.PATIENT) {
-        throw new Error("Màn hình này chỉ dành cho tài khoản bệnh nhân.");
+        if (response.data.refreshToken) {
+          try {
+            await handleLogoutApi(response.data.refreshToken);
+          } catch (_) {
+            // The rejected role is never persisted locally even if revoke fails.
+          }
+        }
+        throw new Error(
+          `Đây là tài khoản ${getRoleLabel(userInfo.roleId).toLowerCase()}. ` +
+            "Vui lòng sử dụng tài khoản bệnh nhân để tiếp tục đặt lịch.",
+        );
       }
+
+      // Make the freshly issued access token available before requesting the
+      // protected user detail endpoint. Without this first synchronous Redux
+      // update, every successful patient login produced an avoidable 401 and
+      // silently fell back to the smaller auth response.
+      dispatch(userLoginSuccess(userInfo, response.data.token));
 
       if (userInfo.id) {
         try {
@@ -89,8 +153,12 @@ const PatientAuth = () => {
           replace: true,
           state: {
             ...(pendingFlow.routeState || {}),
-            bookingDraft: pendingFlow.bookingDraft,
-            bookingKind: pendingFlow.bookingKind,
+            ...(pendingFlow.bookingDraft
+              ? { bookingDraft: pendingFlow.bookingDraft }
+              : {}),
+            ...(pendingFlow.bookingKind
+              ? { bookingKind: pendingFlow.bookingKind }
+              : {}),
             authenticatedEmail: userInfo.email,
           },
         });
@@ -101,6 +169,38 @@ const PatientAuth = () => {
     },
     [dispatch, locationState?.returnTo, navigate, pendingFlow],
   );
+
+  const handleConfirmAccountSwitch = useCallback(async () => {
+    if (isSwitchingAccount) return;
+
+    setError("");
+    setIsSwitchingAccount(true);
+    let revokeFailed = false;
+    try {
+      const refreshToken = (currentUser as any)?.refreshToken;
+      if (refreshToken) {
+        await handleLogoutApi(refreshToken);
+      }
+    } catch (_) {
+      revokeFailed = true;
+    } finally {
+      dispatch(processLogout());
+      setSearchParams({ mode: "login" }, { replace: true });
+      setIsSwitchingAccount(false);
+      if (revokeFailed) {
+        setError(
+          "Đã xóa phiên trên trình duyệt nhưng máy chủ chưa xác nhận thu hồi phiên cũ. " +
+            "Bạn vẫn có thể đăng nhập tài khoản bệnh nhân.",
+        );
+      }
+    }
+  }, [currentUser, dispatch, isSwitchingAccount, setSearchParams]);
+
+  const handleReturnToWorkspace = useCallback(() => {
+    clearPendingPatientAuthFlow();
+    setPendingFlow(null);
+    navigate(getRoleHomePath(currentRoleId), { replace: true });
+  }, [currentRoleId, navigate]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -167,33 +267,77 @@ const PatientAuth = () => {
         </section>
 
         <section className="patient-auth-card">
-          <div className="patient-auth-tabs" role="tablist">
-            <button
-              type="button"
-              className={mode === "login" ? "active" : ""}
-              onClick={() => switchMode("login")}
-            >
-              Đăng nhập
-            </button>
-            <button
-              type="button"
-              className={mode === "register" ? "active" : ""}
-              onClick={() => switchMode("register")}
-            >
-              Đăng ký
-            </button>
-          </div>
+          {isSystemAccount ? (
+            <div className="patient-account-switch" role="alert">
+              <span className="patient-account-switch-icon" aria-hidden="true">
+                <i className="fas fa-user-shield" />
+              </span>
+              <span className="patient-account-switch-eyebrow">
+                Cần chuyển tài khoản
+              </span>
+              <h2>Bạn đang đăng nhập bằng tài khoản hệ thống</h2>
+              <p>
+                Chức năng đặt lịch chỉ dành cho tài khoản bệnh nhân. MediBook
+                sẽ giữ lại bác sĩ, gói khám, ngày và giờ bạn đã chọn trong phiên
+                trình duyệt này.
+              </p>
+              <div className="patient-account-current">
+                <span>Phiên đang sử dụng</span>
+                <strong>{getRoleLabel(currentRoleId)}</strong>
+                <small>{currentUser?.email || "Không có thông tin email"}</small>
+              </div>
+              <div className="patient-account-switch-actions">
+                <button
+                  type="button"
+                  className="patient-account-switch-primary"
+                  disabled={isSwitchingAccount}
+                  onClick={handleConfirmAccountSwitch}
+                >
+                  {isSwitchingAccount
+                    ? "Đang chuyển tài khoản..."
+                    : "Đăng xuất và dùng tài khoản bệnh nhân"}
+                </button>
+                <button
+                  type="button"
+                  className="patient-account-switch-secondary"
+                  disabled={isSwitchingAccount}
+                  onClick={handleReturnToWorkspace}
+                >
+                  Quay lại trang quản lý
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="patient-auth-tabs" role="tablist">
+                <button
+                  type="button"
+                  className={mode === "login" ? "active" : ""}
+                  onClick={() => switchMode("login")}
+                >
+                  Đăng nhập
+                </button>
+                <button
+                  type="button"
+                  className={mode === "register" ? "active" : ""}
+                  onClick={() => switchMode("register")}
+                >
+                  Đăng ký
+                </button>
+              </div>
 
-          <div className="patient-auth-heading">
-            <h2>{mode === "login" ? "Chào mừng bạn quay lại" : "Tạo tài khoản bệnh nhân"}</h2>
-            <p>
-              {pendingFlow
-                ? "Email từ form đặt lịch đã được giữ lại cho bạn."
-                : "Sử dụng email cá nhân để quản lý các lịch khám."}
-            </p>
-          </div>
+              <div className="patient-auth-heading">
+                <h2>{mode === "login" ? "Chào mừng bạn quay lại" : "Tạo tài khoản bệnh nhân"}</h2>
+                <p>
+                  {pendingFlow?.email
+                    ? "Email từ form đặt lịch đã được giữ lại cho bạn."
+                    : pendingFlow?.returnTo
+                      ? "Lựa chọn đặt lịch trước đó đã được giữ lại cho bạn."
+                      : "Sử dụng email cá nhân để quản lý các lịch khám."}
+                </p>
+              </div>
 
-          <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
             {mode === "register" && (
               <div className="patient-auth-grid">
                 <label>
@@ -270,9 +414,11 @@ const PatientAuth = () => {
                   ? "Đăng nhập tài khoản bệnh nhân"
                   : "Đăng ký và tiếp tục đặt lịch"}
             </button>
-          </form>
+              </form>
 
-          <Link className="patient-auth-back" to="/home">Quay lại trang chủ</Link>
+              <Link className="patient-auth-back" to="/home">Quay lại trang chủ</Link>
+            </>
+          )}
         </section>
       </main>
       <HomeFooter />

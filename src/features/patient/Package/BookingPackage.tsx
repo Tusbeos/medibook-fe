@@ -124,6 +124,7 @@ const BookingPackage = () => {
         `${userInfo.lastName || ""} ${userInfo.firstName || ""}`.trim(),
       phoneNumber: current.phoneNumber || userInfo.phoneNumber || "",
       gender: current.gender || userInfo.gender || "",
+      birthday: current.birthday || userInfo.dateOfBirth || "",
       address: current.address || userInfo.address || "",
     }));
   }, [isPatientAccount, userInfo]);
@@ -179,6 +180,18 @@ const BookingPackage = () => {
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleRequestPatientAccount = () => {
+    const returnTo = `/booking-package/${packageId}`;
+    savePendingPatientAuthFlow({
+      returnTo,
+      bookingKind: "package",
+      bookingDraft: { values, profileChoice },
+    });
+    navigate("/patient/auth?mode=login&switchAccount=1", {
+      state: { returnTo },
+    });
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -311,8 +324,16 @@ const BookingPackage = () => {
             <div className="package-booking-blocked">
               <i className="fas fa-user-lock" />
               <h1>Không thể đặt bằng tài khoản hệ thống</h1>
-              <p>Vui lòng đăng xuất và đặt với tư cách khách, hoặc dùng tài khoản bệnh nhân.</p>
-              <Link to={`/package/detail-package/${packageId}`}>Quay lại gói khám</Link>
+              <p>
+                Chuyển sang tài khoản bệnh nhân để tiếp tục. Gói khám đã chọn
+                sẽ được giữ lại trong phiên trình duyệt này.
+              </p>
+              <div className="package-booking-blocked-actions">
+                <button type="button" onClick={handleRequestPatientAccount}>
+                  Chuyển sang tài khoản bệnh nhân
+                </button>
+                <Link to={`/package/detail-package/${packageId}`}>Quay lại gói khám</Link>
+              </div>
             </div>
           ) : !isBookable ? (
             <div className="package-booking-blocked">

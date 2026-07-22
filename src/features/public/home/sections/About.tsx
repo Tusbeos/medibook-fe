@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const About: React.FC = () => {
   return (
@@ -76,9 +77,9 @@ const About: React.FC = () => {
               <span>Nhận xác nhận lịch hẹn và đến cơ sở y tế.</span>
             </div>
           </div>
-          <button className="journey-btn" type="button">
+          <Link className="journey-btn" to="/specialty">
             Bắt đầu đặt lịch
-          </button>
+          </Link>
         </div>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./HomeHeader.scss";
 import { useLocation, useNavigate } from "react-router-dom";
 import SidebarDrawer from "components/SidebarDrawer/SidebarDrawer";
@@ -17,6 +17,7 @@ interface IHomeHeaderProps {
 const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -27,6 +28,27 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
   });
   const homeStats = homeStatsResponse?.data;
   const searchItems = searchResponse?.data?.items || [];
+
+  useEffect(() => {
+    const headerElement = headerRef.current;
+    if (!headerElement) return;
+
+    const updateHeaderHeight = () => {
+      document.documentElement.style.setProperty(
+        "--home-header-height",
+        `${headerElement.getBoundingClientRect().height}px`,
+      );
+    };
+
+    updateHeaderHeight();
+    const resizeObserver = new ResizeObserver(updateHeaderHeight);
+    resizeObserver.observe(headerElement);
+
+    return () => {
+      resizeObserver.disconnect();
+      document.documentElement.style.removeProperty("--home-header-height");
+    };
+  }, []);
 
   const returnToHome = useCallback(() => navigate("/home"), [navigate]);
   const goSpecialty = useCallback(() => navigate("/specialty"), [navigate]);
@@ -132,7 +154,7 @@ const HomeHeader: React.FC<IHomeHeaderProps> = ({ isShowBanner }) => {
         onRequestPatientLogin={handleRequestPatientLogin}
       />
 
-      <header className="home-header-container">
+      <header ref={headerRef} className="home-header-container">
         <div className="home-header-content">
           <button className="brand" type="button" onClick={returnToHome}>
             <img src={headerLogo} alt="MediBook" />

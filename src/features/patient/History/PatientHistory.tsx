@@ -7,14 +7,22 @@ import { LANGUAGES } from "../../../utils";
 import "./PatientHistory.scss";
 import { useGetPatientHistoryQuery } from "../../../store/api/publicApi";
 import { DataState } from "components/System/SystemShared";
+import {
+  BOOKING_STATUS_OPTIONS,
+  BookingStatusId,
+  getBookingStatusMeta,
+} from "../../../utils/bookingStatus";
 
 interface IHistoryRecord {
-  id: number;
+  id?: number;
   bookingId: number;
   bookingDate: string;
   timeType: string;
   timeTypeValueVi: string;
   timeTypeValueEn: string;
+  statusId: string;
+  statusValueVi?: string;
+  statusValueEn?: string;
   doctorId: number;
   doctorFirstName: string;
   doctorLastName: string;
@@ -42,6 +50,9 @@ const PatientHistory: React.FC = () => {
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | BookingStatusId>(
+    "all",
+  );
   const [page, setPage] = useState(0);
   const userId = userInfo?.id || (userInfo as any)?.userId;
   const {
@@ -51,7 +62,13 @@ const PatientHistory: React.FC = () => {
     isError,
     refetch,
   } = useGetPatientHistoryQuery(
-    { patientId: userId || "", page, size: 10 },
+    {
+      patientId: userId || "",
+      page,
+      size: 10,
+      scope: activeTab,
+      status: statusFilter === "all" ? undefined : statusFilter,
+    },
     {
       skip: !userId,
       pollingInterval: 30_000,
@@ -71,13 +88,6 @@ const PatientHistory: React.FC = () => {
   const hasError =
     histories.length === 0 &&
     (isError || (historyResponse != null && historyResponse.errCode !== 0));
-
-  // Lọc theo tab
-  const filteredHistories = histories.filter((r) => {
-    if (activeTab === "self") return !r.profileId;
-    if (activeTab === "relative") return !!r.profileId;
-    return true;
-  });
 
   // Chuyển timestamp sang ngày hiển thị
   const formatDate = (dateStr: string) => {
@@ -111,7 +121,10 @@ const PatientHistory: React.FC = () => {
           <div className="history-tabs">
             <button
               className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
-              onClick={() => setActiveTab("all")}
+              onClick={() => {
+                setActiveTab("all");
+                setPage(0);
+              }}
             >
               <FormattedMessage
                 id="patient.history.tab-all"
@@ -120,7 +133,10 @@ const PatientHistory: React.FC = () => {
             </button>
             <button
               className={`tab-btn ${activeTab === "self" ? "active" : ""}`}
-              onClick={() => setActiveTab("self")}
+              onClick={() => {
+                setActiveTab("self");
+                setPage(0);
+              }}
             >
               <FormattedMessage
                 id="patient.history.tab-self"
@@ -129,7 +145,10 @@ const PatientHistory: React.FC = () => {
             </button>
             <button
               className={`tab-btn ${activeTab === "relative" ? "active" : ""}`}
-              onClick={() => setActiveTab("relative")}
+              onClick={() => {
+                setActiveTab("relative");
+                setPage(0);
+              }}
             >
               <i className="fas fa-users" />{" "}
               <FormattedMessage
@@ -137,6 +156,30 @@ const PatientHistory: React.FC = () => {
                 defaultMessage="Người thân"
               />
             </button>
+          </div>
+
+          <div className="history-filters">
+            <label htmlFor="history-status-filter">Trạng thái lịch hẹn</label>
+            <select
+              id="history-status-filter"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value as "all" | BookingStatusId);
+                setPage(0);
+              }}
+            >
+              <option value="all">Tất cả trạng thái</option>
+              {BOOKING_STATUS_OPTIONS.map((status) => (
+                <option key={status.id} value={status.id}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+            {isFetching && !isInitialLoading && (
+              <span className="filter-loading" aria-live="polite">
+                <i className="fas fa-spinner fa-spin" /> Đang cập nhật
+              </span>
+            )}
           </div>
 
           <div className="history-body">
@@ -156,7 +199,7 @@ const PatientHistory: React.FC = () => {
                 text="Không thể tải lịch sử khám bệnh."
                 onRetry={() => void refetch()}
               />
-            ) : filteredHistories.length === 0 ? (
+            ) : histories.length === 0 ? (
               <div className="empty-state">
                 <i className="fas fa-clipboard-list" />
                 <p>
@@ -168,8 +211,9 @@ const PatientHistory: React.FC = () => {
               </div>
             ) : (
               <div className="history-list">
-                {filteredHistories.map((record) => {
-                  const isExpanded = expandedId === record.id;
+                {histories.map((record) => {
+                  const rowId = record.bookingId;
+                  const isExpanded = expandedId === rowId;
                   const doctorName =
                     language === LANGUAGES.VI
                       ? `${record.doctorLastName || ""} ${record.doctorFirstName || ""}`.trim()
@@ -178,6 +222,14 @@ const PatientHistory: React.FC = () => {
                     language === LANGUAGES.VI
                       ? record.timeTypeValueVi
                       : record.timeTypeValueEn;
+                  const statusMeta = getBookingStatusMeta(record.statusId);
+                  const statusLabel =
+                    statusMeta?.label ||
+                    (language === LANGUAGES.VI
+                      ? record.statusValueVi
+                      : record.statusValueEn) ||
+                    record.statusId ||
+                    "Không rõ";
 
                   // Tên người được khám (bản thân hoặc người thân)
                   const isForRelative = !!record.profileId;
@@ -191,12 +243,12 @@ const PatientHistory: React.FC = () => {
 
                   return (
                     <div
-                      key={record.id}
+                      key={record.bookingId}
                       className={`history-item ${isExpanded ? "expanded" : ""} ${isForRelative ? "for-relative" : ""}`}
                     >
                       <div
                         className="item-summary"
-                        onClick={() => toggleExpand(record.id)}
+                        onClick={() => toggleExpand(rowId)}
                       >
                         <div className="summary-left">
                           <div className="date-badge">
@@ -213,6 +265,11 @@ const PatientHistory: React.FC = () => {
                               <span>{timeLabel}</span>
                             </div>
                           )}
+                          <div
+                            className={`status-badge status-${statusMeta?.tone || "neutral"}`}
+                          >
+                            <span>{statusLabel}</span>
+                          </div>
                           {/* Badge cho người thân */}
                           {isForRelative && (
                             <div className="relative-badge">

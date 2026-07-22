@@ -1,12 +1,13 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { FormattedMessage } from "react-intl";
+
 import "./SpecialtyList.scss";
 import HomeHeader from "layout/HomeHeader";
 import HomeFooter from "layout/HomeFooter";
-import { getBase64FromBuffer } from "../../../utils/CommonUtils";
 import Breadcrumb from "components/Breadcrumb";
+import { getBase64FromBuffer } from "../../../utils/CommonUtils";
 import { LANGUAGES } from "utils";
 import { IRootState } from "../../../types";
 import { useGetSpecialtiesQuery } from "../../../store/api/publicApi";
@@ -14,36 +15,64 @@ import { useGetSpecialtiesQuery } from "../../../store/api/publicApi";
 interface ISpecialtyItemProps {
   name: string;
   imageUrl: string;
-  isLast: boolean;
+  description: string;
   onClick: () => void;
 }
 
-const SpecialtyItem = ({ name, imageUrl, isLast, onClick }: ISpecialtyItemProps) => {
+const SpecialtyItem = ({
+  name,
+  imageUrl,
+  description,
+  onClick,
+}: ISpecialtyItemProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
+
   return (
-    <li
-      className={`specialty-item${isLast ? " last" : ""}`}
-      onClick={onClick}
-      style={{ cursor: "pointer" }}
-    >
-      <div className="specialty-item__icon">
-        <img
-          src={imageUrl}
-          alt="icon"
-          onError={(e: any) => {
-            e.target.onerror = null;
-            e.target.src = "https://via.placeholder.com/60?text=No+Img";
-          }}
-        />
-      </div>
-      <span className="specialty-item__name">{name}</span>
+    <li className="specialty-item">
+      <button type="button" className="specialty-card" onClick={onClick}>
+        <span className="specialty-item__icon" aria-hidden="true">
+          {!imageFailed && imageUrl ? (
+            <img
+              src={imageUrl}
+              alt=""
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <i className="fas fa-stethoscope" />
+          )}
+        </span>
+        <span className="specialty-item__content">
+          <strong className="specialty-item__name">{name}</strong>
+          <span className="specialty-item__description">{description}</span>
+          <span className="specialty-item__action">
+            Xem bác sĩ <i className="fas fa-arrow-right" aria-hidden="true" />
+          </span>
+        </span>
+      </button>
     </li>
   );
+};
+
+const getDescriptionPreview = (markdown?: string, html?: string) => {
+  const source = markdown || html || "";
+  const plainText = source
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[#*_`>[\]()!-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return plainText || "Xem thông tin chuyên khoa và đội ngũ bác sĩ phù hợp.";
 };
 
 const SpecialtyList = () => {
   const navigate = useNavigate();
   const language = useSelector((state: IRootState) => state.app.language);
-  const { data: specialtiesResponse } = useGetSpecialtiesQuery();
+  const {
+    data: specialtiesResponse,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetSpecialtiesQuery();
   const specialties = useMemo(() => {
     const dataArr = Array.isArray(specialtiesResponse?.data)
       ? specialtiesResponse.data
@@ -51,17 +80,19 @@ const SpecialtyList = () => {
     return dataArr.map((item: any) => ({
       id: item.id,
       name: item.name,
-      imageUrl:
-        getBase64FromBuffer(item.image) ||
-        "https://via.placeholder.com/60?text=No+Img",
+      imageUrl: getBase64FromBuffer(item.image) || "",
+      description: getDescriptionPreview(
+        item.descriptionMarkdown,
+        item.descriptionHTML,
+      ),
     }));
   }, [specialtiesResponse]);
 
   const handleViewDetailSpecialty = useCallback(
-    (id: any) => {
+    (id: number) => {
       navigate(`/specialty/detail-specialty/${id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   const breadcrumbItems = [
@@ -86,28 +117,40 @@ const SpecialtyList = () => {
           <h1 className="specialty-list-title">
             <FormattedMessage id="specialty.special-list.title" />
           </h1>
-          <ul className="specialty-list-items">
-            {specialties && specialties.length > 0 ? (
-              specialties.map((item, idx) => (
+
+          {isLoading ? (
+            <div className="specialty-list-state" role="status">
+              <i className="fas fa-spinner fa-spin" aria-hidden="true" />
+              <span>Đang tải danh sách chuyên khoa...</span>
+            </div>
+          ) : isError ? (
+            <div className="specialty-list-state specialty-list-state--error">
+              <i className="fas fa-exclamation-circle" aria-hidden="true" />
+              <span>Không thể tải danh sách chuyên khoa.</span>
+              <button type="button" onClick={() => refetch()}>
+                Thử lại
+              </button>
+            </div>
+          ) : specialties.length > 0 ? (
+            <ul className="specialty-list-items">
+              {specialties.map((item) => (
                 <SpecialtyItem
                   key={item.id}
                   name={item.name}
                   imageUrl={item.imageUrl}
-                  isLast={idx === specialties.length - 1}
+                  description={item.description}
                   onClick={() => handleViewDetailSpecialty(item.id)}
                 />
-              ))
-            ) : (
-              <li
-                className="specialty-item"
-                style={{ justifyContent: "center" }}
-              >
-                <span>
-                  <FormattedMessage id="special-list.no-info" />
-                </span>
-              </li>
-            )}
-          </ul>
+              ))}
+            </ul>
+          ) : (
+            <div className="specialty-list-state">
+              <i className="fas fa-notes-medical" aria-hidden="true" />
+              <span>
+                <FormattedMessage id="special-list.no-info" />
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <HomeFooter />

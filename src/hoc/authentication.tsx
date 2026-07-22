@@ -3,12 +3,16 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { USER_ROLE } from "../utils";
 import { IRootState } from "../types";
+import type {
+  PatientAuthBookingKind,
+  PendingPatientAuthFlow,
+} from "../features/auth/patientAuthFlow";
 
 interface IGuardProps {
   children: React.ReactElement;
 }
 
-const getRoleHomePath = (roleId?: string) => {
+export const getRoleHomePath = (roleId?: string) => {
   if (roleId === USER_ROLE.DOCTOR) return "/doctor/manage-schedule";
   if (roleId === USER_ROLE.CLINIC_MANAGER) return "/system/clinic-manager";
   if (roleId === USER_ROLE.WRITER) return "/system/writer/articles";
@@ -65,16 +69,43 @@ export const RequirePatient: React.FC<IGuardProps> = ({ children }) => {
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const location = useLocation();
 
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
+  const bookingKind: PatientAuthBookingKind | undefined = location.pathname.startsWith(
+    "/booking-doctor/",
+  )
+    ? "doctor"
+    : location.pathname.startsWith("/booking-package/")
+      ? "package"
+      : undefined;
+  const pendingFlow: PendingPatientAuthFlow = {
+    returnTo,
+    ...(bookingKind ? { bookingKind } : {}),
+    ...(location.state && typeof location.state === "object"
+      ? { routeState: location.state as Record<string, unknown> }
+      : {}),
+  };
+
   if (!isLoggedIn) {
-    const returnTo = `${location.pathname}${location.search}${location.hash}`;
-    return <Navigate to="/patient/auth?mode=login" state={{ returnTo }} replace />;
+    return (
+      <Navigate
+        to="/patient/auth?mode=login"
+        state={{ returnTo, pendingFlow }}
+        replace
+      />
+    );
   }
 
   if (userInfo?.roleId === USER_ROLE.PATIENT) {
     return children;
   }
 
-  return <Navigate to={getRoleHomePath(userInfo?.roleId)} replace />;
+  return (
+    <Navigate
+      to="/patient/auth?mode=login&switchAccount=1"
+      state={{ returnTo, pendingFlow }}
+      replace
+    />
+  );
 };
 
 /**

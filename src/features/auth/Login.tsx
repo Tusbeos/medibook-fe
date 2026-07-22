@@ -127,6 +127,10 @@ const Login: React.FC = () => {
               <strong>R2/R4</strong>
               <span>Vận hành phòng khám</span>
             </div>
+            <div>
+              <strong>R5</strong>
+              <span>Người viết bài / Cộng tác viên nội dung</span>
+            </div>
           </div>
         </div>
       </section>

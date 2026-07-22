@@ -38,6 +38,7 @@ import VerifyPackageBooking from "features/patient/Package/VerifyPackageBooking"
 import SearchPage from "features/public/search/SearchPage";
 import ArticleList from "features/public/article/ArticleList";
 import ArticleDetail from "features/public/article/ArticleDetail";
+import PublicInformationPage from "features/public/information/PublicInformationPage";
 
 const ScrollToTopOnRouteChange: React.FC<{
   scrollbarsRef: React.RefObject<Scrollbars>;
@@ -118,6 +119,11 @@ const App: React.FC<IAppProps> = ({ persistor, onBeforeLift }) => {
                 />
                 <Route path={path.LIST_ARTICLE} element={<ArticleList />} />
                 <Route path={path.DETAIL_ARTICLE} element={<ArticleDetail />} />
+                <Route path="/doctor/join" element={<PublicInformationPage />} />
+                <Route path="/support" element={<PublicInformationPage />} />
+                <Route path="/privacy-policy" element={<PublicInformationPage />} />
+                <Route path="/terms-of-use" element={<PublicInformationPage />} />
+                <Route path="/data-safety" element={<PublicInformationPage />} />
                 <Route
                   path={path.DETAIL_DOCTOR}
                   element={<DetailDoctor />}

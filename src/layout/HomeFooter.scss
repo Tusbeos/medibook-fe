@@ -61,8 +61,7 @@
   align-items: flex-start;
   gap: 16px;
 
-  button {
-    border: 0;
+  a {
     padding: 0;
     width: 100%;
     background: transparent;
@@ -70,40 +69,21 @@
     font-size: 17px;
     text-align: left;
     cursor: pointer;
+    text-decoration: none;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       color: #31b5d2;
     }
   }
 }
 
-.subscribe-form {
-  height: 34px;
-  display: flex;
+.footer-subscribe .subscribe-unavailable {
   margin-top: 18px;
-
-  input {
-    min-width: 0;
-    flex: 1;
-    border: 0;
-    padding: 0 12px;
-    background: #3a4044;
-    color: #ffffff;
-    outline: 0;
-
-    &::placeholder {
-      color: #87919c;
-    }
-  }
-
-  button {
-    border: 0;
-    padding: 0 14px;
-    background: #bfd3ff;
-    color: #002f75;
-    font-weight: 800;
-    cursor: pointer;
-  }
+  color: #c0cad5;
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.5;
 }
 
 .footer-bottom {
@@ -122,13 +102,18 @@
     gap: 24px;
   }
 
-  button {
-    border: 0;
+  a {
     padding: 0;
     background: transparent;
     color: #c0cad5;
     font-size: 14px;
     cursor: pointer;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: #31b5d2;
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import { LANGUAGES, path } from "../../../utils";
 import { FormattedMessage } from "react-intl";
 import { IRootState } from "../../../types";
 import { useGetDoctorScheduleQuery } from "../../../store/api/publicApi";
+import { sortSchedulesChronologically } from "../../../utils/scheduleTime";
 
 interface IDoctorSchedulesProps {
   detailDoctorFromParent: number | string;
@@ -75,7 +76,7 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
     moment().startOf("day").valueOf()
   );
   const shouldSkipSchedule = !detailDoctorFromParent || detailDoctorFromParent === -1;
-  const { data: scheduleResponse } = useGetDoctorScheduleQuery(
+  const { data: scheduleResponse, isFetching: isFetchingSchedule } = useGetDoctorScheduleQuery(
     {
       doctorId: detailDoctorFromParent,
       date: moment(selectedDate).format("YYYY-MM-DD"),
@@ -90,13 +91,18 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
   }, [detailDoctorFromParent, language]);
 
   useEffect(() => {
-    setAvailableTime(scheduleResponse?.data ? scheduleResponse.data : []);
+    setAvailableTime(
+      sortSchedulesChronologically(scheduleResponse?.data || []),
+    );
   }, [scheduleResponse]);
 
   const handleOnChangeSelect = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       if (detailDoctorFromParent && detailDoctorFromParent !== -1) {
         const date = event.target.value;
+        // Do not keep the previous day's slots clickable while RTK Query is
+        // switching arguments and fetching the newly selected date.
+        setAvailableTime([]);
         setSelectedDate(Number(date));
       }
     },
@@ -139,7 +145,11 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
           </span>
         </div>
         <div className="time-content">
-          {availableTime && availableTime.length > 0 ? (
+          {isFetchingSchedule ? (
+            <div className="no-schedule" role="status">
+              Đang tải lịch khám...
+            </div>
+          ) : availableTime && availableTime.length > 0 ? (
             <>
               <div className="time-content-btns">
                 {availableTime.map((item, index) => {
@@ -149,7 +159,7 @@ const DoctorSchedules = ({ detailDoctorFromParent }: IDoctorSchedulesProps) => {
                       : item.timeTypeData.valueEn;
                   const isPast = isTimeSlotPast(item, selectedDate);
                   const isFull = isSlotFull(item);
-                  const isDisabled = isPast || isFull;
+                  const isDisabled = isFetchingSchedule || isPast || isFull;
                   return (
                     <button
                       onClick={() => !isDisabled && handleBookingDoctor(item)}

@@ -1,57 +1,177 @@
 .specialty-list-container {
-  background-color: #fff;
+  min-height: 520px;
+  padding: 12px 0 64px;
+  background-color: #ffffff;
   caret-color: transparent;
-    .specialty-list-title {
-    font-size: 20px;      
-    font-weight: 600;  
-    color: #333;        
-    text-align: left;  
+
+  .specialty-list-title {
+    margin: 14px 0 28px;
+    color: #17324d;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: left;
     text-transform: none;
   }
+
   .specialty-list-items {
-    list-style: none; 
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+    margin: 0;
     padding: 0;
-    margin-bottom: 10px;
-    .specialty-item {
-  display: flex;   
-  height: 200px;    
-  align-items: center;   
-  padding: 12px 0;      
-  border-bottom: 1px solid #cccccc;
+    list-style: none;
+  }
+}
+
+.specialty-item {
+  min-width: 0;
+}
+
+.specialty-card {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border: 1px solid #dce7f2;
+  border-radius: 16px;
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(30, 65, 98, 0.07);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 
-  &:hover {
-    background-color: #fbfbfb;
-    
+  &:hover,
+  &:focus-visible {
+    border-color: #45c3d2;
+    box-shadow: 0 14px 32px rgba(30, 65, 98, 0.14);
+    transform: translateY(-3px);
+
     .specialty-item__name {
-      color: #45c3d2; }
-  }
-  &.last {
-    border-bottom: none;
-  }
-  &__icon {
-    width: auto;
-    height: 130px;
-    background-color: #e8fafa;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-right: 15px;        
-    flex-shrink: 0;
-
-    img {
-      width: auto;           
-      height: 130px;
-      object-fit: contain;}
-  }
-
-  &__name {
-    font-size: 25px;  
-    color: #333;
-    font-weight: 500;
-  }
-}
+      color: #178da0;
+    }
   }
 }
 
+.specialty-item__icon {
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #eaf9fb;
+  color: #159aae;
+  font-size: 48px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.specialty-item__content {
+  min-height: 138px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding-top: 18px;
+}
+
+.specialty-item__name {
+  min-height: 52px;
+  color: #17324d;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.specialty-item__description {
+  display: -webkit-box;
+  min-height: 66px;
+  margin-top: 10px;
+  overflow: hidden;
+  color: #66788a;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.specialty-item__action {
+  margin-top: auto;
+  padding-top: 18px;
+  color: #148da0;
+  font-size: 14px;
+  font-weight: 700;
+
+  i {
+    margin-left: 6px;
+  }
+}
+
+.specialty-list-state {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px dashed #cbd9e6;
+  border-radius: 16px;
+  background: #f8fbfe;
+  color: #66788a;
+  font-size: 16px;
+
+  > i {
+    color: #159aae;
+    font-size: 30px;
+  }
+
+  button {
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #159aae;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+.specialty-list-state--error > i {
+  color: #d04a4a;
+}
+
+@media (max-width: 1024px) {
+  .specialty-list-container .specialty-list-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .specialty-list-container {
+    padding-bottom: 42px;
+
+    .specialty-list-title {
+      font-size: 25px;
+    }
+
+    .specialty-list-items {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+
+  .specialty-card {
+    min-height: 0;
+  }
+}

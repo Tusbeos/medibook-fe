@@ -18,8 +18,8 @@
             gap: 20px;
             border-bottom: 1px solid #eee;
             position: sticky;
-            top : 0;
-            z-index: 100;
+            top: var(--home-header-height, 64px);
+            z-index: 80;
 
             .doctor-image {
                 width: 140px;       

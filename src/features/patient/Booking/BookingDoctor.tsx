@@ -3,7 +3,12 @@ import { useSelector } from "react-redux";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useIntl, FormattedMessage } from "react-intl";
 import "./BookingDoctor.scss";
-import { LANGUAGES, USER_ROLE, toImageCssUrl } from "utils";
+import {
+  LANGUAGES,
+  USER_ROLE,
+  getApiErrorMessage,
+  toImageCssUrl,
+} from "utils";
 import moment from "moment";
 import { NumericFormat } from "react-number-format";
 import HomeHeader from "layout/HomeHeader";
@@ -13,10 +18,20 @@ import { IRootState } from "../../../types";
 import {
   useBookAppointmentMutation,
   useGetDoctorByIdQuery,
+  useGetPatientProfilesQuery,
+  useGetUserByIdQuery,
 } from "../../../store/api/publicApi";
+import type { PatientProfileRecord } from "../../../store/api/publicApi";
 
 const toIsoCalendarDate = (value: unknown): string | undefined => {
   if (value === null || value === undefined || value === "") return undefined;
+  if (value instanceof Date) {
+    const parsedDate = moment(value);
+    return parsedDate.isValid() ? parsedDate.format("YYYY-MM-DD") : undefined;
+  }
+  if (moment.isMoment(value)) {
+    return value.isValid() ? value.format("YYYY-MM-DD") : undefined;
+  }
   const text = String(value);
   const parsed = /^\d+$/.test(text)
     ? moment(Number(text))
@@ -35,6 +50,30 @@ const BookingDoctor = () => {
   const isLoggedIn = useSelector((state: IRootState) => state.user.isLoggedIn);
   const userInfo = useSelector((state: IRootState) => state.user.userInfo);
   const roleId = userInfo?.roleId || userInfo?.roleData?.keyMap;
+  const userId = Number(userInfo?.id || userInfo?.userId || 0);
+  const isPatientAccount =
+    isLoggedIn && roleId === USER_ROLE.PATIENT && userId > 0;
+  const { data: userResponse } = useGetUserByIdQuery(userId, {
+    skip: !isPatientAccount,
+  });
+  const profileUser = useMemo(
+    () =>
+      userResponse?.errCode === 0 && userResponse.data
+        ? { ...userInfo, ...userResponse.data }
+        : userInfo,
+    [userInfo, userResponse],
+  );
+  const { data: patientProfilesResponse } = useGetPatientProfilesQuery(userId, {
+    skip: !isPatientAccount,
+  });
+  const patientProfiles = useMemo<PatientProfileRecord[]>(
+    () =>
+      patientProfilesResponse?.errCode === 0 &&
+      Array.isArray(patientProfilesResponse.data)
+        ? patientProfilesResponse.data
+        : [],
+    [patientProfilesResponse],
+  );
 
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -56,6 +95,7 @@ const BookingDoctor = () => {
   const [profileAddress, setProfileAddress] = useState("");
   const [relationship, setRelationship] = useState("");
   const [medicalHistory, setMedicalHistory] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState("new");
 
   const routeState = location.state as {
     dataTime?: any;
@@ -72,10 +112,22 @@ const BookingDoctor = () => {
   const timeType = timeBooking?.timeType || "";
 
   useEffect(() => {
-    if (isLoggedIn && roleId === USER_ROLE.PATIENT && userInfo?.email) {
-      setEmail(userInfo.email);
+    if (!isPatientAccount || !profileUser) return;
+    setEmail(profileUser.email || "");
+    if (isForOther) return;
+
+    setLastName((current) => current || profileUser.lastName || "");
+    setFirstName((current) => current || profileUser.firstName || "");
+    setGender((current) => current || profileUser.gender || "");
+    setPhoneNumber((current) => current || profileUser.phoneNumber || "");
+    setAddress((current) => current || profileUser.address || "");
+    const profileBirthday = toIsoCalendarDate(profileUser.dateOfBirth);
+    if (profileBirthday) {
+      setBirthday((current: any) =>
+        current || moment(profileBirthday, "YYYY-MM-DD").toDate(),
+      );
     }
-  }, [isLoggedIn, roleId, userInfo?.email]);
+  }, [isPatientAccount, profileUser, isForOther]);
 
   useEffect(() => {
     const draft = routeState?.bookingKind === "doctor"
@@ -197,53 +249,64 @@ const BookingDoctor = () => {
     setBirthday(date[0]);
   }, []);
 
+  const clearOtherPatientForm = useCallback(() => {
+    setProfileLastName("");
+    setProfileFirstName("");
+    setProfileGender("");
+    setProfilePhoneNumber("");
+    setProfileDateOfBirth("");
+    setProfileAddress("");
+    setRelationship("");
+    setMedicalHistory("");
+  }, []);
+
+  const handleForOtherChange = useCallback(
+    (checked: boolean) => {
+      setIsForOther(checked);
+      if (checked) {
+        setSelectedProfileId("new");
+        clearOtherPatientForm();
+      }
+    },
+    [clearOtherPatientForm],
+  );
+
+  const handleProfileSelection = useCallback(
+    (profileId: string) => {
+      setSelectedProfileId(profileId);
+      clearOtherPatientForm();
+      if (profileId === "new") return;
+
+      const selected = patientProfiles.find(
+        (profile) => String(profile.id) === profileId,
+      );
+      if (!selected) return;
+      setProfileLastName(selected.lastName || "");
+      setProfileFirstName(selected.firstName || "");
+      setProfileGender(selected.gender || "");
+      setProfilePhoneNumber(selected.phoneNumber || "");
+      setProfileDateOfBirth(
+        selected.dateOfBirth
+          ? moment(selected.dateOfBirth, "YYYY-MM-DD").toDate()
+          : "",
+      );
+      setProfileAddress(selected.address || "");
+      setRelationship(selected.relationship || "");
+      setMedicalHistory(selected.medicalHistory || "");
+    },
+    [clearOtherPatientForm, patientProfiles],
+  );
+
   const handleConfirmBooking = useCallback(async () => {
-    let timeString = renderTimeBooking(timeBooking);
-    let doctorNameStr = buildDoctorName(detailDoctor);
-    let appointmentDate = toIsoCalendarDate(timeBooking?.date);
-    let birthdayVal = toIsoCalendarDate(birthday);
-    let fullName = `${lastName || ""} ${firstName || ""}`.trim();
+    const timeString = renderTimeBooking(timeBooking);
+    const doctorNameStr = buildDoctorName(detailDoctor);
+    const appointmentDate = toIsoCalendarDate(timeBooking?.date);
+    const birthdayVal = toIsoCalendarDate(birthday);
+    const fullName = `${lastName || ""} ${firstName || ""}`.trim();
 
     if (!appointmentDate) {
-      toast.error("NgÃ y khÃ¡m khÃ´ng há»£p lá»‡. Vui lÃ²ng chá»n láº¡i khung giá».");
+      toast.error("Ngày khám không hợp lệ. Vui lòng chọn lại khung giờ.");
       return;
-    }
-
-    // Chuẩn bị payload, bao gồm thông tin đặt hộ nếu có
-    let payload: any = {
-      fullName: fullName,
-      lastName: lastName,
-      firstName: firstName,
-      gender: gender,
-      phoneNumber: phoneNumber,
-      email: email,
-      date: appointmentDate,
-      birthday: birthdayVal,
-      address: address,
-      reason: reason,
-      doctorId: doctorId,
-      timeType: timeType,
-      language: language,
-      timeString: timeString,
-      doctorName: doctorNameStr,
-    };
-
-    if (isForOther) {
-      let profileDobVal = profileDateOfBirth
-        ? new Date(profileDateOfBirth).toISOString().split("T")[0]
-        : "";
-      payload = {
-        ...payload,
-        isForOther: true,
-        profileLastName: profileLastName,
-        profileFirstName: profileFirstName,
-        profileGender: profileGender,
-        profilePhoneNumber: profilePhoneNumber,
-        profileDateOfBirth: profileDobVal,
-        profileAddress: profileAddress,
-        relationship: relationship,
-        medicalHistory: medicalHistory,
-      };
     }
 
     if (!isLoggedIn) {
@@ -259,7 +322,73 @@ const BookingDoctor = () => {
       return;
     }
 
-    payload.email = userInfo?.email || email.trim().toLowerCase();
+    if (!isForOther) {
+      if (
+        !lastName.trim() ||
+        !firstName.trim() ||
+        !gender ||
+        !phoneNumber.trim() ||
+        !birthdayVal ||
+        !address.trim()
+      ) {
+        toast.error("Vui lòng điền đầy đủ thông tin người khám.");
+        return;
+      }
+    } else if (
+      selectedProfileId === "new" &&
+      (!profileLastName.trim() ||
+        !profileFirstName.trim() ||
+        !profileGender ||
+        !profilePhoneNumber.trim() ||
+        !toIsoCalendarDate(profileDateOfBirth) ||
+        !profileAddress.trim() ||
+        !relationship.trim())
+    ) {
+      toast.error("Vui lòng điền đầy đủ thông tin người được đặt hộ.");
+      return;
+    }
+
+    let payload: any = {
+      cachePatientId: userId,
+      email: userInfo?.email || email.trim().toLowerCase(),
+      date: appointmentDate,
+      reason: reason.trim(),
+      doctorId,
+      timeType,
+      language,
+      timeString,
+      doctorName: doctorNameStr,
+    };
+
+    if (isForOther) {
+      payload = {
+        ...payload,
+        isForOther: true,
+        ...(selectedProfileId !== "new"
+          ? { profileId: Number(selectedProfileId) }
+          : {
+              profileLastName: profileLastName.trim(),
+              profileFirstName: profileFirstName.trim(),
+              profileGender,
+              profilePhoneNumber: profilePhoneNumber.trim(),
+              profileDateOfBirth: toIsoCalendarDate(profileDateOfBirth),
+              profileAddress: profileAddress.trim(),
+              relationship: relationship.trim(),
+              medicalHistory: medicalHistory.trim(),
+            }),
+      };
+    } else {
+      payload = {
+        ...payload,
+        fullName,
+        lastName: lastName.trim(),
+        firstName: firstName.trim(),
+        gender,
+        phoneNumber: phoneNumber.trim(),
+        birthday: birthdayVal,
+        address: address.trim(),
+      };
+    }
 
     try {
       const res = await bookAppointment(payload).unwrap();
@@ -267,10 +396,12 @@ const BookingDoctor = () => {
         toast.error(res?.errMessage || "Booking a new appointment error!");
         return;
       }
-      toast.success("Booking a new appointment succeed!");
+      toast.success("Đặt lịch thành công. Vui lòng kiểm tra email xác nhận.");
       navigate(`/detail-doctor/${doctorId}`);
-    } catch (_) {
-      toast.error("Booking a new appointment error!");
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Không thể đặt lịch. Vui lòng thử lại."),
+      );
     }
   }, [
     renderTimeBooking,
@@ -297,29 +428,14 @@ const BookingDoctor = () => {
     profileAddress,
     relationship,
     medicalHistory,
+    selectedProfileId,
     isLoggedIn,
     roleId,
     userInfo?.email,
+    userId,
     navigate,
     bookAppointment,
   ]);
-
-  console.log("check props booking modal", {
-    lastName,
-    firstName,
-    gender,
-    phoneNumber,
-    email,
-    birthday,
-    address,
-    reason,
-    doctorId,
-    timeType,
-    detailDoctor,
-    timeBooking,
-    doctorInfo,
-    paymentMethod,
-  });
 
   return (
     <>
@@ -448,6 +564,7 @@ const BookingDoctor = () => {
                             type="radio"
                             name="gender"
                             value="M"
+                            checked={gender === "M"}
                             onChange={(event) =>
                               handleOnChangeInput(event, "gender")
                             }
@@ -459,6 +576,7 @@ const BookingDoctor = () => {
                             type="radio"
                             name="gender"
                             value="F"
+                            checked={gender === "F"}
                             onChange={(event) =>
                               handleOnChangeInput(event, "gender")
                             }
@@ -572,7 +690,7 @@ const BookingDoctor = () => {
                     <input
                       type="checkbox"
                       checked={isForOther}
-                      onChange={(e) => setIsForOther(e.target.checked)}
+                      onChange={(e) => handleForOtherChange(e.target.checked)}
                       style={{ marginRight: "8px" }}
                     />
                     <strong>Đặt cho người khác</strong>
@@ -588,12 +706,41 @@ const BookingDoctor = () => {
                           Thông tin bệnh nhân được đặt hộ
                         </div>
                         <div className="row">
+                          <div className="col-12 form-group">
+                            <label htmlFor="patient-profile-choice">
+                              Chọn hồ sơ người thân đã lưu (không bắt buộc)
+                            </label>
+                            <select
+                              id="patient-profile-choice"
+                              className="form-control"
+                              value={selectedProfileId}
+                              onChange={(event) =>
+                                handleProfileSelection(event.target.value)
+                              }
+                            >
+                              <option value="new">Nhập thông tin mới</option>
+                              {patientProfiles.map((profile) => (
+                                <option key={profile.id} value={profile.id}>
+                                  {`${profile.lastName || ""} ${profile.firstName || ""}`.trim() ||
+                                    `Hồ sơ #${profile.id}`}
+                                  {profile.relationship
+                                    ? ` – ${profile.relationship}`
+                                    : ""}
+                                </option>
+                              ))}
+                            </select>
+                            <small className="text-muted d-block mt-1">
+                              Khi vừa bật “Đặt cho người khác”, form luôn trống.
+                              Chỉ điền sẵn sau khi bạn chủ động chọn một hồ sơ.
+                            </small>
+                          </div>
                           <div className="col-12 col-md-6 form-group">
                             <input
                               className="form-control"
                               type="text"
                               placeholder="Họ bệnh nhân"
                               value={profileLastName}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(e) =>
                                 setProfileLastName(e.target.value)
                               }
@@ -605,6 +752,7 @@ const BookingDoctor = () => {
                               type="text"
                               placeholder="Tên bệnh nhân"
                               value={profileFirstName}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(e) =>
                                 setProfileFirstName(e.target.value)
                               }
@@ -618,6 +766,7 @@ const BookingDoctor = () => {
                                   name="profileGender"
                                   value="M"
                                   checked={profileGender === "M"}
+                                  disabled={selectedProfileId !== "new"}
                                   onChange={() => setProfileGender("M")}
                                 />{" "}
                                 Nam
@@ -628,6 +777,7 @@ const BookingDoctor = () => {
                                   name="profileGender"
                                   value="F"
                                   checked={profileGender === "F"}
+                                  disabled={selectedProfileId !== "new"}
                                   onChange={() => setProfileGender("F")}
                                 />{" "}
                                 Nữ
@@ -640,6 +790,7 @@ const BookingDoctor = () => {
                               type="text"
                               placeholder="Số điện thoại bệnh nhân"
                               value={profilePhoneNumber}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(e) =>
                                 setProfilePhoneNumber(e.target.value)
                               }
@@ -649,6 +800,7 @@ const BookingDoctor = () => {
                             <DatePicker
                               className="form-control"
                               value={profileDateOfBirth}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(date: any) =>
                                 setProfileDateOfBirth(date[0])
                               }
@@ -661,6 +813,7 @@ const BookingDoctor = () => {
                               type="text"
                               placeholder="Địa chỉ bệnh nhân"
                               value={profileAddress}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(e) =>
                                 setProfileAddress(e.target.value)
                               }
@@ -672,6 +825,7 @@ const BookingDoctor = () => {
                               type="text"
                               placeholder="Mối quan hệ (cha, mẹ, con, vợ, chồng...)"
                               value={relationship}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(e) => setRelationship(e.target.value)}
                             />
                           </div>
@@ -681,6 +835,7 @@ const BookingDoctor = () => {
                               rows={3}
                               placeholder="Tiền sử bệnh (nếu có)"
                               value={medicalHistory}
+                              disabled={selectedProfileId !== "new"}
                               onChange={(e) =>
                                 setMedicalHistory(e.target.value)
                               }
@@ -704,6 +859,7 @@ const BookingDoctor = () => {
                         name="paymentMethod"
                         value="cash"
                         checked={paymentMethod === "cash"}
+                        readOnly
                       />{" "}
                       &nbsp;
                       <FormattedMessage id="booking.booking-doctor.payment-attention" />

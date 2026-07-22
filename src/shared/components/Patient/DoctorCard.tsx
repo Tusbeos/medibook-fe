@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { IRootState } from "types";
 import { AppDispatch } from "app/store/reduxStore";
 import { publicApi } from "store/api/publicApi";
+import { sortSchedulesChronologically } from "utils/scheduleTime";
 
 // Kiểm tra slot đã đầy chưa
 const isSlotFull = (item: any): boolean => {
@@ -126,7 +127,9 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
           store.getState(),
         );
         if (cached?.data) {
-          const schedules = cached.data.errCode === 0 ? cached.data.data || [] : [];
+          const schedules = sortSchedulesChronologically(
+            cached.data.errCode === 0 ? cached.data.data || [] : [],
+          );
           setSchedulesByDoctor((prev) => ({ ...prev, [doctorId]: schedules }));
           setSelectedDateByDoctor((prev) => ({ ...prev, [doctorId]: dateValue }));
           return;
@@ -138,7 +141,9 @@ const DoctorCard: React.FC<IDoctorCardProps> = ({
             { subscribe: false, forceRefetch: false },
           ),
         ).unwrap();
-        const schedules = res && res.errCode === 0 ? res.data || [] : [];
+        const schedules = sortSchedulesChronologically(
+          res && res.errCode === 0 ? res.data || [] : [],
+        );
         setSchedulesByDoctor((prev) => ({ ...prev, [doctorId]: schedules }));
         setSelectedDateByDoctor((prev) => ({ ...prev, [doctorId]: dateValue }));
       } catch (e) {

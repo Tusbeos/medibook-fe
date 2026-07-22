@@ -1,10 +1,10 @@
 export type PatientAuthBookingKind = "doctor" | "package";
 
 export interface PendingPatientAuthFlow {
-  email: string;
+  email?: string;
   returnTo: string;
-  bookingKind: PatientAuthBookingKind;
-  bookingDraft: Record<string, unknown>;
+  bookingKind?: PatientAuthBookingKind;
+  bookingDraft?: Record<string, unknown>;
   routeState?: Record<string, unknown>;
 }
 

@@ -272,14 +272,31 @@
       margin: 0 auto 22px;
     }
 
-    a {
+    a,
+    button {
       background: #159aaa;
+      border: 0;
       border-radius: 7px;
       color: #fff;
+      cursor: pointer;
       display: inline-flex;
       font-weight: 800;
+      justify-content: center;
       padding: 12px 18px;
       text-decoration: none;
+    }
+  }
+
+  .package-booking-blocked-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+
+    a {
+      background: #fff;
+      border: 1px solid #b9cbd6;
+      color: #344c62;
     }
   }
 

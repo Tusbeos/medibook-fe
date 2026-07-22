@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { DataState } from "components/System/SystemShared";
 import {
   ARTICLE_PUBLIC_LIVE_OPTIONS,
+  ARTICLE_STATUS,
   ArticleListItem,
   useGetFeaturedArticlesQuery,
+  useGetPublishedArticlesQuery,
 } from "store/api/articleApi";
 
 const formatDate = (value?: string | null) => {
@@ -29,7 +31,7 @@ const FeaturedArticleCard: React.FC<{ article: ArticleListItem }> = ({ article }
         ) : (
           <i className="far fa-newspaper" aria-hidden="true" />
         )}
-        <span>Nổi bật</span>
+        <span>{article.featured ? "Nổi bật" : "Mới cập nhật"}</span>
       </div>
       <div className="home-article-body">
         <time dateTime={article.publishedAt || undefined}>
@@ -46,11 +48,46 @@ const FeaturedArticleCard: React.FC<{ article: ArticleListItem }> = ({ article }
 };
 
 const FeaturedArticleSection: React.FC = () => {
-  const query = useGetFeaturedArticlesQuery(3, ARTICLE_PUBLIC_LIVE_OPTIONS);
-  const articles = useMemo(
-    () => (query.data?.data || []).filter((article) => article.statusId === "AS4"),
-    [query.data],
+  const featuredQuery = useGetFeaturedArticlesQuery(
+    3,
+    ARTICLE_PUBLIC_LIVE_OPTIONS,
   );
+  const featuredArticles = useMemo(
+    () =>
+      (featuredQuery.data?.data || []).filter(
+        (article) => article.statusId === ARTICLE_STATUS.PUBLISHED,
+      ),
+    [featuredQuery.data],
+  );
+  const shouldLoadLatest =
+    !featuredQuery.isLoading &&
+    (featuredQuery.isError || featuredArticles.length === 0);
+  const latestQuery = useGetPublishedArticlesQuery(
+    { page: 0, size: 3 },
+    {
+      ...ARTICLE_PUBLIC_LIVE_OPTIONS,
+      skip: !shouldLoadLatest,
+    },
+  );
+  const latestArticles = useMemo(
+    () =>
+      (latestQuery.data?.data || []).filter(
+        (article) => article.statusId === ARTICLE_STATUS.PUBLISHED,
+      ),
+    [latestQuery.data],
+  );
+  const articles =
+    featuredArticles.length > 0 ? featuredArticles : latestArticles;
+  const isLoading =
+    featuredQuery.isLoading || (shouldLoadLatest && latestQuery.isLoading);
+  const isError =
+    shouldLoadLatest && latestQuery.isError && articles.length === 0;
+  const retry = () => {
+    void featuredQuery.refetch();
+    if (shouldLoadLatest) {
+      void latestQuery.refetch();
+    }
+  };
 
   return (
     <section className="section-share section-featured-articles" aria-labelledby="home-articles-title">
@@ -69,13 +106,13 @@ const FeaturedArticleSection: React.FC = () => {
           </Link>
         </div>
 
-        {query.isLoading ? (
+        {isLoading ? (
           <DataState variant="loading" text="Đang tải cẩm nang..." />
-        ) : query.isError && articles.length === 0 ? (
+        ) : isError ? (
           <DataState
             variant="error"
             text="Không thể tải cẩm nang sức khỏe."
-            onRetry={query.refetch}
+            onRetry={retry}
           />
         ) : articles.length === 0 ? (
           <DataState variant="empty" text="Chưa có bài viết nổi bật." />

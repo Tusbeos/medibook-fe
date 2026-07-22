@@ -167,6 +167,12 @@ $primary-color: #45c3d2;
           &:hover {
             transform: translateY(-1px);
           }
+
+          &:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+            transform: none;
+          }
         }
 
         .btn-save {

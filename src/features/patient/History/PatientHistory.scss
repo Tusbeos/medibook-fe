@@ -64,6 +64,39 @@ $primary-color: #45c3d2;
       }
     }
 
+    .history-filters {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 28px 0;
+
+      label {
+        color: #4a5568;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      select {
+        min-width: 230px;
+        border: 1px solid #d8e1e8;
+        border-radius: 8px;
+        background: #fff;
+        color: #263238;
+        padding: 8px 34px 8px 12px;
+        outline: none;
+
+        &:focus {
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
+        }
+      }
+
+      .filter-loading {
+        color: #718096;
+        font-size: 12px;
+      }
+    }
+
     .history-body {
       padding: 20px 28px;
       min-height: 200px;
@@ -153,6 +186,44 @@ $primary-color: #45c3d2;
                   font-size: 14px;
                   width: 16px;
                   text-align: center;
+                }
+              }
+
+              .status-badge {
+                border-radius: 999px;
+                padding: 4px 10px;
+                font-size: 12px;
+                font-weight: 700;
+                line-height: 1.35;
+
+                &.status-warning {
+                  background: #fff3cd;
+                  color: #7a5300;
+                }
+
+                &.status-info {
+                  background: #d9f3f8;
+                  color: #176576;
+                }
+
+                &.status-primary {
+                  background: #dbeafe;
+                  color: #174b91;
+                }
+
+                &.status-success {
+                  background: #dff3e5;
+                  color: #205c34;
+                }
+
+                &.status-danger {
+                  background: #fde2e2;
+                  color: #8b2525;
+                }
+
+                &.status-neutral {
+                  background: #edf2f7;
+                  color: #4a5568;
                 }
               }
 
@@ -272,6 +343,16 @@ $primary-color: #45c3d2;
 
 @media (max-width: 600px) {
   .patient-history-container {
+    .history-card .history-filters {
+      align-items: stretch;
+      flex-direction: column;
+
+      select {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+
     .history-card .history-body .history-list .history-item .item-summary .summary-left {
       gap: 8px;
     }

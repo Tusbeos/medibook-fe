@@ -17,7 +17,8 @@ import {
 import { AppDispatch } from "app/store/reduxStore";
 
 const PatientProfile: React.FC = () => {
-  const [updateUser] = useUpdateUserMutation();
+  const [updateUser, { isLoading: isUpdatingProfile }] =
+    useUpdateUserMutation();
   const [changePassword] = useChangePasswordMutation();
   const dispatch = useDispatch<AppDispatch>();
   const language = useSelector((state: IRootState) => state.app.language);
@@ -49,6 +50,7 @@ const PatientProfile: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [previewAvatar, setPreviewAvatar] = useState("");
   const [avatar, setAvatar] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -71,81 +73,58 @@ const PatientProfile: React.FC = () => {
       setPhoneNumber(profileUser.phoneNumber || "");
       setAddress(profileUser.address || "");
       setGender(profileUser.gender || "");
-      if (profileUser.image) {
-        setPreviewAvatar(normalizeImageSrc(profileUser.image));
-      }
+      setDateOfBirth(profileUser.dateOfBirth || "");
+      setPreviewAvatar(normalizeImageSrc(profileUser.image));
     }
   }, [profileUser]);
 
-  // Fetch dữ liệu mới nhất từ server khi vào trang (tránh Redux state cũ)
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const userId = userInfo?.id || userInfo?.userId;
-      if (!userId) return;
-      try {
-        const res = profileResponse;
-        if (res && res.errCode === 0 && res.data) {
-          const u = res.data;
-          setFirstName(u.firstName || "");
-          setLastName(u.lastName || "");
-          setEmail(u.email || "");
-          setPhoneNumber(u.phoneNumber || "");
-          setAddress(u.address || "");
-          setGender(u.gender || "");
-          if (u.image) {
-            setPreviewAvatar(normalizeImageSrc(u.image));
-          }
-        }
-      } catch (e) {
-        // Giữ nguyên dữ liệu Redux nếu lỗi mạng
-      }
-    };
-    fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInfo?.id, profileResponse]);
-
-  // Lấy danh sách giới tính
-  useEffect(() => {
-    const fetchGenders = async () => {
-      try {
-        const res = gendersResponse;
-        if (res && res.errCode === 0) {
-          void res.data;
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-    fetchGenders();
-  }, [gendersResponse]);
-
+  // Dữ liệu giới tính được lấy qua RTK Query ở phía trên.
   const handleAvatarChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
+
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Chỉ chấp nhận ảnh JPG, PNG hoặc WebP.");
+        e.target.value = "";
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Ảnh đại diện không được vượt quá 2 MB.");
+        e.target.value = "";
+        return;
+      }
+
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
         setPreviewAvatar(base64);
         setAvatar(base64);
-      };
-      reader.readAsDataURL(file);
+      } catch {
+        toast.error("Không thể đọc tệp ảnh đã chọn.");
+      } finally {
+        e.target.value = "";
+      }
     },
     [],
   );
 
   const handleSave = useCallback(async () => {
-    if (!userInfo?.id) return;
+    if (!userInfo || !userId || isUpdatingProfile) return;
 
     const data: Partial<IUser> = {
-      id: userInfo.id,
-      firstName,
-      lastName,
-      phoneNumber,
-      address,
+      id: Number(userId),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phoneNumber: phoneNumber.trim(),
+      address: address.trim(),
       gender,
-      roleId: userInfo.roleId || "R3",
-      positionId: userInfo.positionId || "P0",
+      dateOfBirth: dateOfBirth || undefined,
       avatar: avatar || undefined,
     };
 
@@ -160,7 +139,7 @@ const PatientProfile: React.FC = () => {
         // Fetch lại dữ liệu mới nhất từ server để cập nhật Redux store
         try {
           const fresh = await dispatch(
-            publicApi.endpoints.getUserById.initiate(userInfo.id, {
+            publicApi.endpoints.getUserById.initiate(userId, {
               subscribe: false,
               forceRefetch: true,
             }),
@@ -169,7 +148,7 @@ const PatientProfile: React.FC = () => {
             const updatedUser: IUser = {
               ...userInfo,
               ...fresh.data,
-              image: normalizeImageSrc(fresh.data.image) || avatar || userInfo.image,
+              image: fresh.data.image ?? userInfo.image,
             };
             dispatch(userLoginSuccess(updatedUser, token || undefined));
           }
@@ -182,6 +161,7 @@ const PatientProfile: React.FC = () => {
             phoneNumber,
             address,
             gender,
+            dateOfBirth,
             image: avatar || userInfo.image,
           };
           dispatch(userLoginSuccess(updatedUser, token || undefined));
@@ -191,12 +171,15 @@ const PatientProfile: React.FC = () => {
       } else {
         toast.error(res?.errMessage || "Update failed");
       }
-    } catch (err) {
-      toast.error(
-        language === LANGUAGES.VI
+    } catch (err: any) {
+      const message =
+        err?.data?.errMessage ||
+        err?.data?.message ||
+        err?.message ||
+        (language === LANGUAGES.VI
           ? "Có lỗi xảy ra khi cập nhật"
-          : "Error updating profile",
-      );
+          : "Error updating profile");
+      toast.error(message);
     }
   }, [
     userInfo,
@@ -205,11 +188,14 @@ const PatientProfile: React.FC = () => {
     phoneNumber,
     address,
     gender,
+    dateOfBirth,
     avatar,
     language,
     dispatch,
     token,
     updateUser,
+    userId,
+    isUpdatingProfile,
   ]);
 
   // Xử lý đổi mật khẩu
@@ -296,9 +282,8 @@ const PatientProfile: React.FC = () => {
       setPhoneNumber(profileUser.phoneNumber || "");
       setAddress(profileUser.address || "");
       setGender(profileUser.gender || "");
-      if (profileUser.image) {
-        setPreviewAvatar(normalizeImageSrc(profileUser.image));
-      }
+      setDateOfBirth(profileUser.dateOfBirth || "");
+      setPreviewAvatar(normalizeImageSrc(profileUser.image));
       setAvatar("");
     }
     setIsEditing(false);
@@ -344,7 +329,7 @@ const PatientProfile: React.FC = () => {
                     <input
                       type="file"
                       id="avatar-input"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       onChange={handleAvatarChange}
                       hidden
                     />
@@ -464,21 +449,57 @@ const PatientProfile: React.FC = () => {
                   </span>
                 )}
               </div>
+
+              <div className="form-group">
+                <label>Ngày sinh</label>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                  />
+                ) : (
+                  <span className="field-value">
+                    {dateOfBirth
+                      ? new Date(`${dateOfBirth}T00:00:00`).toLocaleDateString(
+                          language === LANGUAGES.VI ? "vi-VN" : "en-US",
+                        )
+                      : "—"}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Nút hành động */}
             {isEditing && (
               <div className="form-actions">
-                <button className="btn-save" onClick={handleSave}>
-                  <i className="fas fa-check" />
+                <button
+                  className="btn-save"
+                  onClick={handleSave}
+                  disabled={isUpdatingProfile}
+                >
+                  <i
+                    className={`fas ${
+                      isUpdatingProfile ? "fa-spinner fa-spin" : "fa-check"
+                    }`}
+                  />
                   <span>
-                    <FormattedMessage
-                      id="patient.profile.save"
-                      defaultMessage="Lưu thay đổi"
-                    />
+                    {isUpdatingProfile ? (
+                      "Đang lưu..."
+                    ) : (
+                      <FormattedMessage
+                        id="patient.profile.save"
+                        defaultMessage="Lưu thay đổi"
+                      />
+                    )}
                   </span>
                 </button>
-                <button className="btn-cancel" onClick={handleCancel}>
+                <button
+                  className="btn-cancel"
+                  onClick={handleCancel}
+                  disabled={isUpdatingProfile}
+                >
                   <i className="fas fa-times" />
                   <span>
                     <FormattedMessage
